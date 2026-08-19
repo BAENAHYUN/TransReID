@@ -21,6 +21,7 @@ CONFIG_PATH = "TransReID_official/configs/Market/vit_transreid_stride.yml"  # Ma
 
 # ── 1. 설정 불러오기 ──────────────────────────
 cfg.merge_from_file(CONFIG_PATH)
+
 cfg.freeze()
 
 # ── 2. 모델 구조 만들고 weight 로드 ──────────────
@@ -44,9 +45,12 @@ image = Image.open(CROP_IMAGE_PATH).convert("RGB")
 input_tensor = transform(image).unsqueeze(0).to(device)  # 배치 차원 추가
 
 # ── 4. Embedding 추출 ──────────────────────────
+#49, 50 두 줄 추가
+cam_label = torch.tensor([0]).to(device)
+view_label = torch.tensor([0]).to(device)
 with torch.no_grad():  # 학습 아니므로 gradient 계산 끔 (속도/메모리 절약)
-    embedding = model(input_tensor)
-
+    #embedding = model(input_tensor) 이건 주석 처리 하고 밑에 줄 추가함
+    embedding = model(input_tensor, cam_label=cam_label, view_label=view_label)
 embedding = embedding.cpu().numpy().flatten()
 
 # ── 5. 결과 확인 ──────────────────────────
