@@ -46,16 +46,19 @@ def load_reid_model():
 
     return model, device
 
-
-def get_embedding(model, device, image_path):
+# 1. 함수 정의 줄 - cam_id=0 파라미터 추가
+def get_embedding(model, device, image_path, cam_id=0):   # ← 여기 cam_id=0 추가됨
     """
     이미 로드된 model/device를 받아서, 사진 1장(image_path)의 embedding을 반환.
     image_path는 인자로 받음 — 절대 하드코딩하지 않음.
+     cam_id: 카메라 라벨(0-indexed). 모르면 기본값 0 그대로 사용   # ← 이 줄 추가됨
     """
     image = Image.open(image_path).convert("RGB")
     input_tensor = _transform(image).unsqueeze(0).to(device)
 
-    cam_label = torch.tensor([0]).to(device)
+    #0을 cam_id로 교체
+    #cam_label = torch.tensor([0]).to(device)
+    cam_label = torch.tensor([cam_id]).to(device)   # ← 원래는 torch.tensor([0])이었음
     view_label = torch.tensor([0]).to(device)
 
     with torch.no_grad():
