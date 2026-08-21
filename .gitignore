@@ -2,6 +2,7 @@ venv/
 weights/
 data/
 TransReID_official/
+CLIP-ReID_official/
 *.pt
 log.txt
 __pycache__/
