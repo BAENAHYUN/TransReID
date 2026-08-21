@@ -10,7 +10,7 @@
 import os
 import cv2
 import numpy as np
-from rfdetr import RFDETRMedium  # Nano~2XLarge 중 Medium 선택 (속도/정확도 균형, GTX1060 고려)
+from rfdetr import RFDETRMedium  # Nano~2XLarge 중 Medium (GTX1060)
 from rfdetr.assets.coco_classes import COCO_CLASSES
 
 CONF_THRESHOLD = 0.5  # query가 아니라 환경설정이라 상수로 둠
@@ -22,6 +22,7 @@ def load_detect_model():
     처음 실행 시 pretrained weight를 자동으로 다운로드합니다.
     """
     model = RFDETRMedium()
+    model.inference(compile=False, dtype="float16") # ← 이 줄 추가 (최신 함수명)
     return model
 
 
@@ -35,7 +36,7 @@ def detect_and_crop(model, image_path, output_dir="data/crops", prefix=""):
     os.makedirs(output_dir, exist_ok=True)
 
     # RF-DETR은 URL/경로/PIL Image/numpy array 다 받을 수 있음. 여기선 경로 그대로 사용.
-    detections = model.predict(image_path, threshold=CONF_THRESHOLD)
+    detections = model.predict(image_path, threshold=CONF_THRESHOLD)# 기본 해상도(576) 사용
 
     image = cv2.imread(image_path)  # crop 저장을 위해 OpenCV로도 읽음(BGR)
 
