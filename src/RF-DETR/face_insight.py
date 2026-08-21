@@ -44,7 +44,8 @@ def detect_faces(app, image_path):
             "embedding": face.embedding,  # 512차원 ArcFace embedding
             "det_score": float(face.det_score),
             "age": int(face.age) if face.age is not None else None,
-            "gender": int(face.sex) if hasattr(face, "sex") and face.sex is not None else None,
+            #성별은 str
+            "gender": str(face.sex) if hasattr(face, "sex") and face.sex is not None else None,
         })
 
     return results
