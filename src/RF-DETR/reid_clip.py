@@ -6,7 +6,7 @@
 주의: CLIP-ReID는 codebase가 TransReID에서 파생되어 구조가 비슷하지만,
       make_model_clipreid.py를 씁니다. forward()의 반환값이 TransReID와 다릅니다.
 """
-
+import numpy as np       
 import sys
 import torch
 from PIL import Image
@@ -72,6 +72,9 @@ def get_embedding(model, device, image_path, cam_id=0):
         embedding = embedding[0]
 
     embedding = embedding.cpu().numpy().flatten()
+      # FEAT_NORM: 'yes' 재현 + 0으로 나누기 방지
+    norm = np.linalg.norm(embedding)
+    embedding = embedding / norm if norm > 1e-12 else embedding
     return embedding
 
 
