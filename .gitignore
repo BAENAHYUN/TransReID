@@ -6,3 +6,4 @@ CLIP-ReID_official/
 *.pt
 log.txt
 __pycache__/
+*.zip
