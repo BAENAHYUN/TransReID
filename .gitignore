@@ -4,6 +4,7 @@ data/
 TransReID_official/
 CLIP-ReID_official/
 *.pt
-log.txt
 __pycache__/
 *.zip
+log*.txt
+filtered_list.txt
