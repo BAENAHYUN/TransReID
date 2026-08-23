@@ -1,7 +1,7 @@
 """
-마일스톤 4 (업데이트): data/sample_photos 안의 사진 전부 처리해서 Qdrant Vector DB에 저장
-- Person(CLIP-ReID, 1280D)과 Face(InsightFace, 512D)를 Named Vector로 동시 저장
-- 경빈님이 클러스터링 AI 개발을 위해 통합 테스트하며 개선한 버전을 기반으로 정리함
+마일스톤 4/11 (업데이트): data/sample_photos 안의 사진 전부 처리해서 Qdrant Vector DB에 저장
+- Person(CLIP-ReID, 1280D) + Face(InsightFace, 512D) + Semantic(SigLIP2, 768D)를
+  Named Vector로 동시 저장 (M11: 3-way Fusion 검색을 위한 기반)
 
 사용법: python src/RF-DETR/build_qdrant_database.py
 
@@ -22,8 +22,6 @@ from qdrant_client import QdrantClient, models
 # 프로젝트 경로 설정
 # =========================================================
 
-# 이 파일 위치: C:\TransReID\src\RF-DETR\build_qdrant_database.py
-# parents[2] = RF-DETR -> src -> TransReID(루트), 2단계 위로 올라가면 루트가 나옴
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 sys.path.insert(
@@ -34,32 +32,21 @@ sys.path.insert(
 from detect_rf import load_detect_model, detect_and_crop
 from reid_clip import load_reid_model, get_embedding
 from face_insight import load_face_model, detect_faces
+from siglip_semantic import load_semantic_model, get_image_embedding
 
 
 # =========================================================
-# 설정값 (query가 아니라 환경설정이므로 상수로 둠)
+# 설정값
 # =========================================================
 
 QDRANT_URL = "http://127.0.0.1:6333"
+COLLECTION_NAME = "forensic_persons"
 
-COLLECTION_NAME = "forensic_persons"  # 경빈님과 이름 통일 (클러스터링 AI가 이 이름을 찾음)
-
-# 실제 데이터 폴더
 IMAGE_DIR = ROOT_DIR / "data" / "sample_photos"
-
 CROP_DIR = ROOT_DIR / "data" / "crops"
 
 BATCH_SIZE = 32
-
-SUPPORTED_EXTENSIONS = {
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".bmp",
-    ".webp",
-}
-
-# True면 기존 forensic_persons를 삭제하고 새로 구축 (재실행 시 데이터 중복 방지)
+SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 RESET_COLLECTION = True
 
 
@@ -74,33 +61,24 @@ def get_qdrant_client():
 def create_collection(client):
     """
     forensic_persons 컬렉션을 준비.
-    RESET_COLLECTION=True면 기존 것 삭제 후 새로 생성,
-    False면 기존 컬렉션을 그대로 재사용.
+    RESET_COLLECTION=True면 기존 것 삭제 후 새로 생성.
     """
     if client.collection_exists(COLLECTION_NAME):
-
         if not RESET_COLLECTION:
             print(f"기존 컬렉션 재사용: {COLLECTION_NAME}")
             return
-
         print(f"기존 컬렉션 삭제 중: {COLLECTION_NAME}")
         client.delete_collection(COLLECTION_NAME)
 
     print(f"컬렉션 생성 중: {COLLECTION_NAME}")
 
-    # Named vectors: "reid"(1280D, 몸 전체 특징)와 "face"(512D, 얼굴 특징)를
-    # 하나의 포인트 안에 각각 다른 이름으로 동시에 저장
+    # Named vectors: "reid"(1280D), "face"(512D), "semantic"(768D, SigLIP2)
     client.create_collection(
         collection_name=COLLECTION_NAME,
         vectors_config={
-            "reid": models.VectorParams(
-                size=1280,
-                distance=models.Distance.COSINE,
-            ),
-            "face": models.VectorParams(
-                size=512,
-                distance=models.Distance.COSINE,
-            ),
+            "reid": models.VectorParams(size=1280, distance=models.Distance.COSINE),
+            "face": models.VectorParams(size=512, distance=models.Distance.COSINE),
+            "semantic": models.VectorParams(size=768, distance=models.Distance.COSINE),
         },
     )
 
@@ -114,7 +92,7 @@ def create_collection(client):
 def get_face_embedding(face_model, crop_path):
     """
     crop 사진에서 얼굴을 찾아 embedding을 반환.
-    얼굴이 여러 개 검출되면 신뢰도(det_score)가 가장 높은 얼굴 하나만 사용.
+    여러 얼굴이 검출되면 신뢰도(det_score)가 가장 높은 얼굴 하나만 사용.
     얼굴이 없으면 (None, None) 반환.
     """
     faces = detect_faces(face_model, str(crop_path))
@@ -122,15 +100,12 @@ def get_face_embedding(face_model, crop_path):
     if not faces:
         return None, None
 
-    # 가장 신뢰도 높은 얼굴 선택
     face = max(faces, key=lambda x: x["det_score"])
-
     embedding = np.asarray(face["embedding"], dtype=np.float32)
 
     if embedding.shape != (512,):
         raise ValueError(f"예상과 다른 face embedding shape: {embedding.shape}")
 
-    # 벡터 길이를 1로 정규화 (코사인 유사도 계산을 위해)
     norm = np.linalg.norm(embedding)
     if norm > 1e-12:
         embedding = embedding / norm
@@ -139,10 +114,11 @@ def get_face_embedding(face_model, crop_path):
 
 
 # =========================================================
-# 사진 1장 처리 (검출 -> Person/Face embedding -> Qdrant Point 생성)
+# 사진 1장 처리 (검출 -> Person/Face/Semantic embedding -> Qdrant Point 생성)
 # =========================================================
 
-def process_image(image_path, detect_model, reid_model, reid_device, face_model):
+def process_image(image_path, detect_model, reid_model, reid_device, face_model,
+                   semantic_model, semantic_processor, semantic_device):
     image_path = Path(image_path)
     points = []
 
@@ -157,7 +133,7 @@ def process_image(image_path, detect_model, reid_model, reid_device, face_model)
     if not crop_paths:
         return points
 
-    # ── crop마다 Person + Face embedding 추출 ──
+    # ── crop마다 Person + Face + Semantic embedding 추출 ──
     for crop_path in crop_paths:
         crop_path = Path(crop_path)
 
@@ -170,6 +146,15 @@ def process_image(image_path, detect_model, reid_model, reid_device, face_model)
 
         # InsightFace 512D (얼굴 특징, 얼굴이 안 보이면 None)
         face_embedding, face_info = get_face_embedding(face_model, crop_path)
+
+        # SigLIP2 768D (crop 사진 자체의 장면/속성 특징)
+        semantic_embedding = get_image_embedding(
+            semantic_model, semantic_processor, semantic_device, str(crop_path)
+        )
+        semantic_embedding = np.asarray(semantic_embedding, dtype=np.float32)
+
+        if semantic_embedding.shape != (768,):
+            raise ValueError(f"예상과 다른 semantic embedding shape: {semantic_embedding.shape}")
 
         # ── Payload(메타데이터) 구성 ──
         payload = {
@@ -187,12 +172,14 @@ def process_image(image_path, detect_model, reid_model, reid_device, face_model)
             payload["face_age"] = face_info["age"]
             payload["face_gender"] = face_info["gender"]
 
-        # ── Named vectors 구성 (reid는 항상 있음, face는 있을 때만) ──
-        vectors = {"reid": reid_embedding.tolist()}
+        # ── Named vectors 구성 (reid/semantic은 항상 있음, face는 있을 때만) ──
+        vectors = {
+            "reid": reid_embedding.tolist(),
+            "semantic": semantic_embedding.tolist(),
+        }
         if face_embedding is not None:
             vectors["face"] = face_embedding.tolist()
 
-        # ── Qdrant Point 생성 (UUID로 ID 발급, 재실행 시 중복/충돌 방지) ──
         point = models.PointStruct(
             id=str(uuid.uuid4()),
             vector=vectors,
@@ -228,7 +215,7 @@ def main():
 
     print()
     print("=" * 70)
-    print("FORENSIC VECTOR DATABASE - SAMPLE DATASET")
+    print("FORENSIC VECTOR DATABASE - SAMPLE DATASET (Person+Face+Semantic)")
     print("=" * 70)
 
     print()
@@ -238,44 +225,43 @@ def main():
     print(f"Collection : {COLLECTION_NAME}")
     print(f"Batch size : {BATCH_SIZE}")
 
-    # ── 폴더 준비 ──
     IMAGE_DIR.mkdir(parents=True, exist_ok=True)
     CROP_DIR.mkdir(parents=True, exist_ok=True)
 
-    # ── Qdrant 연결 및 컬렉션 준비 ──
     print()
-    print("[1/5] Qdrant 연결 중...")
+    print("[1/6] Qdrant 연결 중...")
     client = get_qdrant_client()
-    print(client.get_collections())  # 서버 연결 확인
+    print(client.get_collections())
     create_collection(client)
 
-    # ── 모델 로드 (각 1번씩만) ──
     print()
-    print("[2/5] RF-DETR 로드 중...")
+    print("[2/6] RF-DETR 로드 중...")
     detect_model = load_detect_model()
 
     print()
-    print("[3/5] CLIP-ReID 로드 중...")
+    print("[3/6] CLIP-ReID 로드 중...")
     reid_model, reid_device = load_reid_model()
 
     print()
-    print("[4/5] InsightFace 로드 중...")
+    print("[4/6] InsightFace 로드 중...")
     face_model = load_face_model()
 
-    # ── 사진 목록 ──
+    print()
+    print("[5/6] SigLIP2 로드 중...")
+    semantic_model, semantic_processor, semantic_device = load_semantic_model()
+
     image_files = sorted(
         p for p in IMAGE_DIR.iterdir()
         if p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
     )
 
     print()
-    print(f"[5/5] 발견된 이미지: {len(image_files)}장")
+    print(f"[6/6] 발견된 이미지: {len(image_files)}장")
 
     if not image_files:
         print("에러: 이미지를 찾을 수 없습니다.")
         return
 
-    # ── 처리 통계 변수 ──
     total_images = len(image_files)
     processed_images = 0
     failed_images = 0
@@ -284,7 +270,6 @@ def main():
     total_faces = 0
     batch_points = []
 
-    # ── 사진마다 순회하며 처리 ──
     for index, image_path in enumerate(image_files, start=1):
         elapsed = time.time() - start_time
 
@@ -297,7 +282,8 @@ def main():
 
         try:
             points = process_image(
-                image_path, detect_model, reid_model, reid_device, face_model
+                image_path, detect_model, reid_model, reid_device, face_model,
+                semantic_model, semantic_processor, semantic_device,
             )
             processed_images += 1
 
@@ -306,7 +292,6 @@ def main():
                 print("사람 검출 안 됨.")
                 continue
 
-            # 통계 집계
             total_persons += len(points)
             for point in points:
                 if point.payload.get("face_detected", False):
@@ -317,7 +302,6 @@ def main():
             print(f"검출된 사람 수: {len(points)}")
             print(f"대기 중인 배치 포인트: {len(batch_points)}")
 
-            # 배치가 다 차면 업로드
             if len(batch_points) >= BATCH_SIZE:
                 print()
                 print(f"[Qdrant] {len(batch_points)}개 업로드 중...")
@@ -330,9 +314,8 @@ def main():
             print()
             print(f"에러 발생: {image_path.name}")
             print(f"{type(e).__name__}: {e}")
-            continue  # 이 사진만 건너뛰고 다음 사진 계속 처리
+            continue
 
-    # ── 남은 포인트 업로드 ──
     if batch_points:
         print()
         print(f"[Qdrant] 마지막 {len(batch_points)}개 업로드 중...")
@@ -340,14 +323,13 @@ def main():
         batch_points.clear()
         print("[Qdrant] 마지막 배치 완료.")
 
-    # ── 최종 결과 출력 ──
     total_time = time.time() - start_time
     info = client.get_collection(COLLECTION_NAME)
 
     print()
     print()
     print("=" * 70)
-    print("구축 완료")
+    print("구축 완료 (Person+Face+Semantic)")
     print("=" * 70)
 
     print()
@@ -365,7 +347,7 @@ def main():
 
     print()
     print("=" * 70)
-    print("샘플 데이터셋 구축 성공")
+    print("샘플 데이터셋 구축 성공 (Person+Face+Semantic)")
     print("=" * 70)
 
 
