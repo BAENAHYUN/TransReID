@@ -1,53 +1,26 @@
 """
-쿼리 번역 · 서술형 조립
-=====================
+쿼리 번역 · 선택적 구조화 조립
+=============================
 
-    한국어 쿼리 -> [번역]        -> 영어 자유 문장
-    항목별 입력 -> [조립]        -> CUHK-PEDES 형식 서술형 문장
+    한국어 자유 쿼리 -> [QueryTranslator] -> 영어 자유 문장
+    항목별 입력       -> [QueryDescriptor] -> 영어 구조화 문장
 
-왜 조립이 필요한가
-----------------
-IRRA 는 CUHK-PEDES 로 학습됐고, 그 캡션은 평균 20단어가 넘는 서술형이다.
-짧은 문장은 학습 분포 밖이라 벡터가 엉뚱한 곳에 놓인다.
+이 파일의 핵심 역할은 한국어 검색 query 를 영어로 번역하는 것이다.
+QueryDescriptor 는 구조화된 슬롯 입력을 영어 문장으로 조립하는 선택 기능이며,
+특정 임베딩 모델의 성능 향상을 보장하거나 다른 모델의 역할을 정의하지 않는다.
 
-자체 측정 (COCO 452,869 point DB, 정답 000000000036):
-
-    "우산 들고있는 꽃무늬 옷 입은 여성"                        -> 23위
-    "A woman wearing a flower pattern holding an umbrella."   -> 23위
-    "A woman with short dark curly hair wearing a colorful
-     floral sleeveless summer dress, holding a large pink
-     parasol umbrella, standing outdoors on a sunny day."     ->  1위
-
-번역을 거치든 안 거치든 짧으면 23위였다. **번역 품질이 아니라 길이·구체성
-문제다.** 그래서 번역기를 고치는 것으로는 해결되지 않고, 서술형 문장을
-만드는 단계가 필요하다.
-
-설계 원칙 (특정 쿼리에 과적합하지 않기 위해)
------------------------------------------
-1) 슬롯은 CUHK-PEDES 캡션이 실제로 다루는 항목만 둔다.
-   성별/연령, 머리, 상의, 하의, 신발, 소지품, 자세·장소.
-   캡션에 안 나오는 항목(표정, 감정 등)은 넣어도 검색에 도움이 안 된다.
-
-2) 사전은 **어휘 1:1 번역만** 한다. "꽃무늬" -> "floral" 수준이며,
-   문장을 만들어 주지 않는다. 문장 구조는 조립기가 담당한다.
-
-3) 사전에 없는 단어는 번역기로 폴백한다. 사용자가 무슨 어휘를 쓸지 모르므로
-   사전이 닫힌 집합이 되면 안 된다.
-
-4) 비어 있는 슬롯은 문장에서 빠진다. 억지로 채워 넣으면 없는 정보를
-   검색에 주입하게 된다.
-
-사용
-----
+권장 사용:
     tr = QueryTranslator()
     en = tr.translate("빨간 재킷을 입은 남성")
 
+선택적 구조화 입력:
     desc = QueryDescriptor(tr)
-    caption = desc.build(
+    result = desc.build(
         gender="여성", hair="짧은 검은 곱슬",
         top="화려한 꽃무늬 민소매 원피스",
         carry="큰 분홍 양산", place="야외 맑은 날",
     )
+    caption = result["caption"]
 """
 
 from __future__ import annotations
@@ -105,9 +78,18 @@ class QueryTranslator:
         )
         self.cache_dir = cache_dir
         self.local_files_only = local_files_only
-        self.max_new_tokens = max_new_tokens
+        if int(max_new_tokens) <= 0:
+            raise ValueError("max_new_tokens 는 1 이상이어야 합니다.")
+        self.max_new_tokens = int(max_new_tokens)
 
-        self._device = device
+        # 번역 모델은 CPU 고정.
+        # device 인자는 기존 호출부 호환성을 위해 남기지만 CPU 외 값은 사용하지 않는다.
+        if device not in (None, "cpu"):
+            logger.warning(
+                "QueryTranslator는 CPU 고정입니다. device=%r 설정은 무시합니다.",
+                device,
+            )
+        self._device = "cpu"
         self._model = None
         self._tokenizer = None
         self._cache: Dict[str, str] = {}
@@ -115,14 +97,7 @@ class QueryTranslator:
     # ---- 로딩 ----
 
     def _resolve_device(self) -> str:
-        if self._device:
-            return self._device
-        try:
-            import torch
-            self._device = "cuda" if torch.cuda.is_available() else "cpu"
-        except ImportError:
-            self._device = "cpu"
-        return self._device
+        return "cpu"
 
     def _load(self) -> None:
         if self._model is not None or self.backend == "none":
@@ -158,12 +133,6 @@ class QueryTranslator:
         self._model = None
         self._tokenizer = None
         self._cache.clear()
-        try:
-            import torch
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-        except ImportError:
-            pass
 
     # ---- 번역 ----
 
@@ -190,7 +159,13 @@ class QueryTranslator:
         import torch
 
         device = self._resolve_device()
-        inputs = self._tokenizer(text, return_tensors="pt").to(device)
+        # 긴 자유 입력이 번역 모델의 최대 입력 길이를 넘지 않도록 안전하게 자른다.
+        # max_length 를 직접 고정하지 않고 tokenizer/model 의 설정값을 따른다.
+        inputs = self._tokenizer(
+            text,
+            return_tensors="pt",
+            truncation=True,
+        ).to(device)
 
         gen_kwargs = {"max_new_tokens": self.max_new_tokens, "num_beams": 4}
         if self.backend == "nllb":
@@ -235,11 +210,10 @@ class QueryTranslator:
     # ---- 자유 문장 확장 (약한 보정) ----
 
     def expand(self, english: str) -> str:
-        """짧은 영어 문장을 최소한으로 늘린다.
+        """짧은 영어 문장을 단순한 사람 묘사 형태로 감싸는 선택 기능.
 
-        **효과가 작다.** 자체 측정에서 이 정도 확장으로는 23위가 바뀌지 않았다.
-        실질적인 개선은 QueryDescriptor 로 항목별 입력을 받는 쪽이다.
-        자유 문장 경로의 임시 보정으로만 남겨 둔다.
+        번역 자체에는 필요하지 않으며 자동으로 호출하지 않는다.
+        검색 품질 향상은 보장하지 않으므로 호출부에서 필요할 때만 사용한다.
         """
         english = (english or "").strip()
         if not english:
@@ -444,7 +418,7 @@ SLOT_LABELS = {
 # 서술형 조립
 # ─────────────────────────────────────────────────────────────────────────────
 class QueryDescriptor:
-    """항목별 입력을 CUHK-PEDES 형식의 서술형 문장으로 조립한다.
+    """항목별 입력을 영어 구조화 문장으로 조립한다.
 
     조립 결과 예:
 
@@ -524,7 +498,21 @@ class QueryDescriptor:
         if any(lower.endswith(n) or f"{n} " in lower for n in cls._NO_ARTICLE):
             return phrase
 
-        article = "an" if lower[0] in "aeiou" else "a"
+        # 단순 첫 글자 규칙의 대표 예외를 보정한다.
+        # 예: "uniform" 은 모음 글자로 시작하지만 /juː/ 소리라 "a uniform" 이 맞다.
+        a_exceptions = (
+            "uni", "user", "use", "euro", "one",
+        )
+        an_exceptions = (
+            "hour", "honest", "honor", "heir",
+        )
+
+        if lower.startswith(an_exceptions):
+            article = "an"
+        elif lower.startswith(a_exceptions):
+            article = "a"
+        else:
+            article = "an" if lower[0] in "aeiou" else "a"
         return f"{article} {phrase}"
 
     # ---- 문장 조립 ----
@@ -654,9 +642,8 @@ class QueryDescriptor:
 
         word_count = len(caption.split())
         if word_count < 12:
-            logger.info(
-                "조립된 문장이 %d단어입니다. IRRA 학습 캡션은 평균 20단어가 "
-                "넘는 서술형이므로, 슬롯을 더 채우면 검색 품질이 올라갑니다.",
+            logger.debug(
+                "조립된 문장이 %d단어입니다. 필요한 슬롯만 채워 사용하세요.",
                 word_count,
             )
 
@@ -682,7 +669,7 @@ if __name__ == "__main__":
         level=logging.INFO, format="%(levelname)s %(name)s: %(message)s"
     )
 
-    ap = argparse.ArgumentParser(description="번역 / 조립 스모크 테스트")
+    ap = argparse.ArgumentParser(description="쿼리 번역 / 선택적 구조화 조립 스모크 테스트")
     ap.add_argument("--backend", default="opus", choices=list(BACKENDS))
     ap.add_argument("--model-id", default=None)
     ap.add_argument("--translate", nargs="*", default=None,

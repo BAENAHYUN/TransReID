@@ -38,19 +38,23 @@ qwen_stage.py 가 담당한다. --json-out 으로 넘기면 된다.
 만드는 것이 Qwen 재순위보다 효과가 크다(자체 실험에서 Qwen 은 23위를
 33위로 내렸다).
 
-왜 SOLIDER / DINOv2 가 없는가
---------------------------
-둘 다 텍스트 인코더가 없다. 라우터가 embed_text 를 가진 retriever 만
-참여시키므로 자동으로 빠진다. 자연어 검색에는 SigLIP2 와 IRRA 만 쓴다.
+자연어 검색 벡터와 컬렉션
+-----------------------
+최종 DB 는 person / object 두 컬렉션으로 분리되어 있다.
 
-person_only 를 강제하지 않는다
----------------------------
-QdrantStore 가 pipeline.yaml 의 scope 로 벡터별 필터를 자동 결정한다.
+    forensic_person
+      -> 자연어 검색: SigLIP2 + IRRA
+      -> SOLIDER 는 text encoder 가 없어 제외
 
-    siglip2 (all)    -> 필터 없음
-    irra    (person) -> is_person = true
+    forensic_object
+      -> 자연어 검색: SigLIP2
+      -> DINOv2 는 text encoder 가 없어 제외
 
---person-only / --object-only 는 사용자가 명시적으로 좁힐 때만 쓴다.
+기본 자연어 검색은 person 검색이다.
+--object-only 를 지정하면 forensic_object 로 전환하고 SigLIP2 만 사용한다.
+
+이미지/영상은 별도 컬렉션으로 나누지 않으며 같은 person/object 컬렉션 안에서
+media_type 으로 구분된다.
 """
 
 import argparse
@@ -112,6 +116,76 @@ class TextSearcher:
 
         self.last_query_en: Optional[str] = None
         self.last_build: Optional[Dict[str, Any]] = None
+
+    def _select_scope(
+        self,
+        person_only: Optional[bool],
+        names: Optional[List[str]],
+    ) -> tuple[str, List[str]]:
+        """
+        자연어 검색 scope / collection / retriever 를 함께 확정한다.
+
+        기본(None)과 True:
+            forensic_person
+            supports_text=true 인 person retriever
+            -> 현재 SigLIP2 + IRRA
+
+        False:
+            forensic_object
+            supports_text=true 인 object retriever
+            -> 현재 SigLIP2
+        """
+        scope = "object" if person_only is False else "person"
+
+        if scope == "person":
+            collection = self.cfg.person_collection()
+            specs = self.cfg.for_person()
+        else:
+            collection = self.cfg.object_collection()
+            specs = self.cfg.for_object()
+
+        available = [
+            spec.name
+            for spec in specs
+            if spec.supports_text
+        ]
+
+        if not available:
+            raise RuntimeError(
+                f"scope='{scope}'에서 자연어 검색을 지원하는 retriever가 없습니다."
+            )
+
+        if names is None:
+            selected = available
+        else:
+            selected = list(dict.fromkeys(names))
+
+            if not selected:
+                raise ValueError(
+                    "names를 지정했다면 retriever 이름을 하나 이상 넣어야 합니다."
+                )
+
+            unknown = [
+                name
+                for name in selected
+                if name not in available
+            ]
+
+            if unknown:
+                raise ValueError(
+                    f"scope='{scope}' 자연어 검색에서 사용할 수 없는 retriever: "
+                    f"{unknown}. 사용 가능: {available}"
+                )
+
+        if not self.engine.store.client.collection_exists(collection):
+            raise RuntimeError(
+                f"Qdrant collection 이 없습니다: {collection}"
+            )
+
+        # SearchEngine/QdrantStore 는 실제 검색 시 self.collection 을 읽는다.
+        self.engine.store.collection = collection
+
+        return scope, selected
 
     # ── 쿼리 준비 ───────────────────────────────────────────────────────────
 
@@ -179,11 +253,24 @@ class TextSearcher:
                 word_count,
             )
 
+        scope, selected_names = self._select_scope(
+            person_only,
+            names,
+        )
+
         t0 = time.time()
-        qvecs = self.engine.router.embed_query_text(english, names=names)
+        qvecs = self.engine.router.embed_query_text(
+            english,
+            names=selected_names,
+        )
         t_embed = time.time() - t0
 
-        logger.info("텍스트 쿼리 벡터: %s", sorted(qvecs))
+        logger.info(
+            "텍스트 쿼리: scope=%s collection=%s vectors=%s",
+            scope,
+            self.engine.store.collection,
+            sorted(qvecs),
+        )
 
         t0 = time.time()
         points = self.engine._fetch(
@@ -192,7 +279,8 @@ class TextSearcher:
             prefetch_limit=None,
             weights=None,
             extra_filter=None,
-            person_only=person_only,   # None 이면 scope 자동 라우팅
+            # person/object 는 이미 collection 으로 분리되어 있다.
+            person_only=None,
             need=limit,
         )
         hits = self.engine._to_hits(points)
@@ -202,6 +290,8 @@ class TextSearcher:
 
         return {
             "source": source,
+            "scope": scope,
+            "collection": self.engine.store.collection,
             "query": original,
             "query_en": english,
             "word_count": word_count,
@@ -246,6 +336,8 @@ def print_result(res: Dict[str, Any], show: int = 20) -> None:
 
     print(f"  검색 문장 : {res['query_en']}")
     print(f"              ({res['word_count']}단어)")
+    print(f"  scope     : {res['scope']}")
+    print(f"  collection: {res['collection']}")
 
     build = res.get("build")
     if build and build.get("unmapped"):
@@ -311,6 +403,8 @@ def to_json(res: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "search_type": "text",
         "input_source": res["source"],
+        "scope": res["scope"],
+        "collection": res["collection"],
         "query": res["query"],
         "query_en": res["query_en"],
         "word_count": res["word_count"],
@@ -325,7 +419,8 @@ def to_json(res: Dict[str, Any]) -> Dict[str, Any]:
                 "query_slots": res["slots"],
                 "query_crop": None,                # 텍스트 쿼리라 crop 없음
                 "query_label": "text",
-                "kind": "text",
+                "kind": res["scope"],
+                "collection": res["collection"],
                 "vectors_used": res["vectors"],
                 "fusion_method": res["fusion_method"],
                 "timing": res["timing"],
@@ -390,8 +485,8 @@ def main() -> int:
                     help="참여 retriever 제한 (예: --names irra)")
 
     filt = ap.add_mutually_exclusive_group()
-    filt.add_argument("--person-only", action="store_true", help="인물만")
-    filt.add_argument("--object-only", action="store_true", help="객체만")
+    filt.add_argument("--person-only", action="store_true", help="인물 검색 (기본값)")
+    filt.add_argument("--object-only", action="store_true", help="객체 자연어 검색 (SigLIP2 only)")
 
     ap.add_argument("--no-translate", dest="translate", action="store_false",
                     default=True,
@@ -413,6 +508,10 @@ def main() -> int:
 
     if args.limit <= 0:
         ap.error("--limit must be > 0")
+    if args.show <= 0:
+        ap.error("--show must be > 0")
+    if args.names == []:
+        ap.error("--names 뒤에 retriever 이름을 하나 이상 지정하세요.")
 
     slots = {
         k: (getattr(args, k) or "").strip()
@@ -434,39 +533,47 @@ def main() -> int:
     # --dry-run 은 검색 문장만 확인한다. Qdrant / 임베더를 올리지 않는다.
     if args.dry_run:
         tr = QueryTranslator(
-            backend=args.translate_backend, model_id=args.translate_model_id
+            backend=args.translate_backend,
+            model_id=args.translate_model_id,
         )
-        print()
-        if slots:
-            desc = QueryDescriptor(tr)
-            build = desc.build(**slots)
-            print("  입력 방식 : 항목별")
-            for k in CLI_SLOTS:
-                if slots.get(k):
-                    print(f"    {SLOT_LABELS.get(k, k):>10} : {slots[k]}")
+        try:
             print()
-            print(f"  검색 문장 ({build['word_count']}단어):")
-            print(f"    {build['caption']}")
-            if build["unmapped"]:
-                print(f"  변환 실패 : {build['unmapped']}")
-            en = str(build["caption"])
-        else:
-            en = tr.translate(args.text) if args.translate else args.text
-            if args.expand:
-                en = tr.expand(en)
-            print(f"  원문 : {args.text}")
-            print(f"  번역 : {en}")
+            if slots:
+                desc = QueryDescriptor(tr)
+                build = desc.build(**slots)
+                print("  입력 방식 : 항목별")
+                for k in CLI_SLOTS:
+                    if slots.get(k):
+                        print(f"    {SLOT_LABELS.get(k, k):>10} : {slots[k]}")
+                print()
+                print(f"  검색 문장 ({build['word_count']}단어):")
+                print(f"    {build['caption']}")
+                if build["unmapped"]:
+                    print(f"  변환 실패 : {build['unmapped']}")
+                en = str(build["caption"])
+            else:
+                en = tr.translate(args.text) if args.translate else args.text
+                if args.expand:
+                    en = tr.expand(en)
+                print(f"  원문 : {args.text}")
+                print(f"  번역 : {en}")
 
-        print()
-        if has_hangul(en):
-            print("  경고: 한글이 남아 있습니다. 이대로 검색하면 결과가 "
-                  "무의미합니다.")
             print()
-        if len(en.split()) < 12:
-            print("  참고: 12단어 미만입니다. IRRA 학습 캡션은 평균 20단어가 "
-                  "넘는 서술형이라, 항목을 더 채우면 검색 품질이 올라갑니다.")
-            print()
-        return 0
+            if has_hangul(en):
+                print(
+                    "  경고: 한글이 남아 있습니다. "
+                    "이대로 검색하면 결과가 무의미합니다."
+                )
+                print()
+            if len(en.split()) < 12:
+                print(
+                    "  참고: 12단어 미만입니다. IRRA 학습 캡션은 평균 20단어가 "
+                    "넘는 서술형이라, 항목을 더 채우면 검색 품질이 올라갑니다."
+                )
+                print()
+            return 0
+        finally:
+            tr.release()
 
     person_only: Optional[bool] = None
     if args.person_only:
@@ -483,15 +590,17 @@ def main() -> int:
         extra_paths=args.extra_paths,
     )
 
-    res = searcher.search(
-        query=args.text,
-        slots=slots or None,
-        limit=args.limit,
-        names=args.names,
-        person_only=person_only,
-        translate=args.translate,
-    )
-    searcher.release()
+    try:
+        res = searcher.search(
+            query=args.text,
+            slots=slots or None,
+            limit=args.limit,
+            names=args.names,
+            person_only=person_only,
+            translate=args.translate,
+        )
+    finally:
+        searcher.release()
 
     payload = to_json(res)
 
@@ -507,8 +616,12 @@ def main() -> int:
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-        print(f"JSON saved: {out}")
-        print(f"결과 보기 : python view_results.py --in {out} --open")
+        status_stream = sys.stderr if args.json else sys.stdout
+        print(f"JSON saved: {out}", file=status_stream)
+        print(
+            f"결과 보기 : python view_results.py --in {out} --open",
+            file=status_stream,
+        )
 
     return 0
 

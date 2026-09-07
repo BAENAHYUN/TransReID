@@ -3,7 +3,7 @@ search_person_crop.py — crop 1장 직접 검색 (Qwen 없음)
 ====================================================
 
     crop 1장 (이미 잘라놓은 이미지)
-      -> person: SigLIP2 + IRRA 융합 -> (선택) SOLIDER 재정렬
+      -> person: SigLIP2 + IRRA 융합 -> (선택) SOLIDER 지연 로드/재정렬
          object: SigLIP2 + DINOv2 융합
       -> Qdrant 검색
       -> 결과
@@ -52,7 +52,7 @@ Router/Registry 를 통해 pipeline.yaml 에 등록된 임베더를 쓴다. 색�
 ----
     python search_person_crop.py --crop data/crops/xxx_person_001.jpg
     python search_person_crop.py --crop q.jpg -k 50
-    python search_person_crop.py --crop q.jpg --solider        # SOLIDER 재정렬
+    python search_person_crop.py --crop q.jpg --solider        # 1차 검색 후 SOLIDER 지연 로드/재정렬
     python search_person_crop.py --crop q.jpg --with-solider   # 3벡터 융합
     python search_person_crop.py --crop q.jpg --names irra     # IRRA 단독
     python search_person_crop.py --crop q.jpg --object         # 객체 crop
@@ -67,7 +67,7 @@ import logging
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -105,6 +105,17 @@ class CropSearcher:
         )
         self.cfg = self.engine.cfg
 
+    def _select_collection(self, scope: str) -> None:
+        """scope에 맞는 통합 Qdrant 컬렉션을 선택한다."""
+        if scope == "person":
+            collection = self.cfg.person_collection()
+        elif scope == "object":
+            collection = self.cfg.object_collection()
+        else:
+            raise ValueError("scope 는 'person' 또는 'object' 여야 합니다.")
+
+        self.engine.store.collection = collection
+
     # ── 임베딩 ─────────────────────────────────────────────────────────────
 
     def embed(
@@ -113,40 +124,44 @@ class CropSearcher:
         scope: str,
         names: Optional[List[str]] = None,
         with_solider: bool = False,
-    ) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray]]:
-        """crop 을 임베딩해 (1단계 융합용, 전체) 두 dict 를 돌려준다."""
-        all_vecs = self.engine.router.embed_query_image(crop_path, scope=scope)
+    ) -> Dict[str, np.ndarray]:
+        """
+        1차 검색에 필요한 query embedding만 생성한다.
 
-        if not all_vecs:
+        기본 person:
+            SigLIP2 + IRRA
+
+        --with-solider:
+            SigLIP2 + IRRA + SOLIDER를 1차 fusion에 사용한다.
+            비교 실험용 옵션이다.
+
+        object:
+            SigLIP2 + DINOv2
+
+        핵심:
+            기본 person 검색에서는 SOLIDER를 로드하지 않는다.
+        """
+        if names is not None:
+            selected = list(dict.fromkeys(names))
+            if not selected:
+                raise ValueError("--names 를 사용했다면 retriever 이름이 필요합니다.")
+        elif with_solider:
+            selected = None
+        else:
+            selected = list(STAGE1_BY_SCOPE.get(scope, ()))
+
+        vecs = self.engine.router.embed_query_image(
+            crop_path,
+            scope=scope,
+            names=selected,
+        )
+
+        if not vecs:
             raise RuntimeError(
-                f"쿼리 벡터가 비었습니다. pipeline.yaml 에 scope='{scope}' 또는 "
-                f"'all' 인 retriever 가 등록되어 있는지 확인하세요."
+                f"쿼리 벡터가 비었습니다. scope='{scope}' 설정을 확인하세요."
             )
 
-        if names:
-            unknown = set(names) - set(all_vecs)
-            if unknown:
-                raise ValueError(
-                    f"scope='{scope}' 에서 쓸 수 없는 retriever: "
-                    f"{sorted(unknown)}. 사용 가능: {sorted(all_vecs)}"
-                )
-            stage1 = {n: all_vecs[n] for n in names}
-            return stage1, all_vecs
-
-        if with_solider:
-            return dict(all_vecs), all_vecs
-
-        wanted = STAGE1_BY_SCOPE.get(scope, ())
-        stage1 = {n: v for n, v in all_vecs.items() if n in wanted}
-
-        if not stage1:
-            logger.warning(
-                "%s 가 없어 사용 가능한 벡터 전부로 검색합니다: %s",
-                "/".join(wanted), sorted(all_vecs),
-            )
-            stage1 = dict(all_vecs)
-
-        return stage1, all_vecs
+        return vecs
 
     # ── 검색 ───────────────────────────────────────────────────────────────
 
@@ -167,13 +182,17 @@ class CropSearcher:
         if not path.is_file():
             raise FileNotFoundError(f"crop 이미지가 없습니다: {path}")
 
+        self._select_collection(scope)
+
         t0 = time.time()
-        stage1, all_vecs = self.embed(
-            str(path), scope=scope, names=names, with_solider=with_solider
+        stage1 = self.embed(
+            str(path),
+            scope=scope,
+            names=names,
+            with_solider=with_solider,
         )
         t_embed = time.time() - t0
 
-        # SOLIDER 재정렬을 하려면 후보를 넉넉히 가져온다
         fetch = max(limit, solider_pool) if solider_rerank else limit
 
         t0 = time.time()
@@ -183,7 +202,7 @@ class CropSearcher:
             prefetch_limit=None,
             weights=None,
             extra_filter=None,
-            person_only=None,     # scope 자동 라우팅
+            person_only=None,
             need=fetch,
         )
         hits = self.engine._to_hits(points)
@@ -194,7 +213,60 @@ class CropSearcher:
             f"{'+'.join(sorted(stage1))} ({method}) -> {len(hits)}건"
         ]
 
-        # ── SOLIDER 재정렬 ──
+        t_solider = 0.0
+        reranked = False
+
+        if solider_rerank:
+            if scope != "person":
+                raise ValueError("SOLIDER 재정렬은 person scope에서만 사용할 수 있습니다.")
+
+            if "solider" in stage1:
+                raise ValueError(
+                    "SOLIDER가 이미 1차 검색에 포함되어 있습니다. "
+                    "--solider는 SigLIP2+IRRA 1차 검색 뒤의 2차 재정렬용입니다."
+                )
+
+            if hits:
+                t0 = time.time()
+
+                solider_vecs = self.engine.router.embed_query_image(
+                    str(path),
+                    scope="person",
+                    names=["solider"],
+                )
+
+                query_solider = solider_vecs.get("solider")
+                if query_solider is None:
+                    raise RuntimeError("SOLIDER query embedding 생성 실패")
+
+                hits = self._rerank_with_solider(
+                    query_solider,
+                    hits,
+                )
+
+                t_solider = time.time() - t0
+                reranked = True
+                stages.append(f"solider 재정렬 -> 상위 {limit}건")
+            else:
+                logger.info("1차 후보가 없어 SOLIDER 재정렬을 실행하지 않습니다.")
+
+        hits = self._renumber(hits[:limit])
+
+        return {
+            "crop_path": str(path),
+            "scope": scope,
+            "vectors": sorted(stage1),
+            "stages": stages,
+            "reranked_by_solider": reranked,
+            "hits": hits,
+            "timing": {
+                "embed": round(t_embed, 3),
+                "search": round(t_search, 3),
+                "solider": round(t_solider, 3),
+            },
+        }
+
+    # ── SOLIDER 재정렬 ──
         t_solider = 0.0
         reranked = False
 
@@ -245,64 +317,99 @@ class CropSearcher:
         hits: List[SearchHit],
     ) -> List[SearchHit]:
         """
-        후보의 SOLIDER 벡터를 retrieve 로 받아 코사인으로 재정렬한다.
-
-        Qdrant 를 다시 검색하지 않는다. 후보 200개면 200x1024 내적이라
-        사실상 즉시 끝난다.
+        1차 후보의 SOLIDER 벡터를 Qdrant에서 읽고,
+        query SOLIDER 벡터와 cosine similarity로 재정렬한다.
         """
         if not hits:
             return hits
 
         try:
             records = self.engine.store.client.retrieve(
-                collection_name=self.cfg.collection,
+                collection_name=self.engine.store.collection,
                 ids=[h.point_id for h in hits],
                 with_vectors=["solider"],
                 with_payload=False,
             )
         except Exception as e:  # noqa: BLE001
-            logger.warning(
-                "SOLIDER 벡터 조회 실패 -> 재정렬 건너뜀: %s: %s",
-                type(e).__name__, e,
-            )
-            return hits
+            raise RuntimeError(
+                "Qdrant SOLIDER 벡터 조회 실패: "
+                f"{type(e).__name__}: {e}"
+            ) from e
 
         by_id: Dict[str, np.ndarray] = {}
+
         for rec in records:
             vec = getattr(rec, "vector", None)
+
+            if vec is None:
+                vec = getattr(rec, "vectors", None)
+
             if isinstance(vec, dict):
                 vec = vec.get("solider")
+
             if vec is not None:
-                by_id[str(rec.id)] = np.asarray(vec, dtype=np.float32)
+                by_id[str(rec.id)] = np.asarray(
+                    vec,
+                    dtype=np.float32,
+                ).reshape(-1)
 
         q = self._unit(query_vec)
-        scored, missing = [], []
+        scored: List[SearchHit] = []
+        missing: List[SearchHit] = []
 
         for h in hits:
             v = by_id.get(h.point_id)
+
             if v is None:
-                # SOLIDER 벡터가 없는 point. siglip2 가 scope='all' 이라
-                # 필터 없이 보므로 객체 point 가 섞일 수 있다.
                 missing.append(h)
                 continue
-            h.score = float(np.dot(q, self._unit(v)))
-            h.payload["solider_score"] = h.score
+
+            vv = self._unit(v)
+
+            if q.shape != vv.shape:
+                raise RuntimeError(
+                    "SOLIDER vector 차원 불일치: "
+                    f"query={q.shape}, candidate={vv.shape}, point_id={h.point_id}"
+                )
+
+            score = float(np.dot(q, vv))
+
+            h.score = score
+            h.payload["solider_score"] = score
             scored.append(h)
 
         if missing:
-            logger.info(
-                "SOLIDER 벡터가 없는 후보 %d/%d건은 재정렬에서 제외 (뒤로 배치)",
-                len(missing), len(hits),
+            raise RuntimeError(
+                "forensic_person 후보 중 SOLIDER vector가 없는 point가 있습니다: "
+                f"{len(missing)}/{len(hits)}. "
+                "DB가 현재 person vector 계약으로 구축되었는지 확인하세요."
             )
 
-        scored.sort(key=lambda h: h.score, reverse=True)
-        return self._renumber(scored + missing)
+        if hits and not scored:
+            raise RuntimeError(
+                "SOLIDER 재정렬 가능한 후보가 하나도 없습니다."
+            )
+
+        scored.sort(
+            key=lambda h: h.score,
+            reverse=True,
+        )
+
+        return self._renumber(scored)
 
     @staticmethod
     def _unit(vec) -> np.ndarray:
         v = np.asarray(vec, dtype=np.float32).ravel()
+
+        if not np.isfinite(v).all():
+            raise ValueError("SOLIDER vector에 NaN/Inf가 있습니다.")
+
         n = float(np.linalg.norm(v))
-        return v / n if n > 1e-12 else v
+
+        if n <= 1e-12:
+            raise ValueError("SOLIDER 0-vector는 cosine 계산에 사용할 수 없습니다.")
+
+        return v / n
 
     @staticmethod
     def _renumber(hits: List[SearchHit]) -> List[SearchHit]:
@@ -455,6 +562,10 @@ def main() -> int:
     if args.solider_rerank and args.with_solider:
         ap.error("--solider 와 --with-solider 는 함께 쓸 수 없습니다. "
                  "재정렬(--solider)과 융합(--with-solider) 중 하나를 고르세요.")
+    if args.is_object and (args.solider_rerank or args.with_solider):
+        ap.error("--solider / --with-solider 는 person 검색에서만 사용할 수 있습니다.")
+    if args.names == []:
+        ap.error("--names 뒤에 retriever 이름을 하나 이상 지정하세요.")
     if args.limit <= 0:
         ap.error("--limit must be > 0")
     if args.solider_pool < args.limit:
@@ -468,16 +579,18 @@ def main() -> int:
         extra_paths=args.extra_paths,
     )
 
-    res = searcher.search(
-        args.crop,
-        scope=scope,
-        limit=args.limit,
-        names=args.names,
-        with_solider=args.with_solider,
-        solider_rerank=args.solider_rerank,
-        solider_pool=args.solider_pool,
-    )
-    searcher.release()
+    try:
+        res = searcher.search(
+            args.crop,
+            scope=scope,
+            limit=args.limit,
+            names=args.names,
+            with_solider=args.with_solider,
+            solider_rerank=args.solider_rerank,
+            solider_pool=args.solider_pool,
+        )
+    finally:
+        searcher.release()
 
     payload = to_json(res)
 

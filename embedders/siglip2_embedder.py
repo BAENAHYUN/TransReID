@@ -11,21 +11,22 @@ SigLIP2 Embedding Extractor
 
     실험용 배치 스크립트(siglip_semantic 을 import 해서 .npz 로 저장하는 것)와는
     **별개 파일** 이다. DB 적재는 반드시 이 파일 경로로만 할 것.
-    배치 스크립트는 L2 정규화를 하지 않아, 그 결과를 같은 컬렉션에 섞으면
-    코사인 거리가 깨진다.
+    이 파일은 이미지/텍스트 임베딩에 동일한 L2 정규화 규칙을 적용해
+    Qdrant 밖에서 직접 cosine/dot-product 비교할 때도 결과를 일관되게 만든다.
 
 파이프라인 위치:
-    Person/Object Crop -> [SigLIP2] -> 768-d Embedding -> Qdrant
+    Person/Object Crop -> [SigLIP2] -> DIM-d Embedding -> Qdrant (기본 base: 768-d)
     (scope: all — 사람/객체 crop 모두에 적용)
 
 SigLIP2(Google, 2025)는 이미지-텍스트 대조학습 모델이다. 개방 어휘 의미 표현을
 담당하며, **텍스트 정렬이 있어 자연어 검색이 가능**하다.
 
-파이프라인에서의 역할:
-    SigLIP2 -> "검은 백팩", "빨간 후드티" 를 말로 찾기 (사람/객체 공통)
-    IRRA    -> 보행자 묘사 문장에 특화 (사람 전용)
-    SOLIDER -> 신원 판별 (사람 전용, 텍스트 X)
-    DINOv2  -> 인스턴스 수준 시각 유사도 (객체 전용, 텍스트 X)
+이 파일의 역할:
+    SigLIP2 이미지 임베딩 -> 사람/객체 crop 의 의미 특징 벡터
+    SigLIP2 텍스트 임베딩 -> 번역/전처리된 검색 query 의 의미 특징 벡터
+    두 벡터는 같은 공간에서 cosine similarity 로 비교한다.
+
+    다른 모델의 역할/호출 관계는 이 파일에서 정의하지 않는다.
 
 NaFlex 를 쓰는 이유
 ------------------
@@ -34,12 +35,10 @@ NaFlex 를 쓰는 이유
 사람 crop 이 대부분인 이 파이프라인에서는 naflex 가 유리할 가능성이 높다.
 (확정은 아니므로 고정 해상도 체크포인트와 A/B 해볼 가치가 있다)
 
-모델 크기별 차원
----------------
-    google/siglip2-base-patch16-naflex      768
-    google/siglip2-so400m-patch16-naflex   1152
-    google/siglip2-large-patch16-*         1024
-    google/siglip2-giant-opt-patch16-*     1536
+임베딩 차원
+-----------
+모델 이름으로 하드코딩하지 않는다. AutoConfig 에서 vision/text 최종 출력 차원을
+읽고 서로 같은지 검증한다. 기본 base-patch16-naflex 는 768-d 이다.
 
 주의사항
 -------
@@ -48,10 +47,10 @@ NaFlex 를 쓰는 이유
   576 은 대략 384x384 상당의 면적이다. pipeline.yaml 에 적힌 값이 유일한 기준이다.
 * 텍스트는 반드시 `padding="max_length", max_length=64`. SigLIP 계열은 고정 길이
   패딩으로 학습돼서, 기본 패딩을 쓰면 결과가 조용히 나빠진다.
-* transformers 5.x 의 `get_image_features` 는 텐서가 아니라
-  `BaseModelOutputWithPooling` 을 반환한다. 4.x 는 텐서였다. 둘 다 처리한다.
-* 정규화 상수는 프로세서가 알아서 적용한다 (IRRA/SOLIDER/DINOv2 처럼 직접
-  Normalize 를 걸지 않는다).
+* transformers 버전에 따라 `get_image_features` / `get_text_features` 반환형이
+  Tensor 또는 `BaseModelOutputWithPooling` 계열일 수 있으므로 둘 다 처리한다.
+* 입력 정규화는 AutoProcessor 가 모델 설정에 맞게 적용하므로 이 파일에서
+  별도의 이미지 Normalize 를 중복 적용하지 않는다.
 * 저정밀은 **model.half() 전체 캐스팅 대신 autocast** 를 쓴다. naflex 프로세서는
   pixel_values 외에 pixel_attention_mask(bool)·spatial_shapes(int) 를 함께
   돌려주는데, 모델을 통째로 half 로 내리면 이들 dtype 과 어긋나 transformers
@@ -68,7 +67,6 @@ NaFlex 를 쓰는 이유
 from __future__ import annotations
 
 import logging
-import os
 from contextlib import nullcontext
 from typing import Any, Dict, List, Optional, Sequence, Union
 
@@ -79,15 +77,6 @@ from PIL import Image
 from embedders.base import BaseEmbedder, l2_normalize
 
 logger = logging.getLogger(__name__)
-
-# 모델 id 키워드 -> 임베딩 차원. 긴 것부터 검사한다
-# ('so400m' 이 'base' 보다 먼저 매칭되도록)
-_SIZE_HINTS = [
-    ("so400m", 1152),
-    ("giant", 1536),
-    ("large", 1024),
-    ("base", 768),
-]
 
 # SigLIP 계열 텍스트 컨텍스트 길이 (학습 시 고정)
 TEXT_MAX_LENGTH = 64
@@ -125,9 +114,13 @@ class SigLIP2Embedder(BaseEmbedder):
                 "가로로 뭉개집니다.", model_id, max_num_patches,
             )
 
-        # BaseEmbedder 가 __init__ 에서 DIM 을 검사하므로 먼저 추정하고,
-        # 모델 로드 후 config 의 실제 값과 대조한다.
-        self.DIM = self._guess_dim(model_id)
+        # BaseEmbedder 가 __init__ 에서 DIM 을 검사하므로 모델 이름으로
+        # 추정하지 않고, Hugging Face config 에서 실제 출력 차원을 먼저 읽는다.
+        self.DIM = self._load_config_dim(
+            model_id=model_id,
+            cache_dir=cache_dir,
+            local_files_only=local_files_only,
+        )
 
         super().__init__(
             device=device,
@@ -149,17 +142,35 @@ class SigLIP2Embedder(BaseEmbedder):
     # ------------------------------------------------------------------ #
     # 초기화
     # ------------------------------------------------------------------ #
-    @staticmethod
-    def _guess_dim(model_id: str) -> int:
-        low = model_id.lower()
-        for key, dim in _SIZE_HINTS:
-            if key in low:
-                return dim
-        logger.warning(
-            "모델 id '%s' 에서 크기를 추정할 수 없어 base(768)로 가정합니다.",
-            model_id,
-        )
-        return 768
+    @classmethod
+    def _load_config_dim(
+        cls,
+        model_id: str,
+        cache_dir: Optional[str],
+        local_files_only: bool,
+    ) -> int:
+        """모델 이름을 추정하지 않고 config 에서 실제 임베딩 차원을 읽는다."""
+        try:
+            from transformers import AutoConfig
+        except ImportError as e:
+            raise ImportError(
+                "transformers 가 필요합니다: pip install transformers"
+            ) from e
+
+        kwargs: Dict[str, Any] = {}
+        if cache_dir is not None:
+            kwargs["cache_dir"] = cache_dir
+        if local_files_only:
+            kwargs["local_files_only"] = True
+
+        config = AutoConfig.from_pretrained(model_id, **kwargs)
+        dim = cls._config_dim(config)
+        if dim is None:
+            raise RuntimeError(
+                "SigLIP2 config 에서 임베딩 차원을 확인할 수 없습니다: "
+                f"{model_id}"
+            )
+        return int(dim)
 
     def _build(self, cache_dir, local_files_only):
         try:
@@ -179,10 +190,13 @@ class SigLIP2Embedder(BaseEmbedder):
         processor = AutoProcessor.from_pretrained(self.model_id, **kwargs)
 
         actual = self._config_dim(model.config)
-        if actual is not None and actual != self.DIM:
+        if actual is None:
             raise RuntimeError(
-                f"차원 불일치: 모델 실제 출력은 {actual} 인데 "
-                f"id 로 추정한 값은 {self.DIM} 입니다.\n"
+                "로드된 SigLIP2 모델 config 에서 임베딩 차원을 확인할 수 없습니다."
+            )
+        if actual != self.DIM:
+            raise RuntimeError(
+                f"차원 불일치: 사전 config={self.DIM}, 로드된 모델={actual}.\n"
                 f"  pipeline.yaml 의 retrievers.siglip2.dim 을 "
                 f"{actual} 로 맞추세요."
             )
@@ -195,12 +209,47 @@ class SigLIP2Embedder(BaseEmbedder):
 
     @staticmethod
     def _config_dim(config) -> Optional[int]:
-        """SigLIP 은 별도 projection 없이 tower 의 hidden_size 가 곧 출력 차원이다."""
-        for attr in ("vision_config", "text_config"):
-            sub = getattr(config, attr, None)
-            if sub is not None and getattr(sub, "hidden_size", None):
-                return int(sub.hidden_size)
-        return getattr(config, "hidden_size", None)
+        """SigLIP2 이미지/텍스트 최종 임베딩 차원을 config 에서 확인한다.
+
+        vision tower 는 보통 hidden_size 가 최종 이미지 임베딩 차원이고,
+        text tower 는 projection_size 가 있으면 projection 출력 차원이 최종 차원이다.
+        두 값이 모두 있으면 반드시 같아야 이미지/텍스트를 같은 공간에서 비교할 수 있다.
+        """
+        vision_cfg = getattr(config, "vision_config", None)
+        text_cfg = getattr(config, "text_config", None)
+
+        vision_dim: Optional[int] = None
+        text_dim: Optional[int] = None
+
+        if vision_cfg is not None:
+            hidden_size = getattr(vision_cfg, "hidden_size", None)
+            if hidden_size is not None:
+                vision_dim = int(hidden_size)
+
+        if text_cfg is not None:
+            projection_size = getattr(text_cfg, "projection_size", None)
+            hidden_size = getattr(text_cfg, "hidden_size", None)
+
+            if projection_size is not None:
+                text_dim = int(projection_size)
+            elif hidden_size is not None:
+                text_dim = int(hidden_size)
+
+        if vision_dim is not None and text_dim is not None:
+            if vision_dim != text_dim:
+                raise RuntimeError(
+                    "SigLIP2 이미지/텍스트 임베딩 차원이 다릅니다: "
+                    f"vision={vision_dim}, text={text_dim}"
+                )
+            return vision_dim
+
+        if vision_dim is not None:
+            return vision_dim
+        if text_dim is not None:
+            return text_dim
+
+        hidden_size = getattr(config, "hidden_size", None)
+        return int(hidden_size) if hidden_size is not None else None
 
     def _autocast(self):
         if not self.use_amp:
@@ -219,14 +268,23 @@ class SigLIP2Embedder(BaseEmbedder):
         """
         if isinstance(out, torch.Tensor):
             return out
+
         for attr in ("pooler_output", "image_embeds", "text_embeds"):
             v = getattr(out, attr, None)
-            if v is not None:
+            if isinstance(v, torch.Tensor):
                 return v
-        if isinstance(out, (tuple, list)) and out:
-            return out[0]
+
+        if isinstance(out, (tuple, list)):
+            # BaseModelOutputWithPooling 이 tuple/list 형태로 전달될 경우
+            # out[0] 은 last_hidden_state (3-D) 일 수 있다.
+            # 최종 검색용 pooled embedding 은 보통 (N, DIM) 2-D 텐서이므로
+            # 차원을 확인해서 선택한다.
+            for v in out:
+                if isinstance(v, torch.Tensor) and v.ndim == 2:
+                    return v
+
         raise RuntimeError(
-            f"SigLIP2 출력에서 임베딩을 찾을 수 없습니다: {type(out)}"
+            f"SigLIP2 출력에서 pooled embedding을 찾을 수 없습니다: {type(out)}"
         )
 
     def _to_device(self, inputs) -> Dict[str, Any]:

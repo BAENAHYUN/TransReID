@@ -6,6 +6,23 @@ pipeline.yaml 로더 + 검증.
 
 이번 개정
 --------
+  5) collection_prefix 추가 + person_collection() / object_collection().
+
+     기존에는 pipeline.yaml 에 collection: person_db 가 적혀 있는데
+     build_db.py 가 "forensic_person" / "forensic_object" 를 하드코딩해
+     덮어쓰고 있었다. 그래서 DB 구축 대상 이름의 SSOT 가 yaml 이 아니라
+     Python 코드였고, cfg.collection 을 읽는 관리 스크립트
+     (delete_query_crops.py 등)는 존재하지 않는 컬렉션을 가리켰다.
+
+     이제 역할을 나눈다.
+       collection_prefix : 구축 구조의 SSOT. person/object 두 이름을 파생.
+       collection        : QdrantStore(cfg) 가 직접 읽는 단일 컬렉션 대상.
+
+     접미어 "_person" / "_object" 는 이 모듈에만 존재한다. yaml 에 두 이름을
+     따로 적으면 한쪽 오타로 세 번째 컬렉션이 조용히 만들어질 수 있다.
+
+이전 개정
+--------
   1) QuantSpec 에 rescore / oversampling 추가.
      qdrant_store 가 이미 이 두 값을 읽는데 dataclass 에 필드가 없어서,
      overrides 에 적으면 QuantSpec(**ov) 가 TypeError 로 죽었다.
@@ -63,6 +80,7 @@ class RetrieverSpec:
     weight: float
     module: str
     class_name: str
+    supports_text: bool
     params: Dict[str, Any] = field(default_factory=dict)
 
     def accepts_person(self) -> bool:
@@ -156,6 +174,7 @@ class QdrantSpec:
 @dataclass(frozen=True)
 class PipelineConfig:
     collection: str
+    collection_prefix: str
     person_labels: frozenset
     retrievers: Dict[str, RetrieverSpec]
     fusion: FusionSpec
@@ -185,9 +204,15 @@ class PipelineConfig:
         retrievers: Dict[str, RetrieverSpec] = {}
 
         for name, r in raw["retrievers"].items():
-            for key in ("scope", "dim", "module", "class"):
+            for key in ("scope", "supports_text", "dim", "module", "class"):
                 if key not in r:
                     raise ValueError(f"retriever '{name}': '{key}' 누락")
+
+            if not isinstance(r["supports_text"], bool):
+                raise ValueError(
+                    f"retriever '{name}': supports_text 는 true/false 여야 합니다 "
+                    f"(받은 값: {r['supports_text']!r})"
+                )
 
             if r["scope"] not in VALID_SCOPES:
                 raise ValueError(
@@ -217,6 +242,7 @@ class PipelineConfig:
                 weight=weight,
                 module=r["module"],
                 class_name=r["class"],
+                supports_text=r["supports_text"],
                 params=params,
             )
 
@@ -300,7 +326,13 @@ class PipelineConfig:
         )
 
         return cls(
-            collection=raw.get("collection", "person_db"),
+            collection=raw.get("collection", "forensic_person"),
+            # 개정 5 — yaml 에서 후행 공백은 눈에 안 보이지만 Qdrant 컬렉션
+            # 이름은 공백을 허용한다. "forensic " 이 "forensic _person" 이
+            # 되어도 정상 동작처럼 보여서 추적이 어렵다.
+            collection_prefix=str(
+                raw.get("collection_prefix", "forensic")
+            ).strip(),
             person_labels=frozenset(
                 s.lower() for s in (raw.get("person_labels") or ["person"])
             ),
@@ -309,6 +341,19 @@ class PipelineConfig:
             qdrant=qdrant,
             verifiers=raw.get("verifiers") or {},
         )
+
+    # ---------- 컬렉션 이름 ---------- #
+    #
+    # 접미어는 이 두 메서드에만 존재한다. build_db.py 는 컬렉션 이름을
+    # 하드코딩하지 않고 여기서 받아 간다.
+    #
+    def person_collection(self) -> str:
+        """person crop 컬렉션 (siglip2 / irra / solider)."""
+        return f"{self.collection_prefix}_person"
+
+    def object_collection(self) -> str:
+        """object crop 컬렉션 (siglip2 / dinov2)."""
+        return f"{self.collection_prefix}_object"
 
     # ---------- 조회 helper ---------- #
     def vector_config(self) -> Dict[str, int]:
@@ -336,7 +381,12 @@ class PipelineConfig:
         return {name: table[s.scope] for name, s in self.retrievers.items()}
 
     def describe(self) -> str:
-        lines = [f"collection: {self.collection}", "retrievers:"]
+        lines = [
+            f"collection(single): {self.collection}",
+            f"collection(build) : {self.person_collection()} / "
+            f"{self.object_collection()}",
+            "retrievers:",
+        ]
         for s in self.retrievers.values():
             lines.append(
                 f"  {s.name:<10} tool={s.tool:<7} scope={s.scope:<7} "

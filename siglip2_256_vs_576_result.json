@@ -1,0 +1,458 @@
+{
+  "sample_images": 500,
+  "classes": [
+    "airplane",
+    "bird",
+    "bottle",
+    "bowl",
+    "car",
+    "carrot",
+    "cat",
+    "chair",
+    "clock",
+    "couch",
+    "cup",
+    "dining table",
+    "dog",
+    "elephant",
+    "giraffe",
+    "laptop",
+    "motorcycle",
+    "orange",
+    "person",
+    "potted plant",
+    "sheep",
+    "sink",
+    "skateboard",
+    "truck",
+    "umbrella"
+  ],
+  "256": {
+    "patches": 256,
+    "n_images": 500,
+    "n_queries": 25,
+    "seconds": 4.020370900048874,
+    "crop_per_sec": 124.36663492761866,
+    "top1": 0.96,
+    "top5": 1.0,
+    "top10": 1.0,
+    "per_query": [
+      {
+        "class": "airplane",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.13811162114143372,
+        "best_label": "airplane"
+      },
+      {
+        "class": "bird",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.13269343972206116,
+        "best_label": "bird"
+      },
+      {
+        "class": "bottle",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.131422221660614,
+        "best_label": "bottle"
+      },
+      {
+        "class": "bowl",
+        "top1": false,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1370203197002411,
+        "best_label": "sink"
+      },
+      {
+        "class": "car",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.14149674773216248,
+        "best_label": "car"
+      },
+      {
+        "class": "carrot",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.15497088432312012,
+        "best_label": "carrot"
+      },
+      {
+        "class": "cat",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.13563382625579834,
+        "best_label": "cat"
+      },
+      {
+        "class": "chair",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1488281488418579,
+        "best_label": "chair"
+      },
+      {
+        "class": "clock",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.15631824731826782,
+        "best_label": "clock"
+      },
+      {
+        "class": "couch",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.16846588253974915,
+        "best_label": "couch"
+      },
+      {
+        "class": "cup",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1414910852909088,
+        "best_label": "cup"
+      },
+      {
+        "class": "dining table",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.12024404108524323,
+        "best_label": "dining table"
+      },
+      {
+        "class": "dog",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1193566843867302,
+        "best_label": "dog"
+      },
+      {
+        "class": "elephant",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1544218808412552,
+        "best_label": "elephant"
+      },
+      {
+        "class": "giraffe",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.15953530371189117,
+        "best_label": "giraffe"
+      },
+      {
+        "class": "laptop",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1499558687210083,
+        "best_label": "laptop"
+      },
+      {
+        "class": "motorcycle",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1458723545074463,
+        "best_label": "motorcycle"
+      },
+      {
+        "class": "orange",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.16091859340667725,
+        "best_label": "orange"
+      },
+      {
+        "class": "person",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.11320965737104416,
+        "best_label": "person"
+      },
+      {
+        "class": "potted plant",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.13950049877166748,
+        "best_label": "potted plant"
+      },
+      {
+        "class": "sheep",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.16118846833705902,
+        "best_label": "sheep"
+      },
+      {
+        "class": "sink",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.15659864246845245,
+        "best_label": "sink"
+      },
+      {
+        "class": "skateboard",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.16336384415626526,
+        "best_label": "skateboard"
+      },
+      {
+        "class": "truck",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.13362766802310944,
+        "best_label": "truck"
+      },
+      {
+        "class": "umbrella",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.14218810200691223,
+        "best_label": "umbrella"
+      }
+    ],
+    "peak_vram_gb": 1.5132293701171875
+  },
+  "576": {
+    "patches": 576,
+    "n_images": 500,
+    "n_queries": 25,
+    "seconds": 4.336565800011158,
+    "crop_per_sec": 115.2986079442663,
+    "top1": 0.96,
+    "top5": 1.0,
+    "top10": 1.0,
+    "per_query": [
+      {
+        "class": "airplane",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.13898290693759918,
+        "best_label": "airplane"
+      },
+      {
+        "class": "bird",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1279579997062683,
+        "best_label": "bird"
+      },
+      {
+        "class": "bottle",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.14156219363212585,
+        "best_label": "bottle"
+      },
+      {
+        "class": "bowl",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.13379138708114624,
+        "best_label": "bowl"
+      },
+      {
+        "class": "car",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.13795696198940277,
+        "best_label": "car"
+      },
+      {
+        "class": "carrot",
+        "top1": false,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1572553813457489,
+        "best_label": "truck"
+      },
+      {
+        "class": "cat",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.13538062572479248,
+        "best_label": "cat"
+      },
+      {
+        "class": "chair",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1476457118988037,
+        "best_label": "chair"
+      },
+      {
+        "class": "clock",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1527511179447174,
+        "best_label": "clock"
+      },
+      {
+        "class": "couch",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1661880910396576,
+        "best_label": "couch"
+      },
+      {
+        "class": "cup",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.13442468643188477,
+        "best_label": "cup"
+      },
+      {
+        "class": "dining table",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.11419744044542313,
+        "best_label": "dining table"
+      },
+      {
+        "class": "dog",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.12354402244091034,
+        "best_label": "dog"
+      },
+      {
+        "class": "elephant",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.15417340397834778,
+        "best_label": "elephant"
+      },
+      {
+        "class": "giraffe",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1606331765651703,
+        "best_label": "giraffe"
+      },
+      {
+        "class": "laptop",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.15136438608169556,
+        "best_label": "laptop"
+      },
+      {
+        "class": "motorcycle",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.14402633905410767,
+        "best_label": "motorcycle"
+      },
+      {
+        "class": "orange",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.16163954138755798,
+        "best_label": "orange"
+      },
+      {
+        "class": "person",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1093396246433258,
+        "best_label": "person"
+      },
+      {
+        "class": "potted plant",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.14037546515464783,
+        "best_label": "potted plant"
+      },
+      {
+        "class": "sheep",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.15585802495479584,
+        "best_label": "sheep"
+      },
+      {
+        "class": "sink",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1566239595413208,
+        "best_label": "sink"
+      },
+      {
+        "class": "skateboard",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.16017447412014008,
+        "best_label": "skateboard"
+      },
+      {
+        "class": "truck",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.1362030953168869,
+        "best_label": "truck"
+      },
+      {
+        "class": "umbrella",
+        "top1": true,
+        "top5": true,
+        "top10": true,
+        "best_score": 0.14951424300670624,
+        "best_label": "umbrella"
+      }
+    ],
+    "peak_vram_gb": 1.6529579162597656
+  },
+  "same_image_cosine_mean": 0.9554111361503601,
+  "same_image_cosine_median": 0.9615691304206848
+}

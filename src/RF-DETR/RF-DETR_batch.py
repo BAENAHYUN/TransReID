@@ -19,6 +19,30 @@ Files written under <output_dir>/checkpoint/:
 
 <output_dir>/filter_stats.json is rebuilt from the .jsonl files at the end of
 each run, in the original {"crops": [...], "filtered": [...]} schema.
+
+Identity
+--------
+dataset_id is the logical label for the input directory. Every record carries
+image_id = "<dataset_id>/<filename>", and detect_rf.py derives both the crop
+filename and detection_id from that logical id rather than from an absolute
+path. That is what makes the resulting Qdrant point IDs reproducible on a
+different machine, drive letter or project location.
+
+Because dataset_id feeds image_id -> detection_id -> Qdrant point ID, it is
+part of the checkpoint fingerprint. Changing it invalidates a resume.
+
+source is the provenance label written into the existing integrated-DB payload
+field (for example "COCO" for this default image ingest path). It does not
+participate in identity generation, but it is still part of the checkpoint
+fingerprint so a resumed run cannot mix different provenance labels.
+
+Detection settings vs DB settings
+---------------------------------
+Minimum crop size lives here, not in pipeline.yaml. pipeline.yaml is the DB
+build/search contract, read by build_db.py and the search scripts; crop size
+decides which detections become files on disk in the first place. Keeping it
+on the CLI means the checkpoint records the exact rule a crop directory was
+produced under, which a yaml file edited later cannot do.
 """
 
 import argparse
@@ -47,11 +71,17 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
-# detect_rf.py is located in the project root
+# detect_rf.py is located in the project root.
+# The minimum crop sizes are imported rather than duplicated so the defaults
+# have exactly one definition site.
 from detect_rf import (
     load_detect_model,
     detect_and_crop,
     FORENSIC_TARGET_CLASSES,
+    MIN_PERSON_CROP_WIDTH,
+    MIN_PERSON_CROP_HEIGHT,
+    MIN_OBJECT_CROP_WIDTH,
+    MIN_OBJECT_CROP_HEIGHT,
 )
 
 
@@ -62,6 +92,20 @@ from detect_rf import (
 SAMPLE_DIR = Path(r"C:\datasets\coco\train2017")
 
 OUTPUT_DIR = ROOT / "data" / "crops"
+
+
+# ------------------------------------------------------------
+# Dataset identity
+# ------------------------------------------------------------
+# Stable logical name for the input directory. Deliberately not derived from
+# sample_dir: renaming or moving the dataset folder must not change any
+# image_id, and therefore must not change any Qdrant point ID.
+DEFAULT_DATASET_ID = "coco_train2017"
+
+# Provenance label written to the existing integrated-DB "source" field.
+# This is a default, not a detector assumption: callers can override it with
+# --source without changing detect_rf.py.
+DEFAULT_SOURCE = "COCO"
 
 
 # ------------------------------------------------------------
@@ -121,10 +165,114 @@ def _run_paths(output_dir):
     }
 
 
-def _build_config(sample_dir, target_classes):
-    """Config that must match for a resume to be valid."""
+def _normalize_dataset_id(dataset_id):
+    """
+    Canonical form of the logical dataset label.
+
+    " coco_train2017 ", "/coco_train2017/" and "coco_train2017\\" all describe
+    the same dataset, but would produce different image_id strings and a
+    different checkpoint fingerprint. Normalize before anything reads it.
+    """
+    normalized = (
+        str(dataset_id)
+        .strip()
+        .replace("\\", "/")
+        .strip("/")
+    )
+
+    if not normalized:
+        raise ValueError(
+            "dataset_id must not be empty."
+        )
+
+    return normalized
+
+
+def _normalize_source(source):
+    """
+    Canonical form of the provenance label stored in the existing payload.
+
+    source is metadata rather than part of detection identity, so only trim
+    accidental surrounding whitespace. Preserve the caller's spelling/case.
+    """
+    if source is None:
+        raise ValueError(
+            "source must not be empty."
+        )
+
+    normalized = str(source).strip()
+
+    if not normalized:
+        raise ValueError(
+            "source must not be empty."
+        )
+
+    return normalized
+
+
+def _build_min_crop_size(
+    min_person_width,
+    min_person_height,
+    min_object_width,
+    min_object_height,
+):
+    """
+    Normalize the crop size rule into a JSON-round-trippable structure.
+
+    The values are stored as lists, not tuples: state.json turns tuples into
+    lists on read, and the config comparison in _load_state is an equality
+    check. A tuple here would make every resume fail.
+    """
+    sizes = {
+        "person": [
+            int(min_person_width),
+            int(min_person_height),
+        ],
+        "object": [
+            int(min_object_width),
+            int(min_object_height),
+        ],
+    }
+
+    for kind, (width, height) in sizes.items():
+        if width < 0 or height < 0:
+            raise ValueError(
+                f"min crop size for '{kind}' must not be negative: "
+                f"{width}x{height}"
+            )
+
+    return sizes
+
+
+def _build_config(
+    sample_dir,
+    target_classes,
+    dataset_id,
+    source,
+    min_crop_size,
+):
+    """
+    Config that must match for a resume to be valid.
+
+    dataset_id is included because it flows into image_id, detection_id and
+    ultimately the Qdrant point ID.
+
+    source does not affect point identity, but it affects the metadata written
+    for every record. A resume with a different source would silently mix
+    provenance labels in the same crops.jsonl/filter_stats.json.
+
+    min_crop_size decides which detections become crops at all, so resuming
+    across a change would leave one output directory holding crops produced
+    under two different acceptance rules.
+
+    save_annotated is deliberately excluded: it only controls a debug
+    visualization and does not affect which crops or records are produced.
+    """
     return {
         "sample_dir": str(sample_dir),
+        "dataset_id": dataset_id,
+        "source": source,
+        "min_crop_size": min_crop_size,
         "target_classes": (
             sorted(target_classes) if target_classes else None
         ),
@@ -354,12 +502,30 @@ def _fmt_secs(seconds):
 def run_batch(
     sample_dir=SAMPLE_DIR,
     output_dir=OUTPUT_DIR,
+    dataset_id=DEFAULT_DATASET_ID,
+    source=DEFAULT_SOURCE,
     target_classes=DEFAULT_TARGET_CLASSES,
+    min_person_width=MIN_PERSON_CROP_WIDTH,
+    min_person_height=MIN_PERSON_CROP_HEIGHT,
+    min_object_width=MIN_OBJECT_CROP_WIDTH,
+    min_object_height=MIN_OBJECT_CROP_HEIGHT,
+    save_annotated=False,
     limit=None,
     fresh=False,
 ):
     sample_dir = Path(sample_dir)
     output_dir = Path(output_dir)
+
+    # Normalize before any of these reach checkpoint metadata or records.
+    dataset_id = _normalize_dataset_id(dataset_id)
+    source = _normalize_source(source)
+
+    min_crop_size = _build_min_crop_size(
+        min_person_width,
+        min_person_height,
+        min_object_width,
+        min_object_height,
+    )
 
     paths = _run_paths(output_dir)
 
@@ -367,7 +533,13 @@ def run_batch(
     output_dir.mkdir(parents=True, exist_ok=True)
     paths["ckpt_dir"].mkdir(parents=True, exist_ok=True)
 
-    config = _build_config(sample_dir, target_classes)
+    config = _build_config(
+        sample_dir,
+        target_classes,
+        dataset_id,
+        source,
+        min_crop_size,
+    )
 
     # --------------------------------------------------------
     # Checkpoint / resume
@@ -439,6 +611,19 @@ def run_batch(
 
     print(f"To process now     : {len(pending)}")
 
+    # dataset_id feeds image_id -> detection_id -> Qdrant point ID.
+    print(f"Dataset ID         : {dataset_id}")
+    print(f"Source             : {source}")
+
+    print(
+        f"Min crop size      : person "
+        f"{min_crop_size['person'][0]}x{min_crop_size['person'][1]}, "
+        f"object "
+        f"{min_crop_size['object'][0]}x{min_crop_size['object'][1]}"
+    )
+
+    print(f"Save annotated     : {save_annotated}")
+
     print(
         f"Target classes     : "
         f"{target_classes if target_classes else 'ALL classes'}"
@@ -492,6 +677,13 @@ def run_batch(
     try:
         for i, image_path in enumerate(pending, 1):
 
+            # Logical identity of the source image. Independent of drive
+            # letter, project location and OS path separators.
+            image_id = (
+                f"{dataset_id}/"
+                f"{Path(image_path).name}"
+            )
+
             try:
                 crop_results, filtered_log = detect_and_crop(
                     model,
@@ -500,6 +692,16 @@ def run_batch(
 
                     # None = ALL COCO classes
                     target_classes=target_classes,
+
+                    image_id=image_id,
+                    source=source,
+
+                    min_person_width=min_crop_size["person"][0],
+                    min_person_height=min_crop_size["person"][1],
+                    min_object_width=min_crop_size["object"][0],
+                    min_object_height=min_crop_size["object"][1],
+
+                    save_annotated=save_annotated,
                 )
 
             except Exception as exc:
@@ -793,6 +995,80 @@ def main():
     )
 
     parser.add_argument(
+        "--dataset-id",
+        default=DEFAULT_DATASET_ID,
+        help=(
+            "Stable logical dataset identifier used in image IDs "
+            f"(default: {DEFAULT_DATASET_ID}). Changing it invalidates "
+            "an existing checkpoint."
+        ),
+    )
+
+    parser.add_argument(
+        "--source",
+        default=DEFAULT_SOURCE,
+        help=(
+            "Provenance label written to the existing integrated-DB "
+            f"'source' field (default: {DEFAULT_SOURCE}). Changing it "
+            "invalidates an existing checkpoint."
+        ),
+    )
+
+    parser.add_argument(
+        "--min-person-width",
+        type=int,
+        default=MIN_PERSON_CROP_WIDTH,
+        help=(
+            "Minimum width for a person crop "
+            f"(default: {MIN_PERSON_CROP_WIDTH}). Changing it invalidates "
+            "an existing checkpoint."
+        ),
+    )
+
+    parser.add_argument(
+        "--min-person-height",
+        type=int,
+        default=MIN_PERSON_CROP_HEIGHT,
+        help=(
+            "Minimum height for a person crop "
+            f"(default: {MIN_PERSON_CROP_HEIGHT}). Changing it invalidates "
+            "an existing checkpoint."
+        ),
+    )
+
+    parser.add_argument(
+        "--min-object-width",
+        type=int,
+        default=MIN_OBJECT_CROP_WIDTH,
+        help=(
+            "Minimum width for a non-person crop "
+            f"(default: {MIN_OBJECT_CROP_WIDTH}). Small objects are "
+            "legitimately small, so this must stay well below the person "
+            "threshold."
+        ),
+    )
+
+    parser.add_argument(
+        "--min-object-height",
+        type=int,
+        default=MIN_OBJECT_CROP_HEIGHT,
+        help=(
+            "Minimum height for a non-person crop "
+            f"(default: {MIN_OBJECT_CROP_HEIGHT})."
+        ),
+    )
+
+    parser.add_argument(
+        "--save-annotated",
+        action="store_true",
+        help=(
+            "Write a bbox visualization per image under "
+            "<output-dir>/detected_full/. Off by default: at 80k images "
+            "this doubles the file count and the write time."
+        ),
+    )
+
+    parser.add_argument(
         "--forensic",
         action="store_true",
         help="Use FORENSIC_TARGET_CLASSES instead of all COCO classes.",
@@ -803,10 +1079,17 @@ def main():
     run_batch(
         sample_dir=args.sample_dir,
         output_dir=args.output_dir,
+        dataset_id=args.dataset_id,
+        source=args.source,
         target_classes=(
             FORENSIC_TARGET_CLASSES if args.forensic
             else DEFAULT_TARGET_CLASSES
         ),
+        min_person_width=args.min_person_width,
+        min_person_height=args.min_person_height,
+        min_object_width=args.min_object_width,
+        min_object_height=args.min_object_height,
+        save_annotated=args.save_annotated,
         limit=None if args.all else args.limit,
         fresh=args.fresh,
     )

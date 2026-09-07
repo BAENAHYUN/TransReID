@@ -68,15 +68,14 @@ class EmbedderRegistry:
                 f"'{spec.module}' 에 '{spec.class_name}' 클래스가 없습니다."
             )
 
+        
+    
         cls = getattr(module, spec.class_name)
-        try:
-            return cls(**spec.params)
-        except TypeError as e:
-            raise TypeError(
-                f"retriever '{spec.name}' 생성 실패. pipeline.yaml 의 params 가 "
-                f"{spec.class_name}.__init__ 시그니처와 맞는지 확인하세요.\n"
-                f"  params: {spec.params}\n  원인: {e}"
-            ) from e
+
+        # 생성자 내부에서 발생한 TypeError까지 params 오류로 포장하면
+        # 실제 원인(외부 repo 코드, 라이브러리 버전 불일치 등)을
+        # 찾는 데 방해가 된다. 원래 traceback을 그대로 올린다.
+        return cls(**spec.params)
 
     @staticmethod
     def _verify_dim(spec: RetrieverSpec, obj) -> None:

@@ -18,22 +18,28 @@ IRRA / SigLIP2 와 달리 텍스트 정렬이 없고,
 지원 체크포인트
 --------------
 
-1) SOLIDER 사전학습 backbone
-   swin_base.pth
+SOLIDER-REID fine-tuned checkpoint만 지원한다.
 
-   - LUPerson self-supervised pretraining
-   - zero-shot / cross-domain 평가에 적합
-   - BNNeck 없음
-   - neck_feat="before" 사용
+예:
+    solider_market_swin_base.pth
 
+공식 SOLIDER-REID 모델 계약에 맞춰 state_dict의
 
-2) SOLIDER-REID fine-tuned checkpoint
+    base.*
+    bottleneck.*
+    classifier.*
 
-   - Market1501 / MSMT17 등으로 fine-tuning
-   - state_dict key에 "base." prefix 존재
-   - 필요시 BNNeck 사용 가능
+구조를 기대한다.
 
-체크포인트 종류는 자동 판별한다.
+이 adapter는 사람 임베딩 추출만 담당하므로:
+
+    base.*        -> SOLIDER Swin backbone에 로드
+    bottleneck.*  -> neck_feat="after"일 때만 로드
+    classifier.*  -> 사용하지 않음
+
+SOLIDER self-supervised pretraining checkpoint의 bare backbone이나
+teacher checkpoint를 자동 판별/변환하지 않는다. 그런 checkpoint는
+공식 SOLIDER-REID 변환/학습 흐름을 거친 뒤 사용해야 한다.
 
 
 주의
@@ -41,6 +47,7 @@ IRRA / SigLIP2 와 달리 텍스트 정렬이 없고,
 
 * SOLIDER의 semantic_weight 기본값과 ReID 설정이 다를 수 있다.
   ReID에서는 일반적으로 semantic_weight=0.2 를 사용한다.
+  semantic_weight 는 논문의 lambda에 해당하며 0.0 <= lambda <= 1.0 범위만 허용한다.
 
 * SOLIDER 입력 normalization:
       mean = (0.5, 0.5, 0.5)
@@ -59,7 +66,7 @@ IRRA / SigLIP2 와 달리 텍스트 정렬이 없고,
 """
 
 from __future__ import annotations
-import pickle
+import importlib.util
 import logging
 import os
 import sys
@@ -144,6 +151,14 @@ class SoliderEmbedder(BaseEmbedder):
                 "neck_feat 은 'before' 또는 'after' 여야 합니다."
             )
 
+        semantic_weight = float(semantic_weight)
+
+        if not 0.0 <= semantic_weight <= 1.0:
+            raise ValueError(
+                "semantic_weight 는 0.0 이상 1.0 이하여야 합니다 "
+                f"(받은 값: {semantic_weight})"
+            )
+
         # BaseEmbedder가 DIM > 0 을 요구하므로 먼저 지정
         self.DIM = BACKBONE_DIMS[backbone]
 
@@ -154,11 +169,13 @@ class SoliderEmbedder(BaseEmbedder):
         )
 
         self.backbone = backbone
-        self.semantic_weight = float(semantic_weight)
+        self.semantic_weight = semantic_weight
         self.img_size = tuple(img_size)
         self.neck_feat = neck_feat
 
-        self._inject_path(solider_root)
+        self._swin_transformer = self._load_swin_module(
+            solider_root
+        )
 
         self.model, self.bottleneck = self._build(
             Path(ckpt_path).expanduser()
@@ -187,78 +204,104 @@ class SoliderEmbedder(BaseEmbedder):
     @staticmethod
     def _stub_unused_imports() -> None:
         """
-        SOLIDER swin_transformer.py가 mmcv.runner를 import하지만
-        실제 inference path에서는 사용하지 않는 경우가 있다.
+        SOLIDER swin_transformer.py가 mmcv.runner.load_checkpoint를 import하지만
+        이 adapter의 ReID inference 경로에서는 init_weights()를 사용하지 않는다.
 
-        mmcv-full 설치는 torch/CUDA 버전에 매우 민감하므로,
-        mmcv가 없을 때만 최소 dummy module을 삽입한다.
+        mmcv-full 설치는 torch/CUDA 버전에 민감하므로 mmcv.runner가 없을 때만
+        import를 통과시키기 위한 최소 module을 제공한다.
 
-        중요:
-        cv2는 절대 stub하지 않는다.
-        다른 RF-DETR/OpenCV 코드에 전역 부작용을 줄 수 있기 때문이다.
+        주의:
+        cv2 등 다른 모듈은 stub하지 않는다.
         """
 
         import types
 
         try:
             import mmcv  # noqa: F401
-
         except ImportError:
-
             mmcv_module = types.ModuleType("mmcv")
             sys.modules["mmcv"] = mmcv_module
-
             logger.debug(
                 "mmcv 미설치 -> SOLIDER import용 dummy module 생성"
             )
 
         if "mmcv.runner" not in sys.modules:
-
             try:
                 __import__("mmcv.runner")
-
             except ImportError:
-
                 runner = types.ModuleType("mmcv.runner")
 
-                # SOLIDER inference에서는 사용하지 않음
-                runner.load_checkpoint = None
+                def _unused_load_checkpoint(*args, **kwargs):
+                    raise RuntimeError(
+                        "이 adapter는 SOLIDER init_weights()를 사용하지 않습니다. "
+                        "SOLIDER-REID fine-tuned checkpoint를 사용하세요."
+                    )
 
+                runner.load_checkpoint = _unused_load_checkpoint
                 sys.modules["mmcv.runner"] = runner
-
-                setattr(
-                    sys.modules["mmcv"],
-                    "runner",
-                    runner,
-                )
+                setattr(sys.modules["mmcv"], "runner", runner)
 
                 logger.debug(
-                    "mmcv.runner 미설치 -> dummy runner 생성"
+                    "mmcv.runner 미설치 -> SOLIDER import용 dummy runner 생성"
                 )
 
     @classmethod
-    def _inject_path(
+    def _load_swin_module(
         cls,
         solider_root: str | Path,
-    ) -> None:
+    ):
+        """
+        지정된 SOLIDER root의 swin_transformer.py를 정확히 로드한다.
 
-        root = Path(
-            solider_root
-        ).expanduser().resolve()
+        sys.path에 의존하는 ``import swin_transformer``를 사용하지 않아
+        TransReID 등 다른 프로젝트의 동명 모듈과 충돌하지 않는다.
+        """
 
-        if not (root / "swin_transformer.py").exists():
+        root = Path(solider_root).expanduser().resolve()
+        module_path = root / "swin_transformer.py"
+
+        if not module_path.is_file():
             raise FileNotFoundError(
                 f"SOLIDER 레포를 찾을 수 없습니다: {root}\n"
-                f"  git clone https://github.com/tinyvision/SOLIDER.git {root}"
+                f"필요 파일: {module_path}"
             )
 
         cls._stub_unused_imports()
 
-        if str(root) not in sys.path:
-            sys.path.insert(
-                0,
-                str(root),
+        module_name = "_transreid_solider_swin_transformer"
+        existing = sys.modules.get(module_name)
+
+        if existing is not None:
+            existing_file = Path(
+                getattr(existing, "__file__", "")
+            ).resolve()
+
+            if existing_file == module_path:
+                return existing
+
+            # 다른 SOLIDER root로 다시 초기화하는 경우에는 정확한 파일을 재로드한다.
+            del sys.modules[module_name]
+
+        spec = importlib.util.spec_from_file_location(
+            module_name,
+            module_path,
+        )
+
+        if spec is None or spec.loader is None:
+            raise ImportError(
+                f"SOLIDER swin_transformer 모듈을 로드할 수 없습니다: {module_path}"
             )
+
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+
+        try:
+            spec.loader.exec_module(module)
+        except Exception:
+            sys.modules.pop(module_name, None)
+            raise
+
+        return module
 
     # =======================================================================
     # Model build
@@ -274,12 +317,17 @@ class SoliderEmbedder(BaseEmbedder):
                 f"SOLIDER 체크포인트가 없습니다: {ckpt_path}"
             )
 
-        import swin_transformer  # type: ignore
+        factory_name = _FACTORY[self.backbone]
 
-        factory = getattr(
-            swin_transformer,
-            _FACTORY[self.backbone],
-        )
+        try:
+            factory = getattr(
+                self._swin_transformer,
+                factory_name,
+            )
+        except AttributeError as exc:
+            raise RuntimeError(
+                f"SOLIDER backbone factory를 찾을 수 없습니다: {factory_name}"
+            ) from exc
 
         model = factory(
             img_size=self.img_size,
@@ -315,44 +363,13 @@ class SoliderEmbedder(BaseEmbedder):
             )
 
         # ---------------------------------------------------------------
-        # checkpoint 종류 자동 판별
+        # 공식 SOLIDER-REID checkpoint 계약으로 로드
         # ---------------------------------------------------------------
 
-        kind = self._detect_ckpt_kind(
-            ckpt_path
+        bottleneck = self._load_reid(
+            model,
+            ckpt_path,
         )
-
-        bottleneck = None
-
-        if kind == "reid":
-
-            logger.info(
-                "SOLIDER-REID 파인튜닝 체크포인트로 판별"
-            )
-
-            bottleneck = self._load_reid(
-                model,
-                ckpt_path,
-            )
-
-        else:
-
-            logger.info(
-                "SOLIDER 사전학습 백본 체크포인트로 판별"
-            )
-
-            # init_weights가 teacher/state_dict/module prefix 및
-            # relative_position_bias_table interpolation 처리
-            model.init_weights(
-                str(ckpt_path)
-            )
-
-            if self.neck_feat == "after":
-                raise ValueError(
-                    "사전학습 backbone 체크포인트에는 BNNeck 이 없습니다.\n"
-                    "neck_feat='before' 를 사용하거나 "
-                    "SOLIDER-REID 체크포인트를 사용하세요."
-                )
 
         model.to(
             self.device
@@ -386,102 +403,73 @@ class SoliderEmbedder(BaseEmbedder):
     @staticmethod
     def _load_ckpt(path: Path) -> dict:
         """
-        SOLIDER checkpoint를 state_dict 형태로 로드한다.
-    
-        우선 weights_only=True를 사용한다.
-        공식/신뢰 가능한 checkpoint가 NumPy 객체 등을 포함해서
-        weights_only 로딩에 실패한 경우에만 weights_only=False로 fallback한다.
+        SOLIDER-REID fine-tuned checkpoint를 state_dict로 로드한다.
+
+        허용:
+            - flat state_dict
+            - {"state_dict": state_dict}
+            - DDP의 module.* prefix
+
+        허용하지 않음:
+            - SOLIDER pretraining teacher checkpoint의 자동 변환
+            - bare backbone state_dict의 자동 추측
         """
-    
+
         try:
             ckpt = torch.load(
                 path,
                 map_location="cpu",
                 weights_only=True,
             )
-    
         except TypeError:
             # 구버전 PyTorch: weights_only 인자 미지원
             ckpt = torch.load(
                 path,
                 map_location="cpu",
             )
-    
-        except pickle.UnpicklingError:
-            # SOLIDER 공식 checkpoint처럼
-            # weights_only=True가 NumPy 객체 때문에 실패하는 경우
-            logger.warning(
-                "weights_only=True 로드 실패 -> "
-                "신뢰 가능한 SOLIDER checkpoint로 간주하고 "
-                "weights_only=False로 다시 로드합니다."
-            )
-    
-            ckpt = torch.load(
-                path,
-                map_location="cpu",
-                weights_only=False,
-            )
-    
-        # checkpoint wrapper 제거
-        for key in (
-            "teacher",
-            "state_dict",
-            "model",
+
+        if (
+            isinstance(ckpt, dict)
+            and "state_dict" in ckpt
+            and isinstance(ckpt["state_dict"], dict)
         ):
-            if (
-                isinstance(ckpt, dict)
-                and key in ckpt
-                and isinstance(ckpt[key], dict)
-            ):
-                ckpt = ckpt[key]
-                break
-    
+            ckpt = ckpt["state_dict"]
+
         if not isinstance(ckpt, dict):
             raise TypeError(
-                "SOLIDER checkpoint의 최종 state_dict가 "
-                f"dict가 아닙니다: {type(ckpt)}"
+                "SOLIDER-REID checkpoint의 state_dict가 dict가 아닙니다: "
+                f"{type(ckpt)}"
             )
-    
-        # module. prefix 제거
+
         cleaned = {}
-    
+
         for k, v in ckpt.items():
+            if not isinstance(k, str):
+                raise TypeError(
+                    "SOLIDER-REID checkpoint key가 문자열이 아닙니다: "
+                    f"{type(k)}"
+                )
+
             if k.startswith("module."):
                 k = k[len("module."):]
-    
+
             cleaned[k] = v
-    
-        return cleaned
-    
-    @classmethod
-    def _detect_ckpt_kind(
-        cls,
-        path: Path,
-    ) -> str:
-        """
-        SOLIDER-REID fine-tuned checkpoint인지
-        backbone pretraining checkpoint인지 판별한다.
 
-        SOLIDER-REID:
-            base.xxx
-
-        backbone:
-            layers.xxx
-            patch_embed.xxx
-            ...
-        """
-
-        sd = cls._load_ckpt(
-            path
-        )
-
-        if any(
+        if not any(
             k.startswith("base.")
-            for k in sd
+            for k in cleaned
         ):
-            return "reid"
+            sample_keys = list(cleaned)[:5]
+            raise RuntimeError(
+                "지원하지 않는 SOLIDER checkpoint 형식입니다.\n"
+                "이 adapter는 SOLIDER-REID fine-tuned checkpoint의 "
+                "'base.*' 구조를 요구합니다.\n"
+                "SOLIDER pretraining teacher/bare-backbone checkpoint는 "
+                "자동 변환하지 않습니다.\n"
+                f"checkpoint key 예시: {sample_keys}"
+            )
 
-        return "backbone"
+        return cleaned
 
     # =======================================================================
     # SOLIDER-REID loading
@@ -493,14 +481,12 @@ class SoliderEmbedder(BaseEmbedder):
         ckpt_path: Path,
     ):
         """
-        SOLIDER-REID checkpoint에서
+        공식 SOLIDER-REID fine-tuned checkpoint 계약을 adapter에 연결한다.
 
-            base.*
-            bottleneck.*
-
-        을 분리해서 로드한다.
-
-        classifier는 dataset identity 수에 종속되므로 사용하지 않는다.
+        checkpoint:
+            base.*         -> SOLIDER Swin backbone
+            bottleneck.*   -> BNNeck (neck_feat="after"일 때 사용)
+            classifier.*   -> dataset identity 종속이므로 무시
         """
 
         import torch.nn as nn
@@ -512,15 +498,29 @@ class SoliderEmbedder(BaseEmbedder):
         backbone_sd = {
             k[len("base."):]: v
             for k, v in sd.items()
-            if k.startswith(
-                "base."
-            )
+            if k.startswith("base.")
         }
 
-        if not backbone_sd:
+        model_sd = model.state_dict()
+
+        shape_mismatch = []
+        for key, value in backbone_sd.items():
+            if key in model_sd and model_sd[key].shape != value.shape:
+                shape_mismatch.append(
+                    (
+                        key,
+                        tuple(value.shape),
+                        tuple(model_sd[key].shape),
+                    )
+                )
+
+        if shape_mismatch:
+            key, got, expected = shape_mismatch[0]
             raise RuntimeError(
-                "SOLIDER-REID checkpoint로 판별했지만 "
-                "'base.' 가중치가 없습니다."
+                "SOLIDER-REID backbone checkpoint shape가 모델과 다릅니다.\n"
+                f"key={key} checkpoint={got} model={expected}\n"
+                f"pipeline.yaml의 backbone='{self.backbone}'과 checkpoint가 "
+                "일치하는지 확인하세요."
             )
 
         missing, unexpected = model.load_state_dict(
@@ -528,77 +528,103 @@ class SoliderEmbedder(BaseEmbedder):
             strict=False,
         )
 
-        loaded = (
-            len(backbone_sd)
-            - len(unexpected)
+        loaded = sum(
+            1
+            for key in backbone_sd
+            if key in model_sd
         )
+        total = len(model_sd)
+        coverage = loaded / max(total, 1)
 
-        if loaded < len(
-            model.state_dict()
-        ) * 0.5:
+        # 공식 ReID checkpoint라면 대부분의 backbone state가 일치해야 한다.
+        # 버전별 비영속 buffer 차이는 허용하되, 대규모 불일치는 즉시 차단한다.
+        if unexpected or coverage < 0.90:
             raise RuntimeError(
-                f"백본 가중치가 거의 로드되지 않았습니다 ({loaded}개).\n"
-                f"backbone='{self.backbone}' 이 checkpoint와 "
-                f"맞는지 확인하세요.\n"
-                f"unexpected 예시: {unexpected[:3]}"
-            )
-
-        if unexpected:
-            logger.debug(
-                "unexpected keys: %s",
-                unexpected[:5],
+                "SOLIDER-REID backbone checkpoint가 현재 backbone과 충분히 "
+                "일치하지 않습니다.\n"
+                f"loaded={loaded}/{total} ({coverage:.1%})\n"
+                f"unexpected 예시: {unexpected[:5]}\n"
+                f"missing 예시: {missing[:5]}\n"
+                f"pipeline.yaml의 backbone='{self.backbone}'과 checkpoint를 "
+                "확인하세요."
             )
 
         if missing:
             logger.debug(
-                "missing keys: %s",
-                missing[:5],
+                "SOLIDER backbone missing keys: %s",
+                missing[:10],
             )
 
         logger.info(
-            "SOLIDER backbone weight %d개 로드",
+            "SOLIDER-REID backbone 로드 | %d/%d (%.1f%%)",
             loaded,
+            total,
+            coverage * 100.0,
         )
 
         # ---------------------------------------------------------------
         # BNNeck
+        # 공식 inference 의미:
+        #   before -> global_feat
+        #   after  -> bottleneck(global_feat)
         # ---------------------------------------------------------------
 
-        bottleneck = None
+        if self.neck_feat == "before":
+            return None
 
-        if self.neck_feat == "after":
+        bn_sd = {
+            k[len("bottleneck."):]: v
+            for k, v in sd.items()
+            if k.startswith("bottleneck.")
+        }
 
-            w = sd.get(
-                "bottleneck.weight"
+        required_bn_keys = {
+            "weight",
+            "bias",
+            "running_mean",
+            "running_var",
+        }
+        missing_bn = sorted(
+            required_bn_keys - set(bn_sd)
+        )
+
+        if missing_bn:
+            raise RuntimeError(
+                "neck_feat='after'인데 SOLIDER-REID checkpoint의 "
+                "BNNeck가 불완전합니다.\n"
+                f"누락 key: {missing_bn}"
             )
 
-            if w is None:
-                raise RuntimeError(
-                    "neck_feat='after' 인데 checkpoint에 "
-                    "bottleneck weight가 없습니다."
-                )
+        bottleneck = nn.BatchNorm1d(
+            self.DIM
+        )
+        # 공식 ReID 구현의 BNNeck 설정과 동일한 의미
+        bottleneck.bias.requires_grad_(False)
 
-            bottleneck = nn.BatchNorm1d(
-                self.DIM
+        missing_bn_load, unexpected_bn = bottleneck.load_state_dict(
+            bn_sd,
+            strict=False,
+        )
+
+        allowed_missing = {
+            "num_batches_tracked"
+        }
+        bad_missing = [
+            k
+            for k in missing_bn_load
+            if k not in allowed_missing
+        ]
+
+        if bad_missing or unexpected_bn:
+            raise RuntimeError(
+                "SOLIDER-REID BNNeck checkpoint가 모델과 일치하지 않습니다.\n"
+                f"missing={bad_missing}\n"
+                f"unexpected={unexpected_bn}"
             )
 
-            bn_sd = {
-                k[len("bottleneck."):]: v
-                for k, v in sd.items()
-                if k.startswith(
-                    "bottleneck."
-                )
-            }
-
-            bottleneck.load_state_dict(
-                bn_sd,
-                strict=False,
-            )
-
-            logger.info(
-                "SOLIDER BNNeck 로드 "
-                "(neck_feat='after')"
-            )
+        logger.info(
+            "SOLIDER-REID BNNeck 로드 (neck_feat='after')"
+        )
 
         return bottleneck
 
@@ -772,6 +798,9 @@ class SoliderEmbedder(BaseEmbedder):
 
 # ===========================================================================
 # Smoke Test
+#
+# 프로젝트 루트에서 module mode로 실행한다.
+#   python -m embedders.human.solider_embedder ...
 # ===========================================================================
 
 if __name__ == "__main__":
@@ -815,6 +844,10 @@ if __name__ == "__main__":
         "--semantic-weight",
         type=float,
         default=0.2,
+        help=(
+            "SOLIDER semantic controller weight "
+            "(0.0~1.0, Re-ID 기본 권장값: 0.2)"
+        ),
     )
 
     ap.add_argument(

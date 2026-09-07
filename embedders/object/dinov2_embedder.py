@@ -25,32 +25,34 @@ DINOv2(Oquab et al., 2023)는 라벨 없이 대규모 이미지로 자기지도 
     facebook/dinov2-large  1024
     facebook/dinov2-giant  1536
 
-`facebook/dinov2-with-registers-*` 도 같은 차원이다. 단, 시퀀스가
-[CLS, register x4, patch...] 구조라서 patch 토큰 시작 위치가 다르다
-(아래 `num_prefix_tokens` 참고). registers 판(Darcet et al., ICLR 2024)은
-high-norm artifact 토큰을 줄이므로 **feature 가 mean / cls+mean 이면 권장**이다.
-feature="cls" 만 쓸 거면 굳이 바꿀 이유는 없다.
+`facebook/dinov2-with-registers-*` 도 같은 hidden 차원을 사용한다.
+register checkpoint 변경은 현재 운영 경로와 분리된 별도 실험 항목으로 둔다.
 
-전처리 정책 (측정으로 확정)
---------------------------
-`resize_mode="pad"` 가 기본이다. 종횡비를 유지한 채 레터박스로 넣는다.
+운영 정책
+---------
+* 운영 feature 는 `cls`, 전처리는 DINOv2 공식 classification-eval transform에
+  맞춘 `resize_mode="center_crop"`, `image_size=224` 로 고정한다.
+* 운영 전처리 순서는 `Resize(shortest_edge=256, BICUBIC) -> CenterCrop(224)` 이다.
+* 운영 벡터는 `l2_normalize=True` 로 고정한다. 색인/질의가 같은 정규화 정책을
+  쓰도록 운영 모드에서 False 를 차단한다.
+* `model_id` 는 설정값으로 유지하고 코드에서 Base로 강제하지 않는다. 기본값은
+  `facebook/dinov2-base` 이며, 다른 크기/variant를 쓸 때는 pipeline의 dim도 함께
+  맞춰야 한다.
+* `mean`, `cls+mean`, `resize`, `pad`, `native` 는 프로젝트 실험 옵션이며
+  기본적으로 실행을 막는다. 필요할 때만 `allow_experimental=True` 로
+  명시적으로 허용한다.
+* `pad@224` 및 square-context/margin 실험 결과는 프로젝트 자체 데이터에 대한
+  보조 관찰값으로만 남긴다. 최종 운영 전처리의 근거로 일반화하지 않는다.
 
-증강 자기검색 하네스(COCO crop, 갤러리 600개, 사람 제외) 결과:
+프로젝트 자체 증강 자기검색 하네스의 과거 관찰값(보조 기록):
 
     설정              R@1     R@5     MRR    catNN
     resize@224      0.775   0.878   0.824   0.763
-    pad@224         0.828   0.900   0.863   0.782   <- 채택
+    pad@224         0.828   0.900   0.863   0.782
 
-사람을 포함한 전체 세트에서는 격차가 +2.1%p 로 작았지만, DINOv2 가 실제로
-담당하는 객체만 놓고 보면 +5.3%p 로 벌어진다. raw / whiten128 / whitenfull
-세 후처리 모두, 그리고 R@5 · MRR · catNN 모두 같은 방향이었다.
-
-이유: 객체 crop 은 (20, 147) 처럼 세로로 긴 것과 (162, 27) 처럼 가로로 긴 것이
-섞여 있다. `resize` 는 각 crop 을 서로 다른 방향으로 뭉개므로 같은 개체라도
-임베딩이 갈라진다. 실측 왜곡이 4~7배까지 나왔다 (학습 jitter 범위는 ~1.33배).
-
-`resize` 도 그대로 남겨뒀다. 파이프라인에 정사각형에 가까운 crop 만 들어온다면
-여백 연산이 없는 `resize` 가 더 빠르고 성능 차이도 없을 것이다.
+추가 context 실험에서도 tight crop 대비 square-context 및 10/20/30% margin이
+일관된 개선을 보이지 않았다. 이 값들은 현재 데이터셋에 국한된 프로젝트 관찰값이며,
+DINOv2의 일반적 최적 전처리나 OOD 경계를 의미하지 않는다.
 
 주의사항
 -------
@@ -64,20 +66,26 @@ feature="cls" 만 쓸 거면 굳이 바꿀 이유는 없다.
   상한(65504)을 위협할 정도라는 근거는 없다. 지수 범위가 fp32 와 같은 bf16 이
   손해볼 게 없어서 기본으로 뒀을 뿐이다.
 
-TODO (논문 기반으로 채울 것)
----------------------------
-1. 평가 하네스: Revisited Oxford/Paris(Radenović et al., CVPR 2018) 의 mAP
-   프로토콜을 자체 crop 데이터에 얹기. resize vs pad, cls vs cls+mean,
-   해상도(224 vs 518), 레이어 선택은 전부 측정으로만 결론난다.
-2. PCA-whitening: 인스턴스 검색의 사실상 표준 후처리
-   (Jégou & Chum, ECCV 2012). Qdrant 삽입 직전 단계.
-3. GeM pooling(Radenović, Tolias, Chum, TPAMI 2019) 을 feature 옵션으로 추가.
+성능 최적화 후보 (운영 baseline과 분리)
+--------------------------------------
+현재 운영 baseline을 바꾸지 않고, 필요할 때만 별도 A/B로 검증한다.
+1. pooling: `mean`, `cls+mean` — 이미 실험 경로를 보존한다.
+2. geometry: `native` — aspect ratio 유지/가변 해상도 실험 경로를 보존한다.
+3. model variant: DINOv2 with Registers — `model_id` 교체로 비교 가능하되
+   pipeline의 dim/DB 계약을 함께 확인한다.
+4. PCA / whitening — 768-d 압축, 검색 속도·저장공간 최적화 후보. Qdrant 삽입
+   직전의 별도 후처리 단계로 두고 원본 768-d baseline과 비교한다.
+5. GeM pooling — patch feature 기반 pooling 확장 후보. CLS baseline과 분리한다.
+6. precision / batch size — bf16/fp16, batch_size는 정확도 표현을 바꾸지 않는
+   처리량 최적화 항목으로 별도 조정한다.
+
+※ 위 후보는 지금 운영값이 아니라 후속 성능 최적화 항목이다.
 
 ※ 위 인용의 연도/학회는 원문으로 재확인할 것.
 
 사용
 ----
-    emb = DINOv2Embedder(model_id="facebook/dinov2-base")   # resize_mode="pad"
+    emb = DINOv2Embedder(model_id="facebook/dinov2-base")   # center_crop: 256 -> 224
     vecs = emb.embed_crops(object_crops, input_format="bgr")   # (N, 768)
 """
 
@@ -110,9 +118,15 @@ _SIZE_HINTS = {
 VALID_FEATURES = ("cls", "mean", "cls+mean")
 VALID_RESIZE = ("native", "resize", "center_crop", "pad")
 
-# 학습 시 RandomResizedCrop ratio jitter 범위(대략 3/4~4/3). 이 밖은 분포 밖 입력이다.
-# resize 모드에서 목표 종횡비 대비 왜곡이 이 배수를 넘으면 경고한다.
-_MAX_DISTORT = 4.0 / 3.0
+# 운영 기준은 DINOv2 공식 classification-eval transform에 맞춘다.
+#   Resize(shortest_edge=256, BICUBIC) -> CenterCrop(224)
+# 프로젝트 자체 pad/resize/context 실험은 보조 관찰값으로만 유지한다.
+OFFICIAL_EVAL_RESIZE_SIZE = 256
+OFFICIAL_EVAL_CROP_SIZE = 224
+
+# 실험용 resize 모드에서 큰 종횡비 변형을 알려주기 위한 휴리스틱 기준이다.
+# DINOv2 논문이 정의한 OOD 경계나 성능 경계가 아니다.
+_DISTORT_WARN_RATIO = 4.0 / 3.0
 
 
 class DINOv2Embedder(BaseEmbedder):
@@ -123,7 +137,7 @@ class DINOv2Embedder(BaseEmbedder):
         model_id: str = "facebook/dinov2-base",
         feature: str = "cls",
         image_size: Union[int, Tuple[int, int]] = 224,
-        resize_mode: str = "pad",
+        resize_mode: str = "center_crop",
         max_num_patches: int = 256,       # native 모드 전용 토큰 예산
         min_side_patches: int = 4,        # native 모드에서 한 변의 최소 패치 수
         device: Optional[str] = None,
@@ -132,19 +146,51 @@ class DINOv2Embedder(BaseEmbedder):
         fp16: bool = True,                # True 면 bf16 우선, 미지원 시 fp16
         cache_dir: Optional[str] = None,
         local_files_only: bool = False,
+        allow_experimental: bool = False,
     ) -> None:
         if feature not in VALID_FEATURES:
             raise ValueError(f"feature 는 {VALID_FEATURES} 중 하나여야 합니다 (받은 값: {feature})")
         if resize_mode not in VALID_RESIZE:
             raise ValueError(f"resize_mode 는 {VALID_RESIZE} 중 하나여야 합니다 (받은 값: {resize_mode})")
 
+        normalized_image_size = self._normalize_image_size(image_size)
+
+        # 운영 경로는 현재 검증된 baseline만 허용한다.
+        # 다른 feature / resize / 해상도는 명시적 실험에서만 사용한다.
+        if not allow_experimental:
+            if feature != "cls":
+                raise ValueError(
+                    "운영 DINOv2 feature는 'cls'만 허용합니다. "
+                    "실험할 때만 allow_experimental=True 를 지정하세요."
+                )
+            if resize_mode != "center_crop":
+                raise ValueError(
+                    "운영 DINOv2 resize_mode는 'center_crop'만 허용합니다. "
+                    "공식 eval 전처리(Resize 256 -> CenterCrop 224)를 사용합니다. "
+                    "다른 전처리는 실험할 때만 allow_experimental=True 를 지정하세요."
+                )
+            if normalized_image_size != (224, 224):
+                raise ValueError(
+                    "운영 DINOv2 center crop 크기는 224만 허용합니다. "
+                    f"got={normalized_image_size}. "
+                    "공식 eval 전처리 기준을 벗어나는 크기는 "
+                    "allow_experimental=True 에서만 사용하세요."
+                )
+            if not l2_normalize:
+                raise ValueError(
+                    "운영 DINOv2는 l2_normalize=True만 허용합니다. "
+                    "색인/질의 벡터의 정규화 정책을 동일하게 유지하기 위해 "
+                    "False는 allow_experimental=True 에서만 사용하세요."
+                )
+
         self.model_id = model_id
         self.feature = feature
         self.resize_mode = resize_mode
+        self.allow_experimental = bool(allow_experimental)
         self.max_num_patches = int(max_num_patches)
         self.min_side_patches = int(min_side_patches)
 
-        # 왜곡 경고 스로틀링용 (배치마다 수십 줄 찍히는 걸 막는다)
+        # 경고 스로틀링용 (배치마다 수십 줄 찍히는 걸 막는다)
         self._distort_warned = 0
 
         # DIM 은 모델을 로드해야 확정되지만, BaseEmbedder 가 __init__ 에서 검사하므로
@@ -157,7 +203,7 @@ class DINOv2Embedder(BaseEmbedder):
         # 저정밀은 CUDA 에서만. CPU 반정밀은 느리거나 미지원 연산이 있다.
         self.dtype = self._pick_dtype(fp16, self.device)
 
-        self.image_size = self._normalize_image_size(image_size)
+        self.image_size = normalized_image_size
         self.model = self._build(cache_dir, local_files_only)
         self._check_patch_divisibility()
         self._warn_on_registers()
@@ -324,14 +370,26 @@ class DINOv2Embedder(BaseEmbedder):
             return T.Compose([to_rgb, T.ToTensor(), norm])
 
         if self.resize_mode == "resize":
-            # 종횡비를 무시하고 전체를 목표 크기로. 물체가 잘리지 않는다. (확정 정책)
+            # 실험용: 종횡비를 무시하고 전체를 목표 크기로 맞춘다. 물체는 잘리지 않는다.
             return T.Compose([to_rgb, T.Resize((h, w), interpolation=bicubic),
                               T.ToTensor(), norm])
 
-        # center_crop: HF 프로세서 기본 동작. 종횡비는 지키지만 가장자리가 잘린다.
-        short = int(round(min(h, w) * 256 / 224))
-        return T.Compose([to_rgb, T.Resize(short, interpolation=bicubic),
-                          T.CenterCrop((h, w)), T.ToTensor(), norm])
+        # center_crop: DINOv2 공식 classification-eval transform.
+        # 운영 경로는 image_size=224로 고정되므로 정확히
+        # Resize(shortest_edge=256) -> CenterCrop(224) 가 된다.
+        if (h, w) == (OFFICIAL_EVAL_CROP_SIZE, OFFICIAL_EVAL_CROP_SIZE):
+            short = OFFICIAL_EVAL_RESIZE_SIZE
+        else:
+            # 다른 crop 크기는 allow_experimental=True 전용이다.
+            # 256/224 비율은 유지해 실험용으로 일반화한다.
+            short = int(round(min(h, w) * OFFICIAL_EVAL_RESIZE_SIZE / OFFICIAL_EVAL_CROP_SIZE))
+        return T.Compose([
+            to_rgb,
+            T.Resize(short, interpolation=bicubic),
+            T.CenterCrop((h, w)),
+            T.ToTensor(),
+            norm,
+        ])
 
     # ------------------------------------------------------------------ #
     # 추론
@@ -433,7 +491,7 @@ class DINOv2Embedder(BaseEmbedder):
         return self._forward(batch)
 
     def _warn_if_distorted(self, images: List[Image.Image]) -> None:
-        """학습 분포 밖 종횡비 왜곡을 알린다 (스로틀링)."""
+        """큰 종횡비 왜곡을 휴리스틱으로 알린다 (스로틀링)."""
         if self._distort_warned >= 3:
             return
         th, tw = self.image_size
@@ -444,13 +502,15 @@ class DINOv2Embedder(BaseEmbedder):
             d = max(ratio, 1.0 / ratio)
             if d > worst:
                 worst, worst_size = d, (im.width, im.height)
-        if worst > _MAX_DISTORT:
+        if worst > _DISTORT_WARN_RATIO:
             self._distort_warned += 1
             logger.warning(
-                "resize 모드 종횡비 왜곡 %.2fx (예: %s -> %s). 학습 jitter 범위(~%.2fx) "
-                "밖이라 분포 밖 입력입니다. 사람 crop 처럼 길쭉한 객체가 많다면 "
-                "pad 모드와 mAP 를 비교해 보세요.",
-                worst, worst_size, (tw, th), _MAX_DISTORT,
+                "resize 모드 종횡비 왜곡 %.2fx (예: %s -> %s). "
+                "참고 기준(%.2fx)을 넘습니다. 이 값은 DINOv2 학습의 "
+                "RandomResizedCrop source-crop ratio에서 가져온 휴리스틱이며, "
+                "현재 객체 검색의 OOD/성능 경계로 검증된 값은 아닙니다. "
+                "길쭉한 객체가 많다면 pad 모드와 검색 성능을 비교하세요.",
+                worst, worst_size, (tw, th), _DISTORT_WARN_RATIO,
             )
 
     def _encode_native(self, images: List[Image.Image]) -> np.ndarray:
@@ -477,24 +537,41 @@ class DINOv2Embedder(BaseEmbedder):
         return out
 
     def _encode_pad(self, images: List[Image.Image]) -> np.ndarray:
-        """레터박스. 검은 여백 토큰은 평균에서 제외한다.
+        """레터박스 입력을 인코딩한다.
 
-        NaFlex 는 attention mask 로 여백을 처리하지만 HF DINOv2 경로에는 그게 없다.
-        최소한 풀링 단계에서라도 빼야 여백이 임베딩을 오염시키지 않는다.
-        (feature='cls' 면 마스크는 쓰이지 않는다 — CLS 는 여전히 여백을 본다.)
+        운영 경로 feature='cls' 에서는 patch mask 가 최종 특징 계산에 쓰이지 않으므로
+        아예 만들지 않는다. mean/cls+mean 실험에서만 유효 patch mask 를 계산한다.
+
+        주의: mask 는 pooling 단계에서만 적용된다. Transformer attention 단계에서
+        padding 토큰을 차단하는 attention mask 는 아니다.
         """
         h, w = self.image_size
         p = self.patch_size
         gh, gw = h // p, w // p
 
-        tensors, masks = [], []
+        tensors = []
+        masks = [] if self.feature != "cls" else None
+
         for im in images:
             padded, box = _resize_pad(_to_rgb(im), h, w)
             tensors.append(self.transform(padded))
-            masks.append(_valid_patch_mask(box, gh, gw, p))
+            if masks is not None:
+                mask, valid_rows, valid_cols = _valid_patch_mask(box, gh, gw, p)
+
+                if min(valid_rows, valid_cols) == 1:
+                    logger.warning(
+                        "실험용 masked pooling에서 유효 patch가 한 축에 "
+                        "1줄뿐입니다: rows=%d, cols=%d, box=%s.",
+                        valid_rows, valid_cols, box,
+                    )
+
+                masks.append(mask)
 
         batch = torch.stack(tensors)
-        token_mask = torch.from_numpy(np.stack(masks)).to(self.device)
+        token_mask = None
+        if masks is not None:
+            token_mask = torch.from_numpy(np.stack(masks)).to(self.device)
+
         return self._forward(batch, token_mask=token_mask)
 
     # 텍스트 인코더 없음 — embed_text 를 의도적으로 구현하지 않는다.
@@ -520,17 +597,36 @@ def _resize_pad(im: Image.Image, h: int, w: int) -> Tuple[Image.Image, Tuple[int
     return canvas, (left, top, left + new_w, top + new_h)
 
 
-def _valid_patch_mask(box: Tuple[int, int, int, int], gh: int, gw: int, p: int) -> np.ndarray:
-    """패치 중심이 유효 영역 안에 있으면 True. 반환 shape 은 (gh*gw,)."""
+def _valid_patch_mask(
+    box: Tuple[int, int, int, int],
+    gh: int,
+    gw: int,
+    p: int,
+) -> Tuple[np.ndarray, int, int]:
+    """유효 patch mask와 축별 유효 patch 수를 반환한다.
+
+    이 함수는 mean/cls+mean 실험 경로에서만 호출된다. 한 축에 유효 patch가
+    하나도 없으면 휴리스틱으로 보정하지 않고 fail-fast 한다.
+    """
     left, top, right, bottom = box
     cx = (np.arange(gw) + 0.5) * p          # (gw,)
     cy = (np.arange(gh) + 0.5) * p          # (gh,)
     mx = (cx >= left) & (cx < right)
     my = (cy >= top) & (cy < bottom)
-    mask = my[:, None] & mx[None, :]        # (gh, gw)
-    if not mask.any():                      # 극단적으로 납작한 경우 대비
-        mask[:] = True
-    return mask.reshape(-1)
+    valid_cols = int(mx.sum())
+    valid_rows = int(my.sum())
+
+    if valid_cols == 0 or valid_rows == 0:
+        raise RuntimeError(
+            "실험용 mean/cls+mean masked pooling에서 pad 유효 영역에 "
+            "중심이 포함되는 patch 축이 없습니다. "
+            f"box={box}, grid=({gh},{gw}), patch_size={p}, "
+            f"valid_rows={valid_rows}, valid_cols={valid_cols}. "
+            "극단적으로 얇은 crop인지 확인하세요."
+        )
+
+    mask = (my[:, None] & mx[None, :]).reshape(-1)
+    return mask, valid_rows, valid_cols
 
 
 # --------------------------------------------------------------------------- #
@@ -546,7 +642,12 @@ if __name__ == "__main__":
     ap.add_argument("--model-id", default="facebook/dinov2-base")
     ap.add_argument("--feature", default="cls", choices=VALID_FEATURES)
     ap.add_argument("--image-size", type=int, default=224)
-    ap.add_argument("--resize-mode", default="pad", choices=VALID_RESIZE)
+    ap.add_argument("--resize-mode", default="center_crop", choices=VALID_RESIZE)
+    ap.add_argument(
+        "--allow-experimental",
+        action="store_true",
+        help="mean/cls+mean/resize/pad/native 같은 실험 옵션을 명시적으로 허용합니다.",
+    )
     ap.add_argument("--device", default=None)
     ap.add_argument("--images", nargs="+", required=True)
     args = ap.parse_args()
@@ -557,6 +658,7 @@ if __name__ == "__main__":
         image_size=args.image_size,
         resize_mode=args.resize_mode,
         device=args.device,
+        allow_experimental=args.allow_experimental,
     )
 
     vecs = emb.embed_crops(args.images)

@@ -815,6 +815,7 @@ class QdrantStore:
         create race가 발생한 예외 경로에서만 다시 조회한다.
         """
 
+        
         desired = {
             "media_type": "keyword",
             "is_person": "bool",
@@ -824,6 +825,7 @@ class QdrantStore:
             "source": "keyword",
             "video": "keyword",
             "track_id": "integer",
+            "detection_id": "keyword",
         }
 
         info = self.client.get_collection(self.collection)

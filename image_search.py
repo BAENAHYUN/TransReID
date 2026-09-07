@@ -25,25 +25,29 @@ Qwen 재순위/검증은 qwen_stage.py 가 담당한다. 분리한 이유:
     python qwen_stage.py --in search.json --out t8.json --threshold 0.8
       (두 번째 Qwen 실행은 검색을 다시 하지 않는다)
 
-person_only 를 강제하지 않는 이유
--------------------------------
-person_only=True/False 로 bool 을 넘기면 **모든 named vector 에 같은 필터**가
-걸린다. SigLIP2 는 pipeline.yaml 에서 scope='all' 이므로 필터가 없어야 맞다.
-True 로 강제하면 SigLIP2 가 객체 point 를 아예 못 보고, False 면 사람 point 를
-못 본다.
+Qdrant 컬렉션 계약
+------------------
+최종 DB 는 두 컬렉션으로 분리되어 있다.
 
-person_only=None 으로 두면 QdrantStore 가 scope 에서 벡터별로 자동 결정한다.
+    forensic_person
+      siglip2 / irra / solider
 
-    siglip2 (all)    -> 필터 없음
-    irra    (person) -> is_person = true
-    dinov2  (object) -> is_person = false
+    forensic_object
+      siglip2 / dinov2
 
-person 검색에는 irra 가, object 검색에는 dinov2 가 자기 몫의 필터를 건다.
-SigLIP2 만 전체를 보며 보완한다.
+이미지와 영상은 컬렉션을 따로 만들지 않고 같은 person/object 컬렉션 안에서
+media_type 으로 구분한다.
+
+따라서 검색할 때도 scope 에 맞는 컬렉션을 명시적으로 선택한다.
+person_only 필터로 person/object 컬렉션 역할을 대신하지 않는다.
+
+person 검색은 1차 SigLIP2 + IRRA 만 실행한 뒤 후보가 있을 때에만
+SOLIDER 를 지연 로드해 재정렬한다.
 """
 
 import argparse
 import gc
+import inspect
 import json
 import logging
 import math
@@ -220,6 +224,33 @@ class ImageSearchPipeline:
     def is_person(self, label: str) -> bool:
         return label.strip().lower() in self.person_labels
 
+    def select_collection(self, scope: str) -> str:
+        """
+        scope 에 맞는 Qdrant collection 을 선택한다.
+
+        person -> cfg.person_collection()
+        object -> cfg.object_collection()
+
+        이미지/영상은 collection 을 분리하지 않는다.
+        같은 person/object collection 안에서 media_type 으로 구분한다.
+        """
+        if scope == "person":
+            collection = self.cfg.person_collection()
+        elif scope == "object":
+            collection = self.cfg.object_collection()
+        else:
+            raise ValueError(
+                f"scope 는 'person' 또는 'object' 여야 합니다: {scope!r}"
+            )
+
+        if not self.store.client.collection_exists(collection):
+            raise RuntimeError(
+                f"Qdrant collection 이 없습니다: {collection}"
+            )
+
+        self.store.collection = collection
+        return collection
+
     def prefetch(self, n: int) -> int:
         return max(int(self.cfg.fusion.prefetch_limit), int(n))
 
@@ -253,14 +284,35 @@ class ImageSearchPipeline:
         candidate_k: int = 200,
         top_k: int = 20,
     ) -> List[Dict[str, Any]]:
-        # query crop 은 한 번만 임베딩.
-        qvecs = self.router.embed_query_image(query_crop, scope="person")
+        """
+        person crop 검색.
 
-        missing = {"siglip2", "irra", "solider"} - set(qvecs)
+        1차:
+            SigLIP2 + IRRA RRF -> candidate_k
+
+        2차:
+            후보가 있을 때에만 SOLIDER 를 처음 로드/추론
+            -> 후보 SOLIDER cosine 재정렬
+            -> top_k
+        """
+        collection = self.select_collection("person")
+
+        # ------------------------------------------------------------
+        # 1) 1차 검색용 query vector만 생성.
+        #    SOLIDER는 여기서 로드하지 않는다.
+        # ------------------------------------------------------------
+        qvecs = self.router.embed_query_image(
+            query_crop,
+            scope="person",
+            names=["siglip2", "irra"],
+        )
+
+        missing = {"siglip2", "irra"} - set(qvecs)
         if missing:
-            raise RuntimeError(f"person query vector missing: {sorted(missing)}")
+            raise RuntimeError(
+                f"person stage1 query vector missing: {sorted(missing)}"
+            )
 
-        # 1) SigLIP2 + IRRA 융합 -> 후보 200
         points = self.store.fused_search(
             {
                 "siglip2": qvecs["siglip2"],
@@ -268,43 +320,73 @@ class ImageSearchPipeline:
             },
             limit=candidate_k,
             prefetch_limit=self.prefetch(candidate_k),
-            person_only=None,     # scope 자동 라우팅
+            person_only=None,
         )
         hits = self.engine._to_hits(points)
 
-        # 2) 후보의 SOLIDER 벡터만 읽어 재정렬.
-        #    Qdrant 를 다시 검색하지 않는다 (200x1024 내적은 즉시 끝난다).
-        solider = self.get_named_vectors([h.point_id for h in hits], "solider")
+        if not hits:
+            return []
+
+        # ------------------------------------------------------------
+        # 2) 1차 후보가 있을 때에만 SOLIDER를 처음 실행.
+        # ------------------------------------------------------------
+        solider_query = self.router.embed_query_image(
+            query_crop,
+            scope="person",
+            names=["solider"],
+        )
+
+        if "solider" not in solider_query:
+            raise RuntimeError(
+                "SOLIDER query vector missing"
+            )
+
+        candidate_vectors = self.get_named_vectors(
+            [h.point_id for h in hits],
+            "solider",
+        )
+
+        missing_ids = [
+            str(h.point_id)
+            for h in hits
+            if str(h.point_id) not in candidate_vectors
+        ]
+
+        # forensic_person 의 모든 point 는 SOLIDER vector를 가져야 한다.
+        # 누락을 객체 혼입으로 간주해 조용히 버리지 않는다.
+        if missing_ids:
+            raise RuntimeError(
+                "forensic_person 후보 중 SOLIDER vector 누락: "
+                f"{len(missing_ids)}/{len(hits)} "
+                f"(collection={collection})"
+            )
+
         rows: List[Dict[str, Any]] = []
-        no_solider = 0
 
         for initial_rank, hit in enumerate(hits, 1):
-            vec = solider.get(str(hit.point_id))
-            if vec is None:
-                # SOLIDER 벡터가 없는 point. siglip2 가 필터 없이 보므로
-                # 객체 point 가 섞일 수 있다.
-                no_solider += 1
-                continue
+            vec = candidate_vectors[str(hit.point_id)]
 
             row = hit_to_row(hit)
             row["initial_rrf_rank"] = initial_rank
-            row["solider_score"] = cosine(qvecs["solider"], vec)
+            row["solider_score"] = cosine(
+                solider_query["solider"],
+                vec,
+            )
             rows.append(row)
 
-        if no_solider:
-            logger.info(
-                "SOLIDER 벡터가 없는 후보 %d/%d건 제외 (객체 point 또는 적재 누락)",
-                no_solider, len(hits),
-            )
+        rows.sort(
+            key=lambda x: x["solider_score"],
+            reverse=True,
+        )
 
-        rows.sort(key=lambda x: x["solider_score"], reverse=True)
-
-        # 3) SOLIDER 재정렬 상위 top_k
         rows = rows[:top_k]
+
         for rank, row in enumerate(rows, 1):
             row["rank"] = rank
             row["pre_qwen_rank"] = rank
-            row["pre_qwen_score"] = float(row["solider_score"])
+            row["pre_qwen_score"] = float(
+                row["solider_score"]
+            )
 
         return rows
 
@@ -313,14 +395,25 @@ class ImageSearchPipeline:
         query_crop: str,
         top_k: int = 20,
     ) -> List[Dict[str, Any]]:
-        qvecs = self.router.embed_query_image(query_crop, scope="object")
+        """
+        object crop 검색.
+
+        SigLIP2 + DINOv2 RRF -> top_k
+        """
+        self.select_collection("object")
+
+        qvecs = self.router.embed_query_image(
+            query_crop,
+            scope="object",
+            names=["siglip2", "dinov2"],
+        )
 
         missing = {"siglip2", "dinov2"} - set(qvecs)
         if missing:
-            raise RuntimeError(f"object query vector missing: {sorted(missing)}")
+            raise RuntimeError(
+                f"object query vector missing: {sorted(missing)}"
+            )
 
-        # SigLIP2 + DINOv2 융합 -> 상위 top_k.
-        # 객체에는 SOLIDER 같은 "명백히 더 강한 모델"이 없어 재정렬 단계가 없다.
         points = self.store.fused_search(
             {
                 "siglip2": qvecs["siglip2"],
@@ -332,13 +425,17 @@ class ImageSearchPipeline:
         )
         hits = self.engine._to_hits(points)
 
-        rows = []
+        rows: List[Dict[str, Any]] = []
+
         for rank, hit in enumerate(hits, 1):
             row = hit_to_row(hit)
             row["rank"] = rank
             row["pre_qwen_rank"] = rank
-            row["pre_qwen_score"] = float(hit.retrieval_score)
+            row["pre_qwen_score"] = float(
+                hit.retrieval_score
+            )
             rows.append(row)
+
         return rows
 
     def release(self) -> None:
@@ -380,6 +477,30 @@ def run(
     if min_person_height is not None:
         crop_kwargs["min_person_height"] = min_person_height
 
+    # TypeError 전체를 "구버전 인자 미지원"으로 오인하지 않는다.
+    # 실제 함수 signature를 보고 지원되는 옵션만 넘긴다.
+    try:
+        detect_params = inspect.signature(
+            detect_rf.detect_and_crop
+        ).parameters
+    except (TypeError, ValueError):
+        detect_params = {}
+
+    if detect_params:
+        unsupported = [
+            key
+            for key in crop_kwargs
+            if key not in detect_params
+        ]
+
+        for key in unsupported:
+            logger.warning(
+                "detect_rf.detect_and_crop 가 %s 인자를 지원하지 않아 "
+                "해당 override를 사용하지 않습니다.",
+                key,
+            )
+            crop_kwargs.pop(key, None)
+
     detector = detect_rf.load_detect_model()
     try:
         crops, filtered = detect_rf.detect_and_crop(
@@ -389,21 +510,6 @@ def run(
             target_classes=target_classes,
             **crop_kwargs,
         )
-    except TypeError as e:
-        # 구버전 detect_rf 는 min_person_* 인자를 받지 않는다
-        if crop_kwargs:
-            logger.warning(
-                "detect_rf 가 min_person_width/height 를 지원하지 않습니다 "
-                "(%s). 기본 필터로 진행합니다.", e,
-            )
-            crops, filtered = detect_rf.detect_and_crop(
-                detector,
-                str(source),
-                output_dir=str(out_dir),
-                target_classes=target_classes,
-            )
-        else:
-            raise
     finally:
         del detector
         empty_cuda()
@@ -424,59 +530,101 @@ def run(
     # ------------------------------------------------------------
     # 2. crop 마다 retrieval
     # ------------------------------------------------------------
-    searcher = ImageSearchPipeline(config, extra_paths=extra_paths)
+    searcher = ImageSearchPipeline(
+        config,
+        extra_paths=extra_paths,
+    )
 
     outputs = []
     skipped_crops = 0
 
-    for i, meta in enumerate(crops, 1):
-        crop_path = crop_path_from_meta(meta)
-        if crop_path is None:
-            skipped_crops += 1
-            continue
+    try:
+        for i, meta in enumerate(crops, 1):
+            crop_path = crop_path_from_meta(meta)
+            if crop_path is None:
+                skipped_crops += 1
+                continue
 
-        label = str(meta.get("class_name") or meta.get("label") or "unknown")
-        kind = "person" if searcher.is_person(label) else "object"
+            label = str(
+                meta.get("class_name")
+                or meta.get("label")
+                or "unknown"
+            )
+            kind = (
+                "person"
+                if searcher.is_person(label)
+                else "object"
+            )
 
-        logger.info(
-            "[%d/%d] %s label=%s crop=%s",
-            i, len(crops), kind, label, Path(crop_path).name,
-        )
+            logger.info(
+                "[%d/%d] %s label=%s crop=%s",
+                i,
+                len(crops),
+                kind,
+                label,
+                Path(crop_path).name,
+            )
 
-        t0 = time.time()
-        try:
-            if kind == "person":
-                rows = searcher.person_search(
-                    crop_path,
-                    candidate_k=person_candidates,
-                    top_k=top_k,
+            t0 = time.time()
+
+            try:
+                if kind == "person":
+                    rows = searcher.person_search(
+                        crop_path,
+                        candidate_k=person_candidates,
+                        top_k=top_k,
+                    )
+                else:
+                    rows = searcher.object_search(
+                        crop_path,
+                        top_k=top_k,
+                    )
+
+                error = None
+
+            except Exception as e:  # noqa: BLE001 — crop 하나가 실패해도 계속
+                rows = []
+                error = f"{type(e).__name__}: {e}"
+                logger.warning(
+                    "[crop %d] 검색 실패: %s",
+                    i,
+                    error,
                 )
-            else:
-                rows = searcher.object_search(crop_path, top_k=top_k)
-            error = None
-        except Exception as e:  # noqa: BLE001 — crop 하나가 실패해도 계속
-            rows = []
-            error = f"{type(e).__name__}: {e}"
-            logger.warning("[crop %d] 검색 실패: %s", i, error)
 
-        outputs.append(
-            {
-                "crop_index": i,
-                "query_crop": crop_path,
-                "query_label": label,
-                "kind": kind,
-                "det_confidence": float(meta.get("confidence", 0.0) or 0.0),
-                "bbox": [float(x) for x in (meta.get("bbox") or [])],
-                "elapsed_sec": round(time.time() - t0, 3),
-                "error": error,
-                "results": rows,
-            }
-        )
+            outputs.append(
+                {
+                    "crop_index": i,
+                    "query_crop": crop_path,
+                    "query_label": label,
+                    "kind": kind,
+                    "det_confidence": float(
+                        meta.get("confidence", 0.0)
+                        or 0.0
+                    ),
+                    "bbox": [
+                        float(x)
+                        for x in (
+                            meta.get("bbox")
+                            or []
+                        )
+                    ],
+                    "elapsed_sec": round(
+                        time.time() - t0,
+                        3,
+                    ),
+                    "error": error,
+                    "results": rows,
+                }
+            )
 
-    if skipped_crops:
-        logger.warning("crop 파일이 없어 건너뛴 detection: %d건", skipped_crops)
+        if skipped_crops:
+            logger.warning(
+                "crop 파일이 없어 건너뛴 detection: %d건",
+                skipped_crops,
+            )
 
-    searcher.release()
+    finally:
+        searcher.release()
 
     return {
         "query_image": str(source),
@@ -592,10 +740,16 @@ def main() -> int:
                     help="qwen_stage.py 의 입력으로 쓸 JSON 경로")
     args = ap.parse_args()
 
-    if args.person_candidates < args.top_k:
-        ap.error("--person-candidates must be >= --top-k")
     if args.top_k <= 0:
         ap.error("--top-k must be > 0")
+    if args.person_candidates < args.top_k:
+        ap.error("--person-candidates must be >= --top-k")
+    if args.show <= 0:
+        ap.error("--show must be > 0")
+    if args.min_person_width is not None and args.min_person_width <= 0:
+        ap.error("--min-person-width must be > 0")
+    if args.min_person_height is not None and args.min_person_height <= 0:
+        ap.error("--min-person-height must be > 0")
 
     t0 = time.time()
     payload = run(
@@ -624,8 +778,12 @@ def main() -> int:
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-        print(f"\nJSON saved: {out}")
-        print(f"다음 단계: python qwen_stage.py --in {out} --out reranked.json")
+        status_stream = sys.stderr if args.json else sys.stdout
+        print(f"\nJSON saved: {out}", file=status_stream)
+        print(
+            f"다음 단계: python qwen_stage.py --in {out} --out reranked.json",
+            file=status_stream,
+        )
 
     return 0
 

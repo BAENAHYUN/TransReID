@@ -9,12 +9,35 @@
 # 파이프라인 코드는 건드리지 않는다.
 #
 # -----------------------------------------------------------------------------
-# 경로 규칙: 모든 상대경로는 프로젝트 루트(= python 을 실행하는 디렉터리,
-#            현재 C:\TransReID) 기준이다. 다른 위치에서 실행하면 전부 깨진다.
+# 경로 규칙: params 안의 './' 상대경로는 **이 yaml 파일이 있는 디렉터리** 기준
+#            으로 절대경로화된다 (config._resolve_paths). 실행 위치(CWD)는
+#            무관하다.
+#            단, 이 파일을 하위 폴더로 옮기면 './IRRA' 도 함께 따라 움직이므로
+#            (예: configs/pipeline.yaml -> './IRRA' 가 configs/IRRA 로 풀린다),
+#            옮길 때는 params 의 상대경로를 같이 조정해야 한다.
 # -----------------------------------------------------------------------------
 # =============================================================================
 
-collection: person_db
+# --- Qdrant 컬렉션 이름 -------------------------------------------------------
+#
+# person / object crop 은 처리하는 vector 집합이 다르므로 컬렉션을 분리한다.
+#   {collection_prefix}_person : siglip2 / irra / solider
+#   {collection_prefix}_object : siglip2 / dinov2
+#
+# collection_prefix
+#   DB 구축 구조의 SSOT. build_db.py 가 cfg.person_collection() /
+#   cfg.object_collection() 으로 읽어 두 컬렉션을 만든다.
+#   접미어("_person" / "_object")는 config.py 에만 존재하므로 오타로 두 이름이
+#   갈라질 수 없다.
+#
+# collection
+#   QdrantStore(cfg) 가 직접 읽는 필드. 단일 컬렉션만 대상으로 하는 관리
+#   스크립트(delete_query_crops.py 등)의 기본 대상이다.
+#   **DB 구축과는 무관하다** — 이 값 자체로 구축되지 않는다.
+#   object 컬렉션을 대상으로 하려면 해당 스크립트에서 명시적으로 지정할 것.
+#
+collection_prefix: forensic
+collection: forensic_person
 
 # --- 사람으로 취급할 detection 라벨 ------------------------------------------
 person_labels: [person, pedestrian, people, human]
@@ -23,15 +46,24 @@ person_labels: [person, pedestrian, people, human]
 #
 #   tool   : 논리적 묶음 라벨. 코드 동작에는 영향 없고 문서용.
 #            common | human | object
+#
 #   scope  : 이 임베더가 처리할 crop 종류. all | person | object
 #            **QdrantStore 가 이 값으로 is_person 필터를 자동 결정한다.**
 #              all    -> 필터 없음 (None)
 #              person -> is_person == true
 #              object -> is_person == false
 #            세 값 외에는 ValueError. config.py 가 이 필드를 반드시
-#            retrievers[name].scope 로 노출해야 한다 (버리면 런타임에 죽는다).
+#            retrievers[name].scope 로 노출해야 한다.
+#
+#   supports_text
+#          : 자연어 질의를 직접 임베딩할 수 있는 retriever 인지 여부.
+#              true  -> Router.embed_query_text() 의 로드 대상
+#              false -> 텍스트 질의에서는 registry.get()조차 호출하지 않음
+#            모든 retriever 에 반드시 명시한다.
+#            누락 시 config.py 가 로드 단계에서 실패시킨다.
+#
 #   dim    : 임베딩 차원. Qdrant 컬렉션 생성과 검증에 쓰인다.
-#   weight : fusion 시 기본 가중치 (RRF weighted / 수동 가중합에서 사용).
+#   weight : 현재 fusion 검색은 사용하지 않지만 기존 설정 계약은 유지한다.
 #   module / class : 지연 로딩할 파이썬 경로. 실제로 쓸 때만 import 된다.
 #   params : 생성자 인자 그대로 전달.
 #
@@ -40,6 +72,7 @@ retrievers:
   siglip2:
     tool: common
     scope: all
+    supports_text: true
     dim: 768                         # base=768, so400m=1152, large=1024, giant=1536
     weight: 1.0
     module: embedders.siglip2_embedder
@@ -47,13 +80,29 @@ retrievers:
     params:
       # naflex = 원본 종횡비 유지. 3:1 보행자 crop 이 안 뭉개진다.
       model_id: google/siglip2-base-patch16-naflex
-      # 색인할 때와 질의할 때 반드시 같은 값. 다르면 같은 이미지도 다른 벡터가 나온다.
-      max_num_patches: 576
+
+      # 색인할 때와 질의할 때 반드시 같은 값.
+      # 다르면 같은 이미지도 다른 벡터가 나온다.
+      #
+      # 실제 crop 분포:
+      #   width  median = 98
+      #   height median = 106
+      #
+      # 256 vs 576 A/B:
+      #   Top-1  : 96% / 96%
+      #   Top-5  : 100% / 100%
+      #   Top-10 : 100% / 100%
+      #   256이 처리속도와 VRAM 사용량에서 우세.
+      #
+      # 따라서 운영 baseline은 256으로 고정한다.
+      max_num_patches: 256
+
       batch_size: 32
 
   irra:
     tool: human
     scope: person
+    supports_text: true
     dim: 512
     weight: 1.5
     module: embedders.human.irra_embedder
@@ -62,10 +111,13 @@ retrievers:
       irra_root: ./IRRA
       ckpt_path: ./weights/IRRA/cuhk_pedes/best.pth
       config_file: ./weights/IRRA/cuhk_pedes/configs.yaml
+      clip_pretrained: ./weights/IRRA/ViT-B-16.pt
+      amp: false
 
   solider:
     tool: human
     scope: person
+    supports_text: false
     dim: 1024
     weight: 1.5
     module: embedders.human.solider_embedder
@@ -81,40 +133,81 @@ retrievers:
   dinov2:
     tool: object
     scope: object
+    supports_text: false
     dim: 768
     weight: 1.0
     module: embedders.object.dinov2_embedder
     class: DINOv2Embedder
     params:
-      model_id: facebook/dinov2-base   # small 384 / base 768 / large 1024 / giant 1536
-      feature: cls                     # cls | mean | cls+mean (cls+mean 이면 dim 을 2배로)
-      image_size: 224                  # patch_size 14 의 배수여야 함 (224/336/448/518)
-      # native      종횡비 유지 + 각 변을 14 배수로. 검증되지 않은 이식이라 실험용
-      # resize      224x224 강제. 객체 crop 종횡비가 4~7배까지 왜곡된다
-      # center_crop HF 프로세서 기본값. 가장자리가 잘림 — 객체 crop 에는 비추천
-      # pad         레터박스 + 여백 토큰을 풀링에서 제외
+      # -----------------------------------------------------------------------
+      # 운영 baseline
       #
-      # [수정] resize -> pad.
-      #   자체 증강 자기검색 하네스(COCO crop, 갤러리 600):
-      #     resize@224  R@1 0.775 / R@5 0.878 / MRR 0.824
-      #     pad@224     R@1 0.828 / R@5 0.900 / MRR 0.863
-      #   DINOv2 가 실제 담당하는 객체만 놓고 보면 격차가 +5.3%p 로 벌어진다.
-      #   raw/whiten128/whitenfull 세 후처리 모두 같은 방향이었다.
-      resize_mode: pad
-      max_num_patches: 256             # native 모드 전용 토큰 예산 (256 = 224x224 상당)
+      # 데이터셋 변화에 대한 일반화와 외부 공개 근거를 우선한다.
+      # RF-DETR tight crop 자체는 detection 단계에서 생성된다.
+      #
+      #   tight crop
+      #   -> Resize(shortest edge=256)
+      #   -> CenterCrop(224)
+      #   -> DINOv2
+      #   -> CLS
+      #   -> 768-d
+      #   -> L2 normalize
+      #
+      # 색인과 query는 반드시 아래와 동일한 설정을 사용한다.
+      # -----------------------------------------------------------------------
+      model_id: facebook/dinov2-base
+      feature: cls
+      image_size: 224
+      resize_mode: center_crop
+      l2_normalize: true
       batch_size: 64
 
+      # -----------------------------------------------------------------------
+      # 실험/성능 최적화용 설정
+      #
+      # 운영 baseline에서는 아래 후보를 임의로 활성화하지 않는다.
+      #
+      # feature 후보:
+      #   mean
+      #   cls+mean
+      #     - cls+mean 사용 시 출력 차원이 768 -> 1536 이므로
+      #       retrievers.dinov2.dim도 반드시 1536으로 변경해야 한다.
+      #
+      # resize_mode 후보:
+      #   native
+      #   resize
+      #   pad
+      #
+      # 별도 후처리/모델 실험:
+      #   PCA / whitening
+      #   GeM
+      #   DINOv2 with Registers
+      #
+      # square-context 및 10/20/30% margin context는 자체 A/B에서
+      # tight crop 대비 개선되지 않아 현재 운영 후보에서 제외한다.
+      # -----------------------------------------------------------------------
+
+      # native 모드 전용 토큰 예산.
+      # 256 = 224x224 상당.
+      max_num_patches: 256
+
+
 # --- 융합 검색 ----------------------------------------------------------------
+#
+# 현재 검색 파이프라인에서는 fusion 검색을 사용하지 않는다.
+#
+# 이 section 자체는 config.py 의 기존 설정 계약 때문에 유지한다.
+# 삭제해도 fusion 이 "비활성화"되는 것이 아니라 config.py 의 기본 FusionSpec
+# 값으로 폴백하므로, 현재는 명시적으로 남겨 둔다.
+#
+# Router / DB 구축에는 이 값이 직접 관여하지 않는다.
+# fused_search 계열을 호출하지 않는 한 실제 검색 결과에도 사용되지 않는다.
+#
 fusion:
-  # dbsf : 점수 분포를 정규화 후 결합. 모델별 유사도 스케일이 다를 때 유리 (Qdrant 1.11+)
-  # rrf  : 순위만 사용. 더 안전하지만 점수 차이 정보를 버림
-  #
-  # [미검증] dbsf 는 약한 retriever 의 점수도 정규화해 끌어올린다.
-  #   IRRA(mINP 29.56)와 SOLIDER(mINP 82.95)처럼 품질 차가 큰 벡터를 섞을 때
-  #   오히려 해가 될 수 있다. rrf 와 A/B 를 반드시 측정할 것.
   method: rrf
-  prefetch_limit: 100   # retriever 별로 뽑을 후보 수
-  limit: 20             # 최종 반환 수
+  prefetch_limit: 100
+  limit: 20
+
 
 # --- Qdrant 저장 설정 ---------------------------------------------------------
 #
@@ -123,55 +216,70 @@ fusion:
 #   상위 후보는 원본으로 rescore 해서 정확도를 회복한다.
 #
 # 용량 추정 (사람 비중 30% 가정):
+#
 #   siglip2  768 x 10M ≈ 30.7 GB
 #   dinov2   768 x  7M ≈ 21.5 GB
 #   solider 1024 x  3M ≈ 12.3 GB
 #   irra     512 x  3M ≈  6.1 GB
-#   합계 약 70 GB (on_disk) + int8 양자화본 약 17.5 GB (RAM)
-#   HNSW 그래프까지 하면 RAM 20 GB 안팎. 서버 사양을 먼저 확인할 것.
+#
+# 합계 약 70 GB (on_disk)
+# + int8 양자화본 약 17.5 GB (RAM)
+#
+# HNSW 그래프까지 하면 RAM 20 GB 안팎.
 #
 qdrant:
   url: http://localhost:6333
   distance: Cosine
-  on_disk: true          # 원본 벡터를 디스크에
+
+  on_disk: true
+
   quantization:
-    type: scalar         # scalar(int8, 4x) | binary(32x) | none
-    always_ram: true     # 양자화본은 RAM 상주
+    type: scalar
+    always_ram: true
     quantile: 0.99
-    # rescore/oversampling 은 QdrantStore 기본값(true / 2.0)을 쓴다.
-    # 저차원 벡터일수록 INT8 손실이 상대적으로 크므로, IRRA 처럼 recall 이
-    # 아쉬운 벡터는 아래 overrides 에서 oversampling 을 올리는 것을 검토할 것.
+
+    # rescore / oversampling 은 QdrantStore 기본값
+    # true / 2.0 을 사용한다.
+    #
+    # 저차원 벡터일수록 INT8 손실이 상대적으로 클 수 있으므로,
+    # IRRA 같은 벡터는 실제 Qdrant 정확도 검증 후
+    # overrides 로 조정한다.
+
   hnsw:
     m: 16
     ef_construct: 100
 
-  # 벡터별 개별 설정 (생략 시 위 기본값 사용).
+  # 벡터별 개별 설정.
   #
-  # [수정] 기존 siglip2 override 는 전역 기본값과 완전히 동일해서 아무 효과가
-  #        없었다. 죽은 설정은 나중에 "이건 왜 있지" 하는 혼란만 남기므로 제거.
-  #        실제로 다르게 줄 때만 항목을 추가한다.
+  # 생략 시 위 전역값 사용.
+  # 실제로 전역값과 다른 설정이 필요할 때만 추가한다.
   #
-  # 예시 (numpy vs Qdrant 정확도 비교 후 필요하면 켤 것):
-  #   overrides:
-  #     irra:
-  #       quantization:
-  #         type: scalar
-  #         always_ram: true
-  #         quantile: 0.99
-  #         oversampling: 4.0     # 512-d 는 양자화 손실이 상대적으로 크다
-  #     siglip2:
-  #       quantization:
-  #         type: binary          # 고차원일수록 binary 손실이 적다
-  #         always_ram: true
+  # 예:
   #
-  # 주의: config.py 의 hnsw_for(name) 은 overrides 에 hnsw 가 없을 때
-  #       반드시 위 전역 hnsw 로 폴백해야 한다. None 을 반환하면
-  #       ensure_collection 에서 AttributeError 로 죽는다.
+  # overrides:
+  #   irra:
+  #     quantization:
+  #       type: scalar
+  #       always_ram: true
+  #       quantile: 0.99
+  #       oversampling: 4.0
+  #
+  #   siglip2:
+  #     quantization:
+  #       type: binary
+  #       always_ram: true
+  #
+  # 주의:
+  # config.py 의 hnsw_for(name) 은 overrides 에 hnsw 가 없을 때
+  # 반드시 전역 hnsw 로 폴백해야 한다.
+  #
   overrides: {}
+
 
 # --- 검증 단계 (현재 미사용) --------------------------------------------------
 #
 # SuperPoint / LightGlue 는 제외하기로 결정.
-# Qwen3-VL 은 DB 구축과 무관하며, 검색 정확도 측정 후 도입 여부를 판단한다.
+# Qwen3-VL 은 DB 구축과 무관하며,
+# 검색 정확도 측정 후 도입 여부를 판단한다.
 #
 verifiers: {}

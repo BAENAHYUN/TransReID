@@ -12,8 +12,22 @@ from rfdetr.assets.coco_classes import COCO_CLASSES
 
 CONF_THRESHOLD = 0.5
 
-MIN_PERSON_CROP_WIDTH = 90
+
+# 너비 25 는 MEVID (WACV 2023, arXiv:2211.04656) 3.2.2 에서 person ReID
+# 주석에 필요한 최소 해상도로 경험적으로 도출한 값이다. 원 논문은 25x75 를
+# 쓰지만, 여기서는 너비만 채택하고 높이는 기존 120 을 유지한다.
+# 검출 통계상 병목이 너비였고(width only 121 vs height only 11), 높이를
+# 낮출 근거는 확인되지 않았다.
+MIN_PERSON_CROP_WIDTH = 25
 MIN_PERSON_CROP_HEIGHT = 120
+
+
+# 객체에는 사람 기준을 쓸 수 없다. cell phone / tie / bottle 은 정상 검출도
+# 작게 나오므로 90x120 을 적용하면 유효한 crop 이 대량으로 버려진다.
+# 사실상 하한선이며, 데이터를 보고 조정하기 위한 훅이다.
+MIN_OBJECT_CROP_WIDTH = 20
+MIN_OBJECT_CROP_HEIGHT = 20
+
 
 FORENSIC_TARGET_CLASSES = (
     "person",
@@ -22,7 +36,6 @@ FORENSIC_TARGET_CLASSES = (
     "umbrella",
     "suitcase",
     "tie",
-    "hat",
     "cell phone",
     "bottle",
     "knife",
@@ -51,15 +64,25 @@ def _safe_name(text: str) -> str:
     )
 
 
-def _source_token(image_path: str) -> str:
-    """Build a stable token from the source path."""
-    resolved = str(Path(image_path).resolve())
+def _source_token(image_id: str) -> str:
+    """
+    Build a stable token from the LOGICAL image id.
+
+    This used to hash the resolved absolute path, which made the crop
+    filename depend on the drive letter and dataset location. Since
+    detection_id is derived from the crop filename downstream, the same
+    source image produced different Qdrant point IDs on different machines.
+
+    Hashing image_id instead keeps the token identical anywhere the same
+    logical id is used, while still avoiding filename collisions between
+    images that share a stem.
+    """
     digest = hashlib.sha1(
-        resolved.encode("utf-8")
+        image_id.encode("utf-8")
     ).hexdigest()[:10]
 
     stem = _safe_name(
-        Path(image_path).stem
+        Path(image_id).stem
     )
 
     return f"{stem}_{digest}"
@@ -147,6 +170,13 @@ def detect_and_crop(
     output_dir="data/crops",
     prefix="",
     target_classes: Optional[Sequence[str]] = FORENSIC_TARGET_CLASSES,
+    image_id: Optional[str] = None,
+    source: Optional[str] = None,
+    min_person_width: int = MIN_PERSON_CROP_WIDTH,
+    min_person_height: int = MIN_PERSON_CROP_HEIGHT,
+    min_object_width: int = MIN_OBJECT_CROP_WIDTH,
+    min_object_height: int = MIN_OBJECT_CROP_HEIGHT,
+    save_annotated: bool = True,
 ):
     """
     Detect target objects in one image and save accepted crops.
@@ -157,10 +187,43 @@ def detect_and_crop(
 
     실제 crop은 원본 image에서 생성하므로
     bbox 표시가 crop 이미지에 들어가지 않는다.
+
+    image_id:
+        Logical identity of the source image, e.g.
+        "coco_train2017/000000015496.jpg". The caller owns this value because
+        only the caller knows how the dataset is laid out. Both the crop
+        filename and detection_id are derived from it, so it must not contain
+        machine-specific parts such as a drive letter.
+
+        Falls back to the bare filename when omitted, which keeps the
+        single-image smoke test below working. Batch runs should always pass
+        it explicitly.
+
+    source:
+        Provenance label recorded on every emitted record and, downstream,
+        written to the integrated DB's "source" field. This module has no way
+        to know where an image came from, so there is no default: when it is
+        None the key is simply left out rather than guessed.
+
+    min_person_* / min_object_*:
+        Minimum crop size per kind. Person crops need enough resolution for
+        ReID, but small objects are legitimately small, so the two must not
+        share a threshold. Batch runs pass these from the CLI, and the batch
+        checkpoint fingerprint includes them: changing the rule must not
+        resume a directory built under the old one.
+
+    save_annotated:
+        Write the bbox visualization under <output_dir>/detected_full/.
+        Batch runs turn this off by default - at 80k images it doubles the
+        file count and the write time for a debug artifact.
     """
 
     image_path = str(image_path)
     output_dir = str(output_dir)
+
+    # Logical id. Never derived from an absolute path.
+    if image_id is None:
+        image_id = Path(image_path).name
 
     os.makedirs(
         output_dir,
@@ -205,8 +268,10 @@ def detect_and_crop(
 
     img_h, img_w = image.shape[:2]
 
+    # crop 파일명과 시각화 파일명의 공통 접두어.
+    # 논리 image_id 에서 파생되므로 머신/드라이브가 달라도 동일하다.
     source_token = _source_token(
-        image_path
+        image_id
     )
 
     accepted_index = 0
@@ -276,6 +341,36 @@ def detect_and_crop(
             y2,
         ]
 
+        class_token = _safe_name(
+            class_name
+        )
+
+        # ====================================================
+        # filtered record
+        #
+        # image_id / source 를 accepted 와 같은 형태로 남긴다.
+        # 두 파일의 키가 어긋나면 "이 원본의 crop 이 왜 빠졌나" 를
+        # 나중에 조인해서 볼 수 없다.
+        # ====================================================
+        def _filtered_record(reason, **extra):
+            record = {
+                "image_id": image_id,
+                "source_path": image_path,
+                "image_path": image_path,
+                "class_id": class_id,
+                "class_name": class_name,
+                "confidence": confidence,
+                "bbox": bbox,
+                "reason": reason,
+            }
+
+            if source is not None:
+                record["source"] = source
+
+            record.update(extra)
+
+            return record
+
         # ====================================================
         # invalid bbox
         # ====================================================
@@ -285,15 +380,7 @@ def detect_and_crop(
         ):
 
             filtered_log.append(
-                {
-                    "source_path": image_path,
-                    "image_path": image_path,
-                    "class_id": class_id,
-                    "class_name": class_name,
-                    "confidence": confidence,
-                    "bbox": bbox,
-                    "reason": "invalid_bbox",
-                }
+                _filtered_record("invalid_bbox")
             )
 
             # 정상적인 사각형 자체가 아니므로
@@ -328,15 +415,7 @@ def detect_and_crop(
             )
 
             filtered_log.append(
-                {
-                    "source_path": image_path,
-                    "image_path": image_path,
-                    "class_id": class_id,
-                    "class_name": class_name,
-                    "confidence": confidence,
-                    "bbox": bbox,
-                    "reason": "empty_crop",
-                }
+                _filtered_record("empty_crop")
             )
 
             continue
@@ -346,17 +425,24 @@ def detect_and_crop(
         )
 
         # ====================================================
-        # person 최소 crop 크기 필터
+        # 최소 crop 크기 필터
         #
-        # 기존 조건 그대로:
-        # width < 90 또는 height < 120 → 제외
+        # person 과 object 는 기준이 다르다. 사람은 ReID 를 위해 최소
+        # 해상도가 필요하지만, cell phone / tie 같은 객체는 정상 검출도
+        # 작게 나온다. 같은 기준을 적용하면 유효한 객체가 버려진다.
         # ====================================================
+        if class_name == "person":
+            min_w = min_person_width
+            min_h = min_person_height
+            too_small_reason = "person_crop_too_small"
+        else:
+            min_w = min_object_width
+            min_h = min_object_height
+            too_small_reason = "object_crop_too_small"
+
         if (
-            class_name == "person"
-            and (
-                crop_w < MIN_PERSON_CROP_WIDTH
-                or crop_h < MIN_PERSON_CROP_HEIGHT
-            )
+            crop_w < min_w
+            or crop_h < min_h
         ):
 
             # 검출은 됐지만 필터링 → 빨간색
@@ -369,17 +455,13 @@ def detect_and_crop(
             )
 
             filtered_log.append(
-                {
-                    "source_path": image_path,
-                    "image_path": image_path,
-                    "class_id": class_id,
-                    "class_name": class_name,
-                    "confidence": confidence,
-                    "bbox": bbox,
-                    "width": crop_w,
-                    "height": crop_h,
-                    "reason": "person_crop_too_small",
-                }
+                _filtered_record(
+                    too_small_reason,
+                    width=crop_w,
+                    height=crop_h,
+                    min_width=min_w,
+                    min_height=min_h,
+                )
             )
 
             continue
@@ -388,10 +470,6 @@ def detect_and_crop(
         # crop 파일명 생성
         # ====================================================
         accepted_index += 1
-
-        class_token = _safe_name(
-            class_name
-        )
 
         filename = (
             f"{prefix}"
@@ -429,17 +507,11 @@ def detect_and_crop(
             )
 
             filtered_log.append(
-                {
-                    "source_path": image_path,
-                    "image_path": image_path,
-                    "class_id": class_id,
-                    "class_name": class_name,
-                    "confidence": confidence,
-                    "bbox": bbox,
-                    "width": crop_w,
-                    "height": crop_h,
-                    "reason": "save_failed",
-                }
+                _filtered_record(
+                    "save_failed",
+                    width=crop_w,
+                    height=crop_h,
+                )
             )
 
             continue
@@ -458,54 +530,92 @@ def detect_and_crop(
         )
 
         # ====================================================
-        # accepted crop 기록
+        # detection_id
+        #
+        # 논리 image_id + class + 정수 bbox 로 만든다.
+        #
+        # accepted_index 는 일부러 빼 두었다. 그 값은 detection 순서와
+        # 필터 통과 여부에 따라 밀리므로, threshold 를 조금만 바꿔도
+        # 같은 detection 이 다른 ID 를 갖게 된다. bbox 는 이미 정수로
+        # clipping 되어 있어 부동소수 오차에 흔들리지 않는다.
+        #
+        # 같은 이미지에서 동일 class + 완전히 동일한 정수 bbox 가 두 번
+        # 나오면 ID 가 겹칠 수 있다. NMS 때문에 정상 데이터에서는 드물고,
+        # 그런 경우는 build_db.py 의 전역 detection_id 중복 검사가
+        # 조용한 덮어쓰기 대신 실행을 중단시킨다.
         # ====================================================
-        accepted_crops.append(
-            {
-                "source_path": image_path,
-                "image_path": image_path,
-                "crop_path": save_path,
-                "path": save_path,
-                "class_id": class_id,
-                "class_name": class_name,
-                "confidence": confidence,
-                "bbox": bbox,
-                "width": crop_w,
-                "height": crop_h,
-            }
+        detection_id = (
+            f"{image_id}#"
+            f"{class_token}#"
+            f"{x1}_{y1}_{x2}_{y2}"
         )
+
+        # ====================================================
+        # accepted crop 기록
+        #
+        # image_id     논리 ID. 경로/OS 무관
+        # source_path  원본을 실제로 열기 위한 물리 경로 (canonical)
+        # image_path   기존 호출부 호환용 alias
+        # ====================================================
+        record = {
+            "image_id": image_id,
+            "source_path": image_path,
+            "image_path": image_path,
+            "crop_path": save_path,
+            "path": save_path,
+            "detection_id": detection_id,
+            "class_id": class_id,
+            "class_name": class_name,
+            "confidence": confidence,
+            "bbox": bbox,
+            "width": crop_w,
+            "height": crop_h,
+        }
+
+        if source is not None:
+            record["source"] = source
+
+        accepted_crops.append(record)
 
     # ========================================================
-    # bbox 전체 이미지 저장
+    # bbox 시각화 이미지 저장
+    #
+    # crop 과 같은 디렉터리에 쌓으면 8만 장 규모에서 crop 과 섞여
+    # 디렉터리 탐색이 무거워진다. 하위 디렉터리로 분리한다.
+    #
+    # 파일명은 논리 image_id 에서 파생된 source_token 을 쓴다.
+    # Path(image_path).stem 기반이면 다른 데이터셋에 같은 파일명이
+    # 있을 때 서로 덮어쓴다.
     # ========================================================
-    original_stem = _safe_name(
-        Path(image_path).stem
-    )
+    if save_annotated:
 
-    detected_full_path = str(
-        Path(output_dir)
-        / (
-            f"{prefix}"
-            f"{original_stem}"
-            f"_detected_full.jpg"
+        detected_full_dir = (
+            Path(output_dir)
+            / "detected_full"
         )
-    )
 
-    success = cv2.imwrite(
-        detected_full_path,
-        annotated,
-    )
+        detected_full_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
-    if success:
-        print(
-            f"Detected image saved: "
-            f"{detected_full_path}"
+        detected_full_path = str(
+            detected_full_dir
+            / (
+                f"{prefix}"
+                f"{source_token}"
+                f"_detected_full.jpg"
+            )
         )
-    else:
-        print(
-            f"WARNING: Could not save detected image: "
-            f"{detected_full_path}"
-        )
+
+        if not cv2.imwrite(
+            detected_full_path,
+            annotated,
+        ):
+            print(
+                f"WARNING: Could not save detected image: "
+                f"{detected_full_path}"
+            )
 
     return (
         accepted_crops,
@@ -537,6 +647,54 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--image-id",
+        default=None,
+        help=(
+            "Logical image id, e.g. coco_train2017/000000015496.jpg. "
+            "Defaults to the bare filename."
+        ),
+    )
+
+    parser.add_argument(
+        "--source",
+        default=None,
+        help=(
+            "Provenance label to record. Omitted from the output when "
+            "not given."
+        ),
+    )
+
+    parser.add_argument(
+        "--min-person-width",
+        type=int,
+        default=MIN_PERSON_CROP_WIDTH,
+    )
+
+    parser.add_argument(
+        "--min-person-height",
+        type=int,
+        default=MIN_PERSON_CROP_HEIGHT,
+    )
+
+    parser.add_argument(
+        "--min-object-width",
+        type=int,
+        default=MIN_OBJECT_CROP_WIDTH,
+    )
+
+    parser.add_argument(
+        "--min-object-height",
+        type=int,
+        default=MIN_OBJECT_CROP_HEIGHT,
+    )
+
+    parser.add_argument(
+        "--no-annotated",
+        action="store_true",
+        help="Skip writing the bbox visualization image.",
+    )
+
+    parser.add_argument(
         "--all-classes",
         action="store_true",
         help=(
@@ -563,6 +721,13 @@ if __name__ == "__main__":
         args.image,
         output_dir=args.output_dir,
         target_classes=targets,
+        image_id=args.image_id,
+        source=args.source,
+        min_person_width=args.min_person_width,
+        min_person_height=args.min_person_height,
+        min_object_width=args.min_object_width,
+        min_object_height=args.min_object_height,
+        save_annotated=not args.no_annotated,
     )
 
     print(
@@ -572,3 +737,15 @@ if __name__ == "__main__":
     print(
         f"Filtered crops: {len(filtered)}"
     )
+
+    if crops:
+        print(
+            f"Sample detection_id: "
+            f"{crops[0]['detection_id']}"
+        )
+
+    if not args.no_annotated:
+        print(
+            f"Annotated image dir: "
+            f"{Path(args.output_dir) / 'detected_full'}"
+        )

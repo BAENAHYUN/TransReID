@@ -88,7 +88,9 @@ import argparse
 import gc
 import json
 import logging
+import math
 import re
+import sys
 import time
 from dataclasses import dataclass, field as dc_field
 from pathlib import Path
@@ -187,7 +189,7 @@ PRECISION_WEIGHT = 0.3
 # ─────────────────────────────────────────────────────────────────────────────
 # 프롬프트
 # ─────────────────────────────────────────────────────────────────────────────
-QUERY_PARSE_PROMPT = """Convert this person description into search constraints.
+QUERY_PARSE_PROMPT = """Convert this visual search description into search constraints.
 
 Description: "{query}"
 
@@ -201,7 +203,7 @@ Return a JSON array. Each element has exactly these keys:
 Rules:
 - Split distinct items into separate objects. A blue shirt worn under a suit
   is TWO objects: shirt (color=blue) and suit (present=true).
-- Use "subject" as the object for gender, age, pose, and location.
+- Use "subject" for whole-subject attributes such as gender, age, pose, and location when applicable.
 - Only include what the description actually states. Do not add details.
 - Do not merge two garments into one object.
 
@@ -365,19 +367,60 @@ def value_agreement(expected: Any, observed: Any) -> Optional[float]:
 
 
 def to_bool(value: Any) -> Optional[bool]:
-    """true / false / unknown 을 판별한다. 판별 못 하면 None."""
+    """true / false / unknown 을 보수적으로 판별한다."""
     if isinstance(value, bool):
         return value
+
     text = str(value if value is not None else "").strip().lower()
+
     if text in _UNKNOWN_WORDS:
         return None
     if text in _TRUE_WORDS:
         return True
     if text in _FALSE_WORDS:
         return False
-    # "a blue shirt is visible" 처럼 서술로 답한 경우 -> 존재로 본다
-    if normalize_tokens(text):
+
+    # 임의의 비어 있지 않은 문장을 True 로 간주하면
+    # "not visible" 같은 부정문도 True 가 되는 버그가 생긴다.
+    unknown_phrases = (
+        "cannot tell",
+        "can't tell",
+        "can not tell",
+        "not sure",
+        "uncertain",
+        "unclear",
+        "cannot determine",
+        "can't determine",
+    )
+    if any(p in text for p in unknown_phrases):
+        return None
+
+    false_phrases = (
+        "not visible",
+        "not present",
+        "is absent",
+        "appears absent",
+        "cannot see",
+        "can't see",
+        "can not see",
+        "no visible",
+        "no sign of",
+    )
+    if any(p in text for p in false_phrases):
+        return False
+
+    true_phrases = (
+        "is visible",
+        "clearly visible",
+        "is present",
+        "can see",
+        "appears present",
+    )
+    if any(p in text for p in true_phrases):
         return True
+
+    # 프롬프트 계약에서 bool / unknown 을 요구하므로
+    # 애매한 서술형 응답은 추측하지 않고 UNKNOWN 으로 둔다.
     return None
 
 
@@ -417,11 +460,15 @@ class Constraint:
             return None
         if "expected" not in d:
             return None
+        weight = float(d.get("weight", 1.0))
+        if not math.isfinite(weight) or weight <= 0:
+            return None
+
         return cls(
             object=obj,
             attribute=attr,
             expected=d["expected"],
-            weight=float(d.get("weight", 1.0)),
+            weight=weight,
             required=bool(d.get("required", False)),
         )
 
@@ -429,7 +476,7 @@ class Constraint:
 def dedupe_constraints(items: List[Constraint]) -> List[Constraint]:
     seen: Dict[str, Constraint] = {}
     for c in items:
-        seen.setdefault(c.key, c)
+        seen.setdefault(c.key.lower(), c)
     return list(seen.values())
 
 
@@ -471,9 +518,13 @@ def evaluate_constraint(
     out["visibility"] = visibility or None
     out["evidence"] = check.get("evidence")
 
-    # 보이지 않았다면 판정하지 않는다
+    # visibility 계약이 불완전하면 판정하지 않는다.
     if visibility.startswith("insuff"):
         out["note"] = "관찰 불충분"
+        return out
+
+    if not visibility.startswith("suff"):
+        out["note"] = "visibility 누락/잘못된 값"
         return out
 
     if str(observed).strip().lower() in _UNKNOWN_WORDS:
@@ -525,7 +576,6 @@ def evaluate_constraint(
         out["verdict"] = PASS
         out["score"] = 1.0
     elif agree >= PARTIAL_THRESHOLD:
-        out["verdict"] = PASS if agree >= PASS_THRESHOLD else "PARTIAL"
         out["verdict"] = "PARTIAL"
         out["score"] = PARTIAL_SCORE
     else:
@@ -814,6 +864,9 @@ class QwenVL:
     def generate(self, prompt: str, image_path: Optional[str] = None) -> str:
         import torch
 
+        if self._model is None or self._processor is None:
+            raise RuntimeError("Qwen 모델/프로세서가 로드되지 않았습니다.")
+
         content: List[Dict[str, Any]] = []
         images = []
 
@@ -1051,6 +1104,25 @@ def process_item(
 
     item["constraints"] = [c.to_dict() for c in constraints]
 
+    # 이전 qwen_stage 결과를 다시 입력했을 때 old score가 남아
+    # 이번 실행 결과처럼 사용되는 것을 막는다.
+    derived_keys = (
+        "attr_score",
+        "attr_match",
+        "attr_coverage",
+        "attr_details",
+        "attr_inventory",
+        "attr_summary",
+        "failed_required",
+        "qwen_score",
+        "final_score",
+        "verified",
+        "attr_skipped",
+    )
+    for row in rows:
+        for key in derived_keys:
+            row.pop(key, None)
+
     head, tail = rows[:top_k], rows[top_k:]
     scored: List[Dict[str, Any]] = []
     unresolved: List[Dict[str, Any]] = []
@@ -1145,22 +1217,37 @@ def process_item(
     #
     # UNKNOWN 은 강등 대상이 아니다 (unresolved 로 빠지거나 coverage 로만
     # 반영된다).
-    scored.sort(
-        key=lambda r: (
-            not bool(r.get("failed_required")),   # FAIL 없는 쪽이 위
-            r["final_score"],
-        ),
+    normal_scored = [
+        r for r in scored
+        if not r.get("failed_required")
+    ]
+    failed_scored = [
+        r for r in scored
+        if r.get("failed_required")
+    ]
+
+    normal_scored.sort(
+        key=lambda r: r["final_score"],
+        reverse=True,
+    )
+    failed_scored.sort(
+        key=lambda r: r["final_score"],
         reverse=True,
     )
 
-    n_demoted = sum(1 for r in scored if r.get("failed_required"))
+    n_demoted = len(failed_scored)
     if n_demoted:
         logger.info(
-            "명시적 조건 위반 %d건을 정상 후보 아래로 내렸습니다.", n_demoted
+            "명시적 조건 위반 %d건을 UNKNOWN 후보보다도 아래로 내렸습니다.",
+            n_demoted,
         )
 
+    # UNKNOWN 은 '틀림'이 아니다.
+    # 확실한 required FAIL 보다 위에 두되, 판정 가능한 정상 후보 뒤에 둔다.
     item["results"] = apply_verdict(
-        scored + unresolved + tail, threshold, verify_mode
+        normal_scored + unresolved + failed_scored + tail,
+        threshold,
+        verify_mode,
     )
     return item
 
@@ -1212,53 +1299,113 @@ def run(
         alpha,
     )
 
+    if rescore_only:
+        missing_constraints = [
+            i
+            for i, item in enumerate(text_items, 1)
+            if not isinstance(item.get("constraints"), list)
+            or not item.get("constraints")
+        ]
+        if missing_constraints:
+            raise ValueError(
+                "--rescore-only 은 이전 qwen_stage 결과의 constraints가 필요합니다. "
+                f"누락 item={missing_constraints}"
+            )
+
+        has_any_observation = any(
+            row.get("qwen_observation")
+            for item in text_items
+            for row in (item.get("results") or [])[:top_k]
+        )
+        if not has_any_observation:
+            raise ValueError(
+                "--rescore-only 로 재사용할 qwen_observation이 없습니다."
+            )
+
     qwen: Optional[QwenVL] = None
-    if not rescore_only:
-        qwen = QwenVL(
-            model_id=model_id, dtype=dtype, device=device,
-            max_pixels=max_pixels,
-        )
-        qwen.load()
-
     t0 = time.time()
-    for item in text_items:
-        constraints = resolve_constraints(item, qwen, reuse=rescore_only)
 
-        # object 별 가중치 / 필수 여부 override
-        for c in constraints:
-            if c.object in weights:
-                c.weight = weights[c.object]
-            if c.key in weights:
-                c.weight = weights[c.key]
-            if c.object in required or c.key in required:
-                c.required = True
-            if c.object in soft or c.key in soft:
-                c.required = False
+    try:
+        if not rescore_only:
+            qwen = QwenVL(
+                model_id=model_id,
+                dtype=dtype,
+                device=device,
+                max_pixels=max_pixels,
+            )
+            qwen.load()
 
-        known = {n for c in constraints for n in (c.object, c.key)}
-        for label, given in (("--require", required), ("--soft", soft)):
-            missing = given - known
-            if missing:
-                logger.warning(
-                    "%s 로 지정했지만 constraint 에 없는 이름: %s\n"
-                    "  실제 조건 목록: %s",
-                    label, sorted(missing),
-                    ", ".join(c.key for c in constraints),
-                )
+        for item in text_items:
+            constraints = resolve_constraints(
+                item,
+                qwen,
+                reuse=rescore_only,
+            )
 
-        process_item(
-            item, qwen, constraints,
-            top_k=top_k, alpha=alpha, threshold=threshold,
-            verify_mode=verify_mode, rescore_only=rescore_only,
-        )
+            # object 별 가중치 / 필수 여부 override
+            for c in constraints:
+                if c.object in weights:
+                    c.weight = weights[c.object]
+                if c.key in weights:
+                    c.weight = weights[c.key]
+                if c.object in required or c.key in required:
+                    c.required = True
+                if c.object in soft or c.key in soft:
+                    c.required = False
+
+            known = {
+                n
+                for c in constraints
+                for n in (c.object, c.key)
+            }
+            for label, given in (
+                ("--require", required),
+                ("--soft", soft),
+            ):
+                missing = given - known
+                if missing:
+                    logger.warning(
+                        "%s 로 지정했지만 constraint 에 없는 이름: %s\n"
+                        "  실제 조건 목록: %s",
+                        label,
+                        sorted(missing),
+                        ", ".join(c.key for c in constraints),
+                    )
+
+            process_item(
+                item,
+                qwen,
+                constraints,
+                top_k=top_k,
+                alpha=alpha,
+                threshold=threshold,
+                verify_mode=verify_mode,
+                rescore_only=rescore_only,
+            )
+    finally:
+        if qwen is not None:
+            qwen.release()
+
     elapsed = time.time() - t0
 
-    if qwen is not None:
-        qwen.release()
+    shifts = [
+        rank_shift(c["results"][:top_k])
+        for c in text_items
+    ]
 
-    shifts = [rank_shift(c["results"][:top_k]) for c in text_items]
+    scored_candidates = sum(
+        1
+        for item in text_items
+        for row in (item.get("results") or [])
+        if row.get("attr_score") is not None
+    )
 
-    payload["qwen"] = True
+    payload["qwen"] = scored_candidates > 0
+    payload["qwen_scored_candidates"] = scored_candidates
+    if scored_candidates == 0:
+        payload["qwen_error"] = (
+            "Qwen 단계는 실행되었지만 판정 가능한 후보가 하나도 없습니다."
+        )
     payload["qwen_mode"] = "constraint-observe-compare"
     payload["qwen_model"] = None if rescore_only else model_id
     payload["qwen_top_k"] = top_k
@@ -1428,7 +1575,12 @@ def parse_weight_args(pairs: Optional[List[str]]) -> Dict[str, float]:
         name = name.strip()
         if not name:
             raise ValueError(f"--weight 이름이 비었습니다: {raw}")
-        weights[name] = float(value)
+        number = float(value)
+        if not math.isfinite(number) or number <= 0:
+            raise ValueError(
+                f"--weight 값은 0보다 큰 유한수여야 합니다: {raw}"
+            )
+        weights[name] = number
     return weights
 
 
@@ -1495,6 +1647,10 @@ def main() -> int:
         ap.error("--threshold must be 0~1")
     if args.top_k <= 0:
         ap.error("--top-k must be > 0")
+    if args.show <= 0:
+        ap.error("--show must be > 0")
+    if args.max_pixels is not None and args.max_pixels <= 0:
+        ap.error("--max-pixels must be > 0")
 
     try:
         weights = parse_weight_args(args.weight)
@@ -1505,7 +1661,18 @@ def main() -> int:
     if not src.is_file():
         ap.error(f"입력 JSON 이 없습니다: {src}")
 
-    payload = json.loads(src.read_text(encoding="utf-8"))
+    try:
+        payload = json.loads(
+            src.read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError) as e:
+        ap.error(
+            f"입력 JSON을 읽을 수 없습니다: "
+            f"{type(e).__name__}: {e}"
+        )
+
+    if not isinstance(payload, dict):
+        ap.error("입력 JSON 최상위 구조는 object(dict)여야 합니다.")
 
     if payload.get("search_type") and payload["search_type"] != "text":
         logger.warning(
@@ -1541,7 +1708,8 @@ def main() -> int:
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-        print(f"JSON saved: {out}")
+        status_stream = sys.stderr if args.json else sys.stdout
+        print(f"JSON saved: {out}", file=status_stream)
 
     return 0
 

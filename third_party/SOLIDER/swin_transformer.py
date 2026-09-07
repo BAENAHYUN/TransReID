@@ -1,3 +1,4 @@
+#SOLIDER 모델 자체를 정의하는 서드파티 backbone 구현 파일  
 import warnings
 from collections import OrderedDict
 from copy import deepcopy
