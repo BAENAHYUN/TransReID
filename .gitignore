@@ -1,0 +1,15 @@
+venv/
+weights/
+data/
+TransReID_official/
+CLIP-ReID_official/
+*.pt
+__pycache__/
+*.zip
+log*.txt
+filtered_list.txt.venv/
+
+.venv/
+eval_cache/
+__pycache__/
+*.pyc

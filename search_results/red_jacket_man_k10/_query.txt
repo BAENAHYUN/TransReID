@@ -1,0 +1,23 @@
+쿼리: red jacket man
+top_k: 10
+
+01위  [0.5449]  Normal_Videos_935_x264 / track_0869
+       → 01_0.5449_Normal_Videos_935_x264_track_0869.jpg
+02위  [0.5318]  Normal_Videos_783_x264 / track_0011
+       → 02_0.5318_Normal_Videos_783_x264_track_0011.jpg
+03위  [0.5085]  Normal_Videos_182_x264 / track_0002
+       → 03_0.5085_Normal_Videos_182_x264_track_0002.jpg
+04위  [0.5067]  Normal_Videos_935_x264 / track_0080
+       → 04_0.5067_Normal_Videos_935_x264_track_0080.jpg
+05위  [0.5032]  Normal_Videos_783_x264 / track_0014
+       → 05_0.5032_Normal_Videos_783_x264_track_0014.jpg
+06위  [0.5028]  Normal_Videos_873_x264 / track_0001
+       → 06_0.5028_Normal_Videos_873_x264_track_0001.jpg
+07위  [0.4969]  Normal_Videos_935_x264 / track_0402
+       → 07_0.4969_Normal_Videos_935_x264_track_0402.jpg
+08위  [0.4954]  Normal_Videos_935_x264 / track_0032
+       → 08_0.4954_Normal_Videos_935_x264_track_0032.jpg
+09위  [0.4944]  Normal_Videos_782_x264 / track_0050
+       → 09_0.4944_Normal_Videos_782_x264_track_0050.jpg
+10위  [0.4930]  Normal_Videos_042_x264 / track_0029
+       → 10_0.4930_Normal_Videos_042_x264_track_0029.jpg

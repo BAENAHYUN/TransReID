@@ -1,0 +1,18 @@
+쿼리    : red short-sleeved t-shirt male
+IRRA k  : 200
+최종 k  : 0
+
+순위     Qwen   IRRA  영상/트랙
+-------------------------------------------------------
+1    0.5768 0.4421  Normal_Videos_597_x264/track_0005
+2    0.5603 0.4573  Normal_Videos_042_x264/track_0031
+3    0.5242 0.5281  Normal_Videos_042_x264/track_0007
+4    0.5226 0.4764  Normal_Videos_196_x264/track_0008
+5    0.5204 0.4625  Normal_Videos_882_x264/track_0006
+6    0.5196 0.4336  Normal_Videos_937_x264/track_0021
+7    0.5196 0.4336  Normal_Videos_936_x264/track_0021
+8    0.5143 0.4577  Normal_Videos_782_x264/track_0010
+9    0.5124 0.4550  Normal_Videos_783_x264/track_0011
+10   0.5036 0.4580  Normal_Videos_782_x264/track_0059
+11   0.4859 0.4545  Normal_Videos_935_x264/track_0869
+12   0.4845 0.4647  Normal_Videos_196_x264/track_0007

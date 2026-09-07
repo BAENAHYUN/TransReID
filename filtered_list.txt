@@ -1,0 +1,383 @@
+﻿
+건너뜀: crop이 너무 작음(가로62x세로153), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0009.jpg
+건너뜀: crop이 너무 작음(가로87x세로168), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0013.jpg
+건너뜀: crop이 너무 작음(가로81x세로140), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0018.jpg
+건너뜀: crop이 너무 작음(가로60x세로105), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0019.jpg
+건너뜀: crop이 너무 작음(가로59x세로143), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0019.jpg
+건너뜀: crop이 너무 작음(가로76x세로211), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0020.jpg
+건너뜀: crop이 너무 작음(가로51x세로138), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0021.jpg
+건너뜀: crop이 너무 작음(가로88x세로152), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0021.jpg
+건너뜀: crop이 너무 작음(가로80x세로202), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0022.jpg
+건너뜀: crop이 너무 작음(가로61x세로132), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0022.jpg
+건너뜀: crop이 너무 작음(가로62x세로156), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0024.jpg
+건너뜀: crop이 너무 작음(가로58x세로105), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0024.jpg
+건너뜀: crop이 너무 작음(가로51x세로201), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0025.jpg
+건너뜀: crop이 너무 작음(가로88x세로178), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0025.jpg
+건너뜀: crop이 너무 작음(가로53x세로94), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0030.jpg
+건너뜀: crop이 너무 작음(가로75x세로217), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0042.jpg
+건너뜀: crop이 너무 작음(가로54x세로175), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0047.jpg
+건너뜀: crop이 너무 작음(가로68x세로140), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0050.jpg
+건너뜀: crop이 너무 작음(가로79x세로250), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0052.jpg
+건너뜀: crop이 너무 작음(가로60x세로120), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0053.jpg
+건너뜀: crop이 너무 작음(가로44x세로99), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0055.jpg
+건너뜀: crop이 너무 작음(가로27x세로65), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0055.jpg
+건너뜀: crop이 너무 작음(가로88x세로196), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0057.jpg
+건너뜀: crop이 너무 작음(가로40x세로232), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0057.jpg
+건너뜀: crop이 너무 작음(가로69x세로91), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0058.jpg
+건너뜀: crop이 너무 작음(가로49x세로73), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0058.jpg
+건너뜀: crop이 너무 작음(가로28x세로51), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0058.jpg
+건너뜀: crop이 너무 작음(가로18x세로29), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0058.jpg
+건너뜀: crop이 너무 작음(가로61x세로202), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0059.jpg
+건너뜀: crop이 너무 작음(가로44x세로167), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0059.jpg
+건너뜀: crop이 너무 작음(가로44x세로140), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0060.jpg
+건너뜀: crop이 너무 작음(가로47x세로76), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0060.jpg
+건너뜀: crop이 너무 작음(가로49x세로152), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0061.jpg
+건너뜀: crop이 너무 작음(가로51x세로72), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0063.jpg
+건너뜀: crop이 너무 작음(가로89x세로218), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0064.jpg
+건너뜀: crop이 너무 작음(가로84x세로194), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0067.jpg
+건너뜀: crop이 너무 작음(가로62x세로143), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0067.jpg
+건너뜀: crop이 너무 작음(가로84x세로202), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0068.jpg
+건너뜀: crop이 너무 작음(가로72x세로121), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0069.jpg
+건너뜀: crop이 너무 작음(가로32x세로157), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0069.jpg
+건너뜀: crop이 너무 작음(가로33x세로71), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0070.jpg
+건너뜀: crop이 너무 작음(가로75x세로249), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0073.jpg
+건너뜀: crop이 너무 작음(가로89x세로147), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0075.jpg
+건너뜀: crop이 너무 작음(가로61x세로226), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0076.jpg
+건너뜀: crop이 너무 작음(가로130x세로48), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0076.jpg
+건너뜀: crop이 너무 작음(가로75x세로127), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0082.jpg
+건너뜀: crop이 너무 작음(가로27x세로150), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0082.jpg
+건너뜀: crop이 너무 작음(가로84x세로174), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0085.jpg
+건너뜀: crop이 너무 작음(가로65x세로115), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0091.jpg
+건너뜀: crop이 너무 작음(가로54x세로122), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0091.jpg
+건너뜀: crop이 너무 작음(가로55x세로181), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0094.jpg
+건너뜀: crop이 너무 작음(가로59x세로167), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0095.jpg
+건너뜀: crop이 너무 작음(가로68x세로148), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0103.jpg
+건너뜀: crop이 너무 작음(가로83x세로192), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0105.jpg
+건너뜀: crop이 너무 작음(가로66x세로187), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0107.jpg
+건너뜀: crop이 너무 작음(가로81x세로197), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0112.jpg
+건너뜀: crop이 너무 작음(가로76x세로126), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0113.jpg
+건너뜀: crop이 너무 작음(가로75x세로170), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0113.jpg
+건너뜀: crop이 너무 작음(가로78x세로171), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0114.jpg
+건너뜀: crop이 너무 작음(가로55x세로119), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0114.jpg
+건너뜀: crop이 너무 작음(가로79x세로175), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0115.jpg
+건너뜀: crop이 너무 작음(가로38x세로166), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0115.jpg
+건너뜀: crop이 너무 작음(가로63x세로243), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0116.jpg
+건너뜀: crop이 너무 작음(가로52x세로109), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0116.jpg
+건너뜀: crop이 너무 작음(가로58x세로183), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0140.jpg
+건너뜀: crop이 너무 작음(가로86x세로192), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0147.jpg
+건너뜀: crop이 너무 작음(가로22x세로177), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0148.jpg
+건너뜀: crop이 너무 작음(가로41x세로230), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0149.jpg
+건너뜀: crop이 너무 작음(가로65x세로209), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0150.jpg
+건너뜀: crop이 너무 작음(가로85x세로192), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0151.jpg
+건너뜀: crop이 너무 작음(가로75x세로216), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0151.jpg
+건너뜀: crop이 너무 작음(가로78x세로44), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0151.jpg
+건너뜀: crop이 너무 작음(가로78x세로140), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0152.jpg
+건너뜀: crop이 너무 작음(가로75x세로135), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0156.jpg
+건너뜀: crop이 너무 작음(가로48x세로97), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0156.jpg
+건너뜀: crop이 너무 작음(가로89x세로119), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0156.jpg
+건너뜀: crop이 너무 작음(가로67x세로51), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0156.jpg
+건너뜀: crop이 너무 작음(가로81x세로186), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0165.jpg
+건너뜀: crop이 너무 작음(가로41x세로164), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0174.jpg
+건너뜀: crop이 너무 작음(가로76x세로154), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0175.jpg
+건너뜀: crop이 너무 작음(가로29x세로96), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0175.jpg
+건너뜀: crop이 너무 작음(가로72x세로139), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0176.jpg
+건너뜀: crop이 너무 작음(가로88x세로172), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0176.jpg
+건너뜀: crop이 너무 작음(가로55x세로171), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0179.jpg
+건너뜀: crop이 너무 작음(가로63x세로201), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0179.jpg
+건너뜀: crop이 너무 작음(가로15x세로231), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0180.jpg
+건너뜀: crop이 너무 작음(가로84x세로146), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0181.jpg
+건너뜀: crop이 너무 작음(가로29x세로170), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0181.jpg
+건너뜀: crop이 너무 작음(가로42x세로136), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0182.jpg
+건너뜀: crop이 너무 작음(가로81x세로194), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0184.jpg
+건너뜀: crop이 너무 작음(가로81x세로140), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0184.jpg
+건너뜀: crop이 너무 작음(가로79x세로172), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0185.jpg
+건너뜀: crop이 너무 작음(가로77x세로165), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0185.jpg
+건너뜀: crop이 너무 작음(가로68x세로56), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0185.jpg
+건너뜀: crop이 너무 작음(가로47x세로54), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0186.jpg
+건너뜀: crop이 너무 작음(가로53x세로108), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0187.jpg
+건너뜀: crop이 너무 작음(가로82x세로164), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0196.jpg
+건너뜀: crop이 너무 작음(가로39x세로168), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0200.jpg
+건너뜀: crop이 너무 작음(가로34x세로137), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0201.jpg
+건너뜀: crop이 너무 작음(가로68x세로215), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0205.jpg
+건너뜀: crop이 너무 작음(가로72x세로151), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0212.jpg
+건너뜀: crop이 너무 작음(가로30x세로72), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0213.jpg
+건너뜀: crop이 너무 작음(가로146x세로97), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0215.jpg
+건너뜀: crop이 너무 작음(가로26x세로185), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0217.jpg
+건너뜀: crop이 너무 작음(가로80x세로237), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0222.jpg
+건너뜀: crop이 너무 작음(가로51x세로102), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0222.jpg
+건너뜀: crop이 너무 작음(가로85x세로188), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0223.jpg
+건너뜀: crop이 너무 작음(가로59x세로159), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0223.jpg
+건너뜀: crop이 너무 작음(가로62x세로170), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0235.jpg
+건너뜀: crop이 너무 작음(가로89x세로199), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0235.jpg
+건너뜀: crop이 너무 작음(가로84x세로190), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0242.jpg
+건너뜀: crop이 너무 작음(가로63x세로74), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0244.jpg
+건너뜀: crop이 너무 작음(가로66x세로76), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0244.jpg
+건너뜀: crop이 너무 작음(가로58x세로129), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0252.jpg
+건너뜀: crop이 너무 작음(가로60x세로217), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0253.jpg
+건너뜀: crop이 너무 작음(가로89x세로179), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0253.jpg
+건너뜀: crop이 너무 작음(가로85x세로219), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0261.jpg
+건너뜀: crop이 너무 작음(가로83x세로150), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0261.jpg
+건너뜀: crop이 너무 작음(가로61x세로178), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0261.jpg
+건너뜀: crop이 너무 작음(가로63x세로164), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0272.jpg
+건너뜀: crop이 너무 작음(가로79x세로248), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0278.jpg
+건너뜀: crop이 너무 작음(가로23x세로119), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0281.jpg
+건너뜀: crop이 너무 작음(가로59x세로159), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0289.jpg
+건너뜀: crop이 너무 작음(가로82x세로176), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0291.jpg
+건너뜀: crop이 너무 작음(가로148x세로97), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0291.jpg
+건너뜀: crop이 너무 작음(가로73x세로183), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0291.jpg
+건너뜀: crop이 너무 작음(가로52x세로93), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0296.jpg
+건너뜀: crop이 너무 작음(가로70x세로107), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0296.jpg
+건너뜀: crop이 너무 작음(가로66x세로202), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0296.jpg
+건너뜀: crop이 너무 작음(가로66x세로55), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0296.jpg
+건너뜀: crop이 너무 작음(가로32x세로31), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0296.jpg
+건너뜀: crop이 너무 작음(가로77x세로57), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0297.jpg
+건너뜀: crop이 너무 작음(가로37x세로32), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0297.jpg
+건너뜀: crop이 너무 작음(가로39x세로61), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0298.jpg
+건너뜀: crop이 너무 작음(가로96x세로115), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0299.jpg
+건너뜀: crop이 너무 작음(가로31x세로137), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0300.jpg
+건너뜀: crop이 너무 작음(가로63x세로113), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0306.jpg
+건너뜀: crop이 너무 작음(가로81x세로240), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0308.jpg
+건너뜀: crop이 너무 작음(가로19x세로146), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0315.jpg
+건너뜀: crop이 너무 작음(가로39x세로129), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0331.jpg
+건너뜀: crop이 너무 작음(가로53x세로144), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0339.jpg
+건너뜀: crop이 너무 작음(가로44x세로156), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0354.jpg
+건너뜀: crop이 너무 작음(가로64x세로206), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0355.jpg
+건너뜀: crop이 너무 작음(가로60x세로139), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0356.jpg
+건너뜀: crop이 너무 작음(가로46x세로125), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0379.jpg
+건너뜀: crop이 너무 작음(가로44x세로51), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0379.jpg
+건너뜀: crop이 너무 작음(가로58x세로120), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0379.jpg
+건너뜀: crop이 너무 작음(가로73x세로228), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0389.jpg
+건너뜀: crop이 너무 작음(가로69x세로208), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0391.jpg
+건너뜀: crop이 너무 작음(가로65x세로132), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0391.jpg
+건너뜀: crop이 너무 작음(가로44x세로159), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0395.jpg
+건너뜀: crop이 너무 작음(가로47x세로178), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0405.jpg
+건너뜀: crop이 너무 작음(가로33x세로161), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0405.jpg
+건너뜀: crop이 너무 작음(가로96x세로102), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0430.jpg
+건너뜀: crop이 너무 작음(가로39x세로131), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0430.jpg
+건너뜀: crop이 너무 작음(가로44x세로217), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0437.jpg
+건너뜀: crop이 너무 작음(가로52x세로154), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0438.jpg
+건너뜀: crop이 너무 작음(가로76x세로132), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0438.jpg
+건너뜀: crop이 너무 작음(가로62x세로112), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0438.jpg
+건너뜀: crop이 너무 작음(가로41x세로51), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0438.jpg
+건너뜀: crop이 너무 작음(가로50x세로172), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0442.jpg
+건너뜀: crop이 너무 작음(가로46x세로92), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0448.jpg
+건너뜀: crop이 너무 작음(가로39x세로167), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0448.jpg
+건너뜀: crop이 너무 작음(가로61x세로127), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0448.jpg
+건너뜀: crop이 너무 작음(가로41x세로116), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0448.jpg
+건너뜀: crop이 너무 작음(가로65x세로104), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0454.jpg
+건너뜀: crop이 너무 작음(가로88x세로143), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0457.jpg
+건너뜀: crop이 너무 작음(가로67x세로132), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0474.jpg
+건너뜀: crop이 너무 작음(가로28x세로169), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0475.jpg
+건너뜀: crop이 너무 작음(가로37x세로176), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0478.jpg
+건너뜀: crop이 너무 작음(가로53x세로121), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0478.jpg
+건너뜀: crop이 너무 작음(가로48x세로65), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0481.jpg
+건너뜀: crop이 너무 작음(가로48x세로54), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0481.jpg
+건너뜀: crop이 너무 작음(가로35x세로133), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0485.jpg
+건너뜀: crop이 너무 작음(가로67x세로80), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0488.jpg
+건너뜀: crop이 너무 작음(가로33x세로124), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0490.jpg
+건너뜀: crop이 너무 작음(가로64x세로94), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0497.jpg
+건너뜀: crop이 너무 작음(가로30x세로40), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0497.jpg
+건너뜀: crop이 너무 작음(가로11x세로75), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0497.jpg
+건너뜀: crop이 너무 작음(가로16x세로31), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0497.jpg
+건너뜀: crop이 너무 작음(가로70x세로116), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0498.jpg
+건너뜀: crop이 너무 작음(가로81x세로168), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0501.jpg
+건너뜀: crop이 너무 작음(가로79x세로182), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0502.jpg
+건너뜀: crop이 너무 작음(가로80x세로165), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0504.jpg
+건너뜀: crop이 너무 작음(가로91x세로42), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_Bu
+sh_0504.jpg
+건너뜀: crop이 너무 작음(가로57x세로142), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0505.jpg
+건너뜀: crop이 너무 작음(가로79x세로182), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0515.jpg
+건너뜀: crop이 너무 작음(가로53x세로159), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0516.jpg
+건너뜀: crop이 너무 작음(가로37x세로183), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0527.jpg
+건너뜀: crop이 너무 작음(가로39x세로176), 화면 가장자리에 일부만 걸친 사람일 가능성, 파일: C:\TransReID\data\sample_photos\George_W_B
+ush_0535.jpg
+
+

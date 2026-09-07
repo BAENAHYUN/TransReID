@@ -1,0 +1,225 @@
+{
+  "collection": "person_db",
+  "source_crops": 452869,
+  "qdrant_scanned": 563870,
+  "current_found": 452869,
+  "extra_total": 111001,
+  "sources": [
+    {
+      "source": "UCF-Crime-Normal-obj",
+      "count": 61145,
+      "person": 0,
+      "object": 61145,
+      "top_labels": "car:17695, tv:14157, chair:9903, laptop:5846, truck:2637, keyboard:2291, motorcycle:1377, potted plant:1266, backpack:1131, bus:1044",
+      "samples": [
+        {
+          "point_id": "00002afd-4d5b-562f-9738-83d10c619a9c",
+          "image_id": "Normal_Videos_210_x264/Normal_Videos_210_x264_frame_00001800_car_0001.jpg",
+          "detection_id": "UCF-Crime-Normal-obj|Normal_Videos_210_x264|1800|car|1",
+          "frame_idx": 1800,
+          "label": "car",
+          "is_person": false,
+          "track_id": null,
+          "bbox": [
+            0.0,
+            0.0,
+            35.0,
+            23.0
+          ]
+        },
+        {
+          "point_id": "00029862-f834-5c38-a126-8f5de218e320",
+          "image_id": "Normal_Videos_924_x264/Normal_Videos_924_x264_frame_00041130_tv_0000.jpg",
+          "detection_id": "UCF-Crime-Normal-obj|Normal_Videos_924_x264|41130|tv|0",
+          "frame_idx": 41130,
+          "label": "tv",
+          "is_person": false,
+          "track_id": null,
+          "bbox": [
+            0.0,
+            0.0,
+            62.0,
+            38.0
+          ]
+        },
+        {
+          "point_id": "00039449-25f9-55d0-919d-c83bb56b7657",
+          "image_id": "Normal_Videos_576_x264/Normal_Videos_576_x264_frame_00008070_car_0004.jpg",
+          "detection_id": "UCF-Crime-Normal-obj|Normal_Videos_576_x264|8070|car|4",
+          "frame_idx": 8070,
+          "label": "car",
+          "is_person": false,
+          "track_id": null,
+          "bbox": [
+            0.0,
+            0.0,
+            83.0,
+            40.0
+          ]
+        }
+      ]
+    },
+    {
+      "source": "UCF-Crime",
+      "count": 35452,
+      "person": 35452,
+      "object": 0,
+      "top_labels": "person:35452",
+      "samples": [
+        {
+          "point_id": "0000ce54-4b59-5ce9-8ca3-c76ff5f00cbd",
+          "image_id": "Normal_Videos_781_x264/frame_00000480_person_04.jpg",
+          "detection_id": "UCF-Crime|Normal_Videos_781_x264|track_0005|480|4",
+          "frame_idx": 480,
+          "label": "person",
+          "is_person": true,
+          "track_id": 5,
+          "bbox": [
+            0.0,
+            0.0,
+            27.0,
+            80.0
+          ]
+        },
+        {
+          "point_id": "0002503e-cd6d-5ca8-b63e-62d347ac75a4",
+          "image_id": "Normal_Videos_898_x264/frame_00000180_person_04.jpg",
+          "detection_id": "UCF-Crime|Normal_Videos_898_x264|track_0002|180|4",
+          "frame_idx": 180,
+          "label": "person",
+          "is_person": true,
+          "track_id": 2,
+          "bbox": [
+            0.0,
+            0.0,
+            53.0,
+            81.0
+          ]
+        },
+        {
+          "point_id": "00056f61-a769-53f7-b717-aa080864b791",
+          "image_id": "Normal_Videos_935_x264/frame_00085290_person_04.jpg",
+          "detection_id": "UCF-Crime|Normal_Videos_935_x264|track_1197|85290|4",
+          "frame_idx": 85290,
+          "label": "person",
+          "is_person": true,
+          "track_id": 1197,
+          "bbox": [
+            0.0,
+            0.0,
+            28.0,
+            60.0
+          ]
+        }
+      ]
+    },
+    {
+      "source": "SCVD",
+      "count": 9457,
+      "person": 9457,
+      "object": 0,
+      "top_labels": "person:9457",
+      "samples": [
+        {
+          "point_id": "0015c4aa-beb5-5262-bf70-eaf0665e53c1",
+          "image_id": "v086_converted/frame_00000090_person_03.jpg",
+          "detection_id": "SCVD|v086_converted|track_0004|90|3",
+          "frame_idx": 90,
+          "label": "person",
+          "is_person": true,
+          "track_id": 4,
+          "bbox": [
+            0.0,
+            0.0,
+            45.0,
+            322.0
+          ]
+        },
+        {
+          "point_id": "001a7af8-d69b-53c3-a91a-96ce52953001",
+          "image_id": "v048_converted/frame_00000090_person_04.jpg",
+          "detection_id": "SCVD|v048_converted|track_0006|90|4",
+          "frame_idx": 90,
+          "label": "person",
+          "is_person": true,
+          "track_id": 6,
+          "bbox": [
+            0.0,
+            0.0,
+            60.0,
+            125.0
+          ]
+        },
+        {
+          "point_id": "002943e4-73ee-5002-9968-3f65696f77ff",
+          "image_id": "n070_converted/frame_00000090_person_01.jpg",
+          "detection_id": "SCVD|n070_converted|track_0001|90|1",
+          "frame_idx": 90,
+          "label": "person",
+          "is_person": true,
+          "track_id": 1,
+          "bbox": [
+            0.0,
+            0.0,
+            182.0,
+            213.0
+          ]
+        }
+      ]
+    },
+    {
+      "source": "SCVD-obj",
+      "count": 4947,
+      "person": 0,
+      "object": 4947,
+      "top_labels": "chair:1512, car:1373, dining table:679, motorcycle:348, potted plant:174, tv:121, handbag:80, truck:60, laptop:57, bicycle:53",
+      "samples": [
+        {
+          "point_id": "00071555-3e99-50c5-bbae-e4af51cec83a",
+          "image_id": "n032_converted/n032_converted_frame_00000060_car_0004.jpg",
+          "detection_id": "SCVD-obj|n032_converted|60|car|4",
+          "frame_idx": 60,
+          "label": "car",
+          "is_person": false,
+          "track_id": null,
+          "bbox": [
+            0.0,
+            0.0,
+            616.0,
+            280.0
+          ]
+        },
+        {
+          "point_id": "000f0018-abc6-5b83-af63-1e287f422cd4",
+          "image_id": "v028_converted/v028_converted_frame_00000210_chair_0004.jpg",
+          "detection_id": "SCVD-obj|v028_converted|210|chair|4",
+          "frame_idx": 210,
+          "label": "chair",
+          "is_person": false,
+          "track_id": null,
+          "bbox": [
+            0.0,
+            0.0,
+            109.0,
+            182.0
+          ]
+        },
+        {
+          "point_id": "001eb9e3-4f91-5748-8d9b-4db6220be04a",
+          "image_id": "w069_converted/w069_converted_frame_00000090_dining_table_0008.jpg",
+          "detection_id": "SCVD-obj|w069_converted|90|dining table|8",
+          "frame_idx": 90,
+          "label": "dining table",
+          "is_person": false,
+          "track_id": null,
+          "bbox": [
+            0.0,
+            0.0,
+            117.0,
+            35.0
+          ]
+        }
+      ]
+    }
+  ]
+}

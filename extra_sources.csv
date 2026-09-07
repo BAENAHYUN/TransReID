@@ -1,0 +1,5 @@
+﻿source,count,person,object,top_labels
+UCF-Crime-Normal-obj,61145,0,61145,"car:17695, tv:14157, chair:9903, laptop:5846, truck:2637, keyboard:2291, motorcycle:1377, potted plant:1266, backpack:1131, bus:1044"
+UCF-Crime,35452,35452,0,person:35452
+SCVD,9457,9457,0,person:9457
+SCVD-obj,4947,0,4947,"chair:1512, car:1373, dining table:679, motorcycle:348, potted plant:174, tv:121, handbag:80, truck:60, laptop:57, bicycle:53"

@@ -1,0 +1,99 @@
+version: "3.8"
+
+# ============================================================
+# ForensicSearch 인프라 — PostgreSQL + Milvus
+# 실행: docker-compose up -d
+# 종료: docker-compose down
+# 데이터 완전 삭제: docker-compose down -v
+# ============================================================
+
+services:
+
+  # ── PostgreSQL 16 ──────────────────────────────────────────
+  postgres:
+    image: postgres:16
+    container_name: forensic_postgres
+    environment:
+      POSTGRES_DB:       forensic_db
+      POSTGRES_USER:     forensic
+      POSTGRES_PASSWORD: forensic_secret
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forensic -d forensic_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Milvus 의존성: etcd ────────────────────────────────────
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: forensic_etcd
+    environment:
+      ETCD_AUTO_COMPACTION_MODE:      revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES:       "4294967296"
+      ETCD_SNAPSHOT_COUNT:            "50000"
+    volumes:
+      - etcd_data:/etcd
+    command: >
+      etcd
+      --advertise-client-urls=http://127.0.0.1:2379
+      --listen-client-urls=http://0.0.0.0:2379
+      --data-dir=/etcd
+    restart: unless-stopped
+
+  # ── Milvus 의존성: MinIO ───────────────────────────────────
+  minio:
+    image: minio/minio:RELEASE.2023-03-13T19-46-17Z
+    container_name: forensic_minio
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - minio_data:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"      # MinIO 웹 콘솔
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # ── Milvus Standalone ──────────────────────────────────────
+  milvus:
+    image: milvusdb/milvus:v2.4.4
+    container_name: forensic_milvus
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS:  minio:9000
+    volumes:
+      - milvus_data:/var/lib/milvus
+    ports:
+      - "19530:19530"   # gRPC API (pymilvus 접속)
+      - "9091:9091"     # HTTP / 메트릭
+    depends_on:
+      etcd:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  pg_data:
+  etcd_data:
+  minio_data:
+  milvus_data:

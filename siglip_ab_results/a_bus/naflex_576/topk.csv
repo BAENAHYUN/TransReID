@@ -1,0 +1,11 @@
+﻿rank,score,path,label
+1,0.151429,data\crops\000000562448_bus_1.jpg,1
+2,0.148491,data\crops\000000233727_bus_1.jpg,1
+3,0.140505,data\crops\000000147725_bus_1.jpg,1
+4,0.138139,data\crops\000000255749_bus_1.jpg,1
+5,0.135966,data\crops\000000233727_detected_full.jpg,1
+6,0.135552,data\crops\000000568290_bus_1.jpg,1
+7,0.135298,data\crops\000000255749.jpg,1
+8,0.132415,data\crops\000000243867_bus_1.jpg,1
+9,0.132049,data\crops\000000394275_bus_1.jpg,1
+10,0.128488,data\crops\000000005037_detected_full.jpg,1

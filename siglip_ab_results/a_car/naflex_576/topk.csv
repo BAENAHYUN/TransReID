@@ -1,0 +1,11 @@
+﻿rank,score,path,label
+1,0.130051,data\crops\000000160012_car_1.jpg,1
+2,0.126456,data\crops\000000147740_car_1.jpg,1
+3,0.120118,data\crops\000000394510_car_1.jpg,1
+4,0.119903,data\crops\000000555050_car_1.jpg,1
+5,0.119721,data\crops\000000097679_detected_full.jpg,1
+6,0.118489,data\crops\000000142585_car_1.jpg,1
+7,0.118189,data\crops\000000206487_car_1.jpg,1
+8,0.118059,data\crops\000000033854_car_2.jpg,1
+9,0.116462,data\crops\000000055150_car_5.jpg,1
+10,0.116337,data\crops\000000017207_car_2.jpg,1
