@@ -1,0 +1,11 @@
+DINOv2 MULTI-ID BENCHMARK
+==========================================================================================
+Groups: 10
+Winner: registers/cls
+
+#1 registers/cls            | R@1=0.9000 | R@5=1.0000 | MRR=0.9500 | Gap=0.5813 | Margin=0.3339
+#2 base/cls                 | R@1=0.9000 | R@5=1.0000 | MRR=0.9500 | Gap=0.5755 | Margin=0.3371
+#3 base/cls+mean            | R@1=0.9000 | R@5=1.0000 | MRR=0.9500 | Gap=0.5545 | Margin=0.3207
+#4 base/mean                | R@1=0.9000 | R@5=1.0000 | MRR=0.9500 | Gap=0.5336 | Margin=0.3041
+#5 registers/cls+mean       | R@1=0.8000 | R@5=1.0000 | MRR=0.9000 | Gap=0.5711 | Margin=0.3317
+#6 registers/mean           | R@1=0.8000 | R@5=1.0000 | MRR=0.9000 | Gap=0.5609 | Margin=0.3118

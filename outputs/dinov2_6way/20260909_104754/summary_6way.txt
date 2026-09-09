@@ -1,0 +1,24 @@
+DINOv2 6-WAY COMPARISON
+==========================================================================================
+query      : C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_001.jpg
+positives  : 1
+negatives  : 1
+resize     : center_crop
+image_size : 224
+
+FINAL ORDER
+------------------------------------------------------------------------------------------
+#1 registers/mean            | dim= 768 | pos=0.392529 | neg=0.346405 | gap=0.046124 | margin=0.046124 | top1=True
+#2 base/mean                 | dim= 768 | pos=0.382251 | neg=0.366765 | gap=0.015487 | margin=0.015487 | top1=True
+#3 base/cls+mean             | dim=1536 | pos=0.269752 | neg=0.260081 | gap=0.009671 | margin=0.009671 | top1=True
+#4 registers/cls+mean        | dim=1536 | pos=0.264349 | neg=0.259848 | gap=0.004501 | margin=0.004501 | top1=True
+#5 base/cls                  | dim= 768 | pos=0.157253 | neg=0.153398 | gap=0.003855 | margin=0.003855 | top1=True
+#6 registers/cls             | dim= 768 | pos=0.136170 | neg=0.173292 | gap=-0.037122 | margin=-0.037122 | top1=False
+
+Winner: registers/mean
+
+해석 주의:
+- positive/negative가 각각 1장뿐이면 참고 실험이다.
+- 운영 결정은 여러 객체 ID에서 반복 평가해야 한다.
+- cls+mean은 1536D, cls/mean은 768D다.
+- registers mean/cls+mean에서는 register token을 patch 평균에서 제외해야 한다.

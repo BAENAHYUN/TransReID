@@ -1,0 +1,7 @@
+﻿feature,rank,label,similarity,file,path
+cls,1,positive,0.1572531759738922,000000000110_d9d8400e25_person_003.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_003.jpg
+cls,2,negative,0.15339812636375427,000000000110_d9d8400e25_person_002.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_002.jpg
+mean,1,positive,0.3822513222694397,000000000110_d9d8400e25_person_003.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_003.jpg
+mean,2,negative,0.36676472425460815,000000000110_d9d8400e25_person_002.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_002.jpg
+cls+mean,1,positive,0.26975226402282715,000000000110_d9d8400e25_person_003.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_003.jpg
+cls+mean,2,negative,0.2600814700126648,000000000110_d9d8400e25_person_002.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_002.jpg

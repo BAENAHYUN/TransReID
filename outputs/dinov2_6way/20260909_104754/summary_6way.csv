@@ -1,0 +1,7 @@
+﻿rank,key,variant,model_id,feature,embedding_dim,positive_mean,negative_mean,separation_gap,strict_margin,top1_is_positive,topk_positive_count,topk,topk_positive_ratio
+1,registers/mean,registers,facebook/dinov2-with-registers-base,mean,768,0.3925285041332245,0.34640464186668396,0.04612386226654053,0.04612386226654053,True,1,2,0.5
+2,base/mean,base,facebook/dinov2-base,mean,768,0.3822513222694397,0.36676472425460815,0.015486598014831543,0.015486598014831543,True,1,2,0.5
+3,base/cls+mean,base,facebook/dinov2-base,cls+mean,1536,0.26975226402282715,0.2600814700126648,0.009670794010162354,0.009670794010162354,True,1,2,0.5
+4,registers/cls+mean,registers,facebook/dinov2-with-registers-base,cls+mean,1536,0.26434916257858276,0.25984835624694824,0.0045008063316345215,0.0045008063316345215,True,1,2,0.5
+5,base/cls,base,facebook/dinov2-base,cls,768,0.1572531759738922,0.15339812636375427,0.0038550496101379395,0.0038550496101379395,True,1,2,0.5
+6,registers/cls,registers,facebook/dinov2-with-registers-base,cls,768,0.13616985082626343,0.17329207062721252,-0.0371222198009491,-0.0371222198009491,False,1,2,0.5

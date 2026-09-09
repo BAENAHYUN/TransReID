@@ -1,0 +1,13 @@
+﻿key,group_id,rank,label,similarity,file,path
+base/cls,obj001,1,positive,0.1572531759738922,000000000110_d9d8400e25_person_003.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_003.jpg
+base/cls,obj001,2,negative,0.15339812636375427,000000000110_d9d8400e25_person_002.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_002.jpg
+base/mean,obj001,1,positive,0.3822513222694397,000000000110_d9d8400e25_person_003.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_003.jpg
+base/mean,obj001,2,negative,0.36676472425460815,000000000110_d9d8400e25_person_002.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_002.jpg
+base/cls+mean,obj001,1,positive,0.26975226402282715,000000000110_d9d8400e25_person_003.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_003.jpg
+base/cls+mean,obj001,2,negative,0.2600814700126648,000000000110_d9d8400e25_person_002.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_002.jpg
+registers/cls,obj001,1,negative,0.17329207062721252,000000000110_d9d8400e25_person_002.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_002.jpg
+registers/cls,obj001,2,positive,0.13616985082626343,000000000110_d9d8400e25_person_003.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_003.jpg
+registers/mean,obj001,1,positive,0.3925285041332245,000000000110_d9d8400e25_person_003.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_003.jpg
+registers/mean,obj001,2,negative,0.34640464186668396,000000000110_d9d8400e25_person_002.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_002.jpg
+registers/cls+mean,obj001,1,positive,0.26434916257858276,000000000110_d9d8400e25_person_003.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_003.jpg
+registers/cls+mean,obj001,2,negative,0.25984835624694824,000000000110_d9d8400e25_person_002.jpg,C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_002.jpg

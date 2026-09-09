@@ -1,0 +1,285 @@
+{
+  "created_at": "2026-09-09T10:53:14",
+  "manifest": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\tools\\dinov2_benchmark_manifest.csv",
+  "winner": "registers/mean",
+  "order": [
+    "registers/mean",
+    "base/mean",
+    "base/cls+mean",
+    "registers/cls+mean",
+    "base/cls",
+    "registers/cls"
+  ],
+  "results": {
+    "base/cls": {
+      "variant": "base",
+      "model_id": "facebook/dinov2-base",
+      "feature": "cls",
+      "embedding_dim": 768,
+      "aggregate": {
+        "groups": 1,
+        "R@1": 1.0,
+        "R@5": 1.0,
+        "MRR": 1.0,
+        "positive_mean": 0.1572531759738922,
+        "negative_mean": 0.15339812636375427,
+        "separation_gap_mean": 0.0038550496101379395,
+        "strict_margin_mean": 0.0038550496101379395,
+        "strict_margin_positive_rate": 1.0
+      },
+      "groups": {
+        "obj001": {
+          "positive_mean": 0.1572531759738922,
+          "negative_mean": 0.15339812636375427,
+          "separation_gap": 0.0038550496101379395,
+          "strict_margin": 0.0038550496101379395,
+          "first_positive_rank": 1,
+          "reciprocal_rank": 1.0,
+          "r1": 1,
+          "r5": 1,
+          "ranking": [
+            {
+              "file": "000000000110_d9d8400e25_person_003.jpg",
+              "path": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\data\\crops\\000000000110_d9d8400e25_person_003.jpg",
+              "label": "positive",
+              "similarity": 0.1572531759738922,
+              "rank": 1
+            },
+            {
+              "file": "000000000110_d9d8400e25_person_002.jpg",
+              "path": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\data\\crops\\000000000110_d9d8400e25_person_002.jpg",
+              "label": "negative",
+              "similarity": 0.15339812636375427,
+              "rank": 2
+            }
+          ]
+        }
+      }
+    },
+    "base/mean": {
+      "variant": "base",
+      "model_id": "facebook/dinov2-base",
+      "feature": "mean",
+      "embedding_dim": 768,
+      "aggregate": {
+        "groups": 1,
+        "R@1": 1.0,
+        "R@5": 1.0,
+        "MRR": 1.0,
+        "positive_mean": 0.3822513222694397,
+        "negative_mean": 0.36676472425460815,
+        "separation_gap_mean": 0.015486598014831543,
+        "strict_margin_mean": 0.015486598014831543,
+        "strict_margin_positive_rate": 1.0
+      },
+      "groups": {
+        "obj001": {
+          "positive_mean": 0.3822513222694397,
+          "negative_mean": 0.36676472425460815,
+          "separation_gap": 0.015486598014831543,
+          "strict_margin": 0.015486598014831543,
+          "first_positive_rank": 1,
+          "reciprocal_rank": 1.0,
+          "r1": 1,
+          "r5": 1,
+          "ranking": [
+            {
+              "file": "000000000110_d9d8400e25_person_003.jpg",
+              "path": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\data\\crops\\000000000110_d9d8400e25_person_003.jpg",
+              "label": "positive",
+              "similarity": 0.3822513222694397,
+              "rank": 1
+            },
+            {
+              "file": "000000000110_d9d8400e25_person_002.jpg",
+              "path": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\data\\crops\\000000000110_d9d8400e25_person_002.jpg",
+              "label": "negative",
+              "similarity": 0.36676472425460815,
+              "rank": 2
+            }
+          ]
+        }
+      }
+    },
+    "base/cls+mean": {
+      "variant": "base",
+      "model_id": "facebook/dinov2-base",
+      "feature": "cls+mean",
+      "embedding_dim": 1536,
+      "aggregate": {
+        "groups": 1,
+        "R@1": 1.0,
+        "R@5": 1.0,
+        "MRR": 1.0,
+        "positive_mean": 0.26975226402282715,
+        "negative_mean": 0.2600814700126648,
+        "separation_gap_mean": 0.009670794010162354,
+        "strict_margin_mean": 0.009670794010162354,
+        "strict_margin_positive_rate": 1.0
+      },
+      "groups": {
+        "obj001": {
+          "positive_mean": 0.26975226402282715,
+          "negative_mean": 0.2600814700126648,
+          "separation_gap": 0.009670794010162354,
+          "strict_margin": 0.009670794010162354,
+          "first_positive_rank": 1,
+          "reciprocal_rank": 1.0,
+          "r1": 1,
+          "r5": 1,
+          "ranking": [
+            {
+              "file": "000000000110_d9d8400e25_person_003.jpg",
+              "path": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\data\\crops\\000000000110_d9d8400e25_person_003.jpg",
+              "label": "positive",
+              "similarity": 0.26975226402282715,
+              "rank": 1
+            },
+            {
+              "file": "000000000110_d9d8400e25_person_002.jpg",
+              "path": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\data\\crops\\000000000110_d9d8400e25_person_002.jpg",
+              "label": "negative",
+              "similarity": 0.2600814700126648,
+              "rank": 2
+            }
+          ]
+        }
+      }
+    },
+    "registers/cls": {
+      "variant": "registers",
+      "model_id": "facebook/dinov2-with-registers-base",
+      "feature": "cls",
+      "embedding_dim": 768,
+      "aggregate": {
+        "groups": 1,
+        "R@1": 0.0,
+        "R@5": 1.0,
+        "MRR": 0.5,
+        "positive_mean": 0.13616985082626343,
+        "negative_mean": 0.17329207062721252,
+        "separation_gap_mean": -0.0371222198009491,
+        "strict_margin_mean": -0.0371222198009491,
+        "strict_margin_positive_rate": 0.0
+      },
+      "groups": {
+        "obj001": {
+          "positive_mean": 0.13616985082626343,
+          "negative_mean": 0.17329207062721252,
+          "separation_gap": -0.0371222198009491,
+          "strict_margin": -0.0371222198009491,
+          "first_positive_rank": 2,
+          "reciprocal_rank": 0.5,
+          "r1": 0,
+          "r5": 1,
+          "ranking": [
+            {
+              "file": "000000000110_d9d8400e25_person_002.jpg",
+              "path": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\data\\crops\\000000000110_d9d8400e25_person_002.jpg",
+              "label": "negative",
+              "similarity": 0.17329207062721252,
+              "rank": 1
+            },
+            {
+              "file": "000000000110_d9d8400e25_person_003.jpg",
+              "path": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\data\\crops\\000000000110_d9d8400e25_person_003.jpg",
+              "label": "positive",
+              "similarity": 0.13616985082626343,
+              "rank": 2
+            }
+          ]
+        }
+      }
+    },
+    "registers/mean": {
+      "variant": "registers",
+      "model_id": "facebook/dinov2-with-registers-base",
+      "feature": "mean",
+      "embedding_dim": 768,
+      "aggregate": {
+        "groups": 1,
+        "R@1": 1.0,
+        "R@5": 1.0,
+        "MRR": 1.0,
+        "positive_mean": 0.3925285041332245,
+        "negative_mean": 0.34640464186668396,
+        "separation_gap_mean": 0.04612386226654053,
+        "strict_margin_mean": 0.04612386226654053,
+        "strict_margin_positive_rate": 1.0
+      },
+      "groups": {
+        "obj001": {
+          "positive_mean": 0.3925285041332245,
+          "negative_mean": 0.34640464186668396,
+          "separation_gap": 0.04612386226654053,
+          "strict_margin": 0.04612386226654053,
+          "first_positive_rank": 1,
+          "reciprocal_rank": 1.0,
+          "r1": 1,
+          "r5": 1,
+          "ranking": [
+            {
+              "file": "000000000110_d9d8400e25_person_003.jpg",
+              "path": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\data\\crops\\000000000110_d9d8400e25_person_003.jpg",
+              "label": "positive",
+              "similarity": 0.3925285041332245,
+              "rank": 1
+            },
+            {
+              "file": "000000000110_d9d8400e25_person_002.jpg",
+              "path": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\data\\crops\\000000000110_d9d8400e25_person_002.jpg",
+              "label": "negative",
+              "similarity": 0.34640464186668396,
+              "rank": 2
+            }
+          ]
+        }
+      }
+    },
+    "registers/cls+mean": {
+      "variant": "registers",
+      "model_id": "facebook/dinov2-with-registers-base",
+      "feature": "cls+mean",
+      "embedding_dim": 1536,
+      "aggregate": {
+        "groups": 1,
+        "R@1": 1.0,
+        "R@5": 1.0,
+        "MRR": 1.0,
+        "positive_mean": 0.26434916257858276,
+        "negative_mean": 0.25984835624694824,
+        "separation_gap_mean": 0.0045008063316345215,
+        "strict_margin_mean": 0.0045008063316345215,
+        "strict_margin_positive_rate": 1.0
+      },
+      "groups": {
+        "obj001": {
+          "positive_mean": 0.26434916257858276,
+          "negative_mean": 0.25984835624694824,
+          "separation_gap": 0.0045008063316345215,
+          "strict_margin": 0.0045008063316345215,
+          "first_positive_rank": 1,
+          "reciprocal_rank": 1.0,
+          "r1": 1,
+          "r5": 1,
+          "ranking": [
+            {
+              "file": "000000000110_d9d8400e25_person_003.jpg",
+              "path": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\data\\crops\\000000000110_d9d8400e25_person_003.jpg",
+              "label": "positive",
+              "similarity": 0.26434916257858276,
+              "rank": 1
+            },
+            {
+              "file": "000000000110_d9d8400e25_person_002.jpg",
+              "path": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\data\\crops\\000000000110_d9d8400e25_person_002.jpg",
+              "label": "negative",
+              "similarity": 0.25984835624694824,
+              "rank": 2
+            }
+          ]
+        }
+      }
+    }
+  }
+}

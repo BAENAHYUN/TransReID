@@ -1,0 +1,19 @@
+DINOv2 EMBEDDING INSPECTOR
+================================================================================
+created_at   : 2026-09-09T10:30:05
+project_root : C:\Users\Karsel\Desktop\Final_tool\TransReID
+model_id     : facebook/dinov2-base
+resize_mode  : center_crop
+image_size   : 224
+l2_normalize : True
+images       : 1
+features     : cls
+
+[cls]
+shape: (1, 768)
+
+0000 | 000000000036_05f8fce481_person_002.jpg | norm=1.00000000 min=-0.15118328 max=0.11858872 mean=-0.00028768 std=0.03608324
+
+Cosine similarity:
+file,000000000036_05f8fce481_person_002.jpg
+000000000036_05f8fce481_person_002.jpg,1.00000000

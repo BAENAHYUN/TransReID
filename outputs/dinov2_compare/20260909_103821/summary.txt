@@ -1,0 +1,21 @@
+DINOv2 FEATURE COMPARISON
+================================================================================
+query        : C:\Users\Karsel\Desktop\Final_tool\TransReID\data\crops\000000000110_d9d8400e25_person_001.jpg
+model        : facebook/dinov2-base
+resize       : center_crop
+image_size   : 224
+positives    : 1
+negatives    : 1
+
+RESULT
+--------------------------------------------------------------------------------
+mean       | pos_mean=0.382251 | neg_mean=0.366765 | gap=0.015487 | strict_margin=0.015487 | top1_pos=True
+cls+mean   | pos_mean=0.269752 | neg_mean=0.260081 | gap=0.009671 | strict_margin=0.009671 | top1_pos=True
+cls        | pos_mean=0.157253 | neg_mean=0.153398 | gap=0.003855 | strict_margin=0.003855 | top1_pos=True
+
+Winner (gap -> strict_margin): mean
+
+주의:
+- 샘플 수가 적으면 winner는 참고값일 뿐이다.
+- 실제 운영 선택은 여러 객체 ID를 대상으로 R@1/R@5/MRR까지 집계하는 것이 좋다.
+- cls+mean은 1536D이므로 Qdrant 저장공간/검색비용도 함께 고려해야 한다.
