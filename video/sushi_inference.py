@@ -38,6 +38,92 @@ REID_DIM = 2048
 FRAMES_PER_GRAPH = 512
 
 
+def box_iou(a, b) -> float:
+    """(x1, y1, x2, y2) 두 박스의 IoU."""
+    ix1, iy1 = max(a[0], b[0]), max(a[1], b[1])
+    ix2, iy2 = min(a[2], b[2]), min(a[3], b[3])
+    inter = max(ix2 - ix1, 0.0) * max(iy2 - iy1, 0.0)
+    area_a = max(a[2] - a[0], 0.0) * max(a[3] - a[1], 0.0)
+    area_b = max(b[2] - b[0], 0.0) * max(b[3] - b[1], 0.0)
+    union = area_a + area_b - inter
+    return inter / union if union > 0 else 0.0
+
+
+def link_windows(windows, det_to_long_id: Dict[int, int], max_gap: int = 2, min_iou: float = 0.3):
+    """512 프레임 창을 독립 처리한 SUSHI 의 long id 를 창 경계에서 잇는다.
+
+    근거: BoT-SORT 의 raw track(source_track_id) 이 창 경계를 넘어 이어지고(프레임 간격 <= max_gap) 경계 양쪽 박스가 겹치면(IoU >= min_iou)
+    같은 사람이다 — 추적기는 끊지 않았고 창만 끊은 것. 같은 경계에서 한 long id 는 한 번만 잇는다(IoU 큰 후보 우선, 나머지는 conflict).
+    반환 (remap: 옛 long id -> 새 long id (1부터 등장 순), stats).
+    """
+    parent: Dict[int, int] = {}
+
+    def find(x: int) -> int:
+        parent.setdefault(x, x)
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[max(ra, rb)] = min(ra, rb)
+
+    stats = {"boundaries": max(len(windows) - 1, 0), "candidates": 0, "linked": 0, "rejected_gap": 0, "rejected_iou": 0, "conflicts": 0,
+             "max_gap": int(max_gap), "min_iou": float(min_iou)}
+    for wi in range(len(windows) - 1):
+        a = windows[wi][2].sort_values(["frame", "detection_id"])
+        b = windows[wi + 1][2].sort_values(["frame", "detection_id"])
+        last_a = {int(r.source_track_id): r for r in a.itertuples()}          # 뒤에 오는 행이 덮어씀 -> 마지막 프레임
+        first_b = {}
+        for r in b.itertuples():
+            first_b.setdefault(int(r.source_track_id), r)                     # 처음 나온 행 -> 첫 프레임
+        proposals = []
+        for tid, ra in last_a.items():
+            rb = first_b.get(tid)
+            if rb is None:
+                continue
+            stats["candidates"] += 1
+            gap = int(rb.frame) - int(ra.frame)
+            if gap < 1 or gap > max_gap:
+                stats["rejected_gap"] += 1
+                continue
+            iou = box_iou((float(ra.bb_left), float(ra.bb_top), float(ra.bb_right), float(ra.bb_bot)),
+                          (float(rb.bb_left), float(rb.bb_top), float(rb.bb_right), float(rb.bb_bot)))
+            if iou < min_iou:
+                stats["rejected_iou"] += 1
+                continue
+            proposals.append((iou, int(det_to_long_id[int(ra.detection_id)]), int(det_to_long_id[int(rb.detection_id)])))
+        used_a, used_b = set(), set()
+        used_a_pair, used_b_pair = {}, {}
+        for iou, la, lb in sorted(proposals, reverse=True):
+            if (la in used_a and used_a_pair.get(la) != lb) or (lb in used_b and used_b_pair.get(lb) != la):
+                stats["conflicts"] += 1
+                continue
+            if la in used_a:
+                continue                                                      # 같은 쌍을 다른 raw track 이 다시 제안
+            used_a.add(la)
+            used_b.add(lb)
+            used_a_pair[la] = lb
+            used_b_pair[lb] = la
+            union(la, lb)
+            stats["linked"] += 1
+    remap: Dict[int, int] = {}
+    next_id = 1
+    root_to_new: Dict[int, int] = {}
+    for old in sorted(set(det_to_long_id.values())):
+        root = find(old)
+        if root not in root_to_new:
+            root_to_new[root] = next_id
+            next_id += 1
+        remap[old] = root_to_new[root]
+    stats["long_ids_before"] = len(remap)
+    stats["long_ids_after"] = len(root_to_new)
+    return remap, stats
+
+
+
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--input-root", required=True)
@@ -47,6 +133,10 @@ def parse_args():
     p.add_argument("--output", required=True)
     p.add_argument("--det-file", default="forensic_botsort")
     p.add_argument("--device", default="cuda")
+    p.add_argument("--link-windows", action="store_true",
+                   help="512 프레임 창 경계에서 raw track(BoT-SORT id) 이 이어지고 박스가 겹치면 long id 를 잇는다 (창 독립 처리로 갈라진 같은 사람 복구)")
+    p.add_argument("--link-max-gap", type=int, default=2, help="창 경계 양쪽 검출의 최대 프레임 간격")
+    p.add_argument("--link-min-iou", type=float, default=0.3, help="창 경계 양쪽 박스의 최소 IoU")
     return p.parse_args()
 
 
@@ -387,7 +477,7 @@ def run_one_window(graph, tracker, config, window_index: int):
     return np.asarray(labels).reshape(-1)
 
 
-def merge_results(original_tracks, person_df, det_to_long_id):
+def merge_results(original_tracks, person_df, det_to_long_id, method: str = "sushi_mot17private"):
     # key -> detection_id
     keyed = {}
     for _, r in person_df.iterrows():
@@ -419,7 +509,7 @@ def merge_results(original_tracks, person_df, det_to_long_id):
             did = keyed[key]
             out["short_track_id"] = int(row["track_id"])
             out["long_track_id"] = int(det_to_long_id[did])
-            out["stitch_method"] = "sushi_mot17private"
+            out["stitch_method"] = method
         else:
             out["short_track_id"] = int(row["track_id"])
             out["long_track_id"] = int(row["track_id"])
@@ -571,8 +661,16 @@ def main():
         import os
         os.chdir(old_cwd)
 
+    link_stats = None
+    if args.link_windows:
+        remap, link_stats = link_windows(windows, det_to_long_id, args.link_max_gap, args.link_min_iou)
+        det_to_long_id = {d: remap.get(l, l) for d, l in det_to_long_id.items()}
+        print(f"window link       : {link_stats}")
     original_tracks = read_jsonl(tracks_path)
-    merged = merge_results(original_tracks, person_df, det_to_long_id)
+    merged = merge_results(original_tracks, person_df, det_to_long_id, "sushi_mot17private+winlink" if args.link_windows else "sushi_mot17private")
+    if link_stats is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.with_suffix(".link.json").write_text(json.dumps(link_stats, indent=2), encoding="utf-8")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(

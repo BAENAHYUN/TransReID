@@ -42,6 +42,25 @@ VIDEO_EXTS = {
 }
 
 
+def stitcher_link_args(tracking_config) -> list:
+    """pipeline_tracking*.yaml 의 stitcher.params.link_windows 가 참이면 sushi_inference 에 창 연결 옵션을 넘긴다."""
+    try:
+        import yaml
+        with open(tracking_config, "r", encoding="utf-8-sig") as f:
+            cfg = yaml.safe_load(f) or {}
+    except Exception:
+        return []
+    params = ((cfg.get("stitcher") or {}).get("params") or {}) if isinstance(cfg, dict) else {}
+    if not params.get("link_windows"):
+        return []
+    out = ["--link-windows"]
+    if params.get("link_max_gap") is not None:
+        out += ["--link-max-gap", str(int(params["link_max_gap"]))]
+    if params.get("link_min_iou") is not None:
+        out += ["--link-min-iou", str(float(params["link_min_iou"]))]
+    return out
+
+
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--videos-root", default="./data/videos")
@@ -271,6 +290,7 @@ def process_video(
             "--tracks", str(tracks_out),
             "--output", str(stitched_out),
         ]
+        cmd += stitcher_link_args(args.tracking_config)
 
         rc = run_cmd(cmd, project_root, log_path, env=env)
         if rc != 0:

@@ -146,13 +146,15 @@
 
 ## 6d. 사람 정답 평가 3종 (P6)
 
-원장 stage `track` / `object` / `qwen`. 시트(HTML) → 사람 라벨 → `labels.json` → eval. 라벨이 없으면 pseudo 모드(파이프라인 출력 = 정답 가정)로 배관만 확인하고 원장에는 쓰지 않는다. 자세한 절차는 `eval/gt/README.md`.
+원장 stage `track` / `object` / `qwen`. 시트(HTML) → 사람 라벨(항목마다 검토 체크) → `labels.json`(manifest 포함) → eval. 검토율이 `--min-coverage`(기본 100 %) 미만이면 pseudo 모드
+(제안값 = 정답 가정)로 배관만 확인하고 원장에는 쓰지 않으며 이름에 `__pseudo` 가 붙는다(러너는 `--record-pseudo` 로 조각 원장에만 남기고 기본 원장에서는 거른다). 시트를 다시 만들면 manifest 가 바뀌어 옛 라벨은 거부된다.
+채택 판정은 기준 지표가 빠지거나 기준값(기존 IDF1/HOTA, 객체 mAP)이 미정이면 `incomplete`(확인 불가)로 표시되고 통과로 세지 않는다. 자세한 절차는 `eval/gt/README.md`.
 
 | stage | 정답 단위 | 예측 | 지표 (METRIC_KEYS) | 채택 기준 (criteria) |
 |---|---|---|---|---|
-| track | 구간(추적기 id 연속 구간)별 gt_id / ignore | raw(추적기 id) · before(구간) · after(긴 트랙) | idf1 hota deta assa mota idsw fragments splits over_merges + `_before`/`_raw`, idsw_ratio | 과병합 0, IDSW after/before ≤ 0.5 (IDF1/HOTA 절대값은 첫 라벨 측정 뒤) |
-| object | 객체 트랙 쌍 같음/다름 → identity 그룹 | 트랙 중심 벡터(`--vector`) 코사인 | map rank1 map_labeled pair_auc pair_f1 pair_threshold pair_acc_at_threshold cluster_pair_precision/recall | 쌍 AUC ≥ 0.90(잠정), 클러스터 쌍 정밀도 ≥ 0.90 |
-| qwen | (쿼리, 후보) 맞다/아니다/모름 | qwen_stage 별도 프로세스 (캐시, `--rescore`) | p5/p10/p20 before·after, p10_gain_pp, false_drop_rate, unknown_ratio, sec_per_candidate | P@10 ≥ +10 %p, 오탈락률 ≤ 10 %, ≤ 30 s/후보 |
+| track | 구간(추적기 id 가 끊기지 않는 연속 구간 — 스티처와 무관)별 gt_id / ignore / 바뀌는 프레임 | raw(추적기 id) · before(구간 = 추적기 tracklet) · after(긴 트랙 = 스티처) | TrackEval 정의: idf1/idp/idr, hota/deta/assa, mota, idsw, fragments + 진단 splits, over_merges, pred_dup_boxes, `_before`/`_raw`, idsw_ratio, coverage | 과병합 0 · IDSW ≤ 0.5×before · IDF1/HOTA ≥ 기존(미정 → incomplete) |
+| object | 객체 트랙 쌍 같음/다름 → identity 그룹(모순 수 보고) | 트랙 중심 벡터(`--vector`) 코사인 — 현재 캐시(벡터·컬렉션·트랙 수 검증)로 재계산, 없는 트랙의 쌍은 제외 | map rank1 map_labeled pair_auc pair_f1 pair_threshold pair_acc_at_threshold cluster_pair_precision/recall pairs_missing label_contradictions coverage | 쌍 AUC ≥ 0.90(잠정) · 클러스터 쌍 정밀도 ≥ 0.90 · mAP ≥ 기존(미정 → incomplete) |
+| qwen | (쿼리, 후보) 맞다/아니다/모름 — 불변 후보 id(point_id)로 연결 | qwen_stage 별도 프로세스, 항상 flag 모드(filter 는 평가기가 재현); 캐시 계약 = 후보 해시+모델+재랭커+top_k+dtype+max_pixels, alpha/threshold 만 다르면 재채점 | p5/p10/p20 before·after(paired), p10_gain_pp, false_drop_rate(FAIL 중 정답), lost_relevant_rate, unknown_ratio, sec_per_candidate(원래 관찰 실행), coverage | P@10 ≥ +10 %p · 오탈락률 ≤ 10 % · 2B ≤ 30 s / 4B ≤ 60 s |
 
 러너: `bench/run.py track [--tracking-config yaml] [--videos …]` — yaml 을 주면 GT 영상만 `video/batch_preprocess_videos_parallel.py` 로 다시 추적·스티칭한 뒤 같은 정답으로 평가한다(검출기·추적기·스티처 교체 비교). `bench/run.py object --vector siglip2`, `bench/run.py qwen --verify-mode filter --max-queries 5`. verify 는 다른 단계와 같다 (Qwen 은 생성이 비결정적이라 허용 오차가 느슨함).
 

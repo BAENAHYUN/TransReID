@@ -1,40 +1,52 @@
 {
+ "kind": "track_labels",
+ "manifest": "7242c91ae4d6",
  "video": "Normal_Videos_100_x264",
  "source_file": "final_routed_tracks.json",
  "processed_root": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\outputs\\processed_videos",
  "max_gap": 30,
  "video_path": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\data\\videos\\Normal_Videos_100_x264.mp4",
- "generated_at": "2026-09-28T14:50:13",
- "n_segments": 22,
+ "generated_at": "2026-09-28T16:35:46",
+ "n_segments": 13,
  "n_tracker_ids": 12,
- "n_long": 16,
- "n_person_long": 14,
+ "n_long": 10,
+ "n_person_long": 8,
+ "n_segments_spanning_long": 6,
  "short_tracks": [
   {
    "segment_id": "0.0",
    "track_id": 0,
    "long_id": 1,
+   "long_ids": [
+    1,
+    5
+   ],
    "route": "person",
-   "n_frames": 270,
+   "n_frames": 399,
    "first_frame": 0,
-   "last_frame": 269,
+   "last_frame": 398,
    "first_sec": 0.0,
-   "last_sec": 8.966666666666667,
-   "median_h": 73.9,
+   "last_sec": 13.266666666666667,
+   "median_h": 74.0,
    "default_gt_id": "P1",
    "default_status": "person"
   },
   {
-   "segment_id": "2.3",
+   "segment_id": "2.1",
    "track_id": 2,
    "long_id": 1,
+   "long_ids": [
+    1,
+    2,
+    5
+   ],
    "route": "person",
-   "n_frames": 152,
-   "first_frame": 270,
+   "n_frames": 182,
+   "first_frame": 227,
    "last_frame": 421,
-   "first_sec": 9.0,
+   "first_sec": 7.566666666666666,
    "last_sec": 14.033333333333333,
-   "median_h": 66.6,
+   "median_h": 66.5,
    "default_gt_id": "P1",
    "default_status": "person"
   },
@@ -42,6 +54,9 @@
    "segment_id": "1.0",
    "track_id": 1,
    "long_id": 2,
+   "long_ids": [
+    2
+   ],
    "route": "person",
    "n_frames": 4,
    "first_frame": 20,
@@ -56,6 +71,9 @@
    "segment_id": "2.0",
    "track_id": 2,
    "long_id": 2,
+   "long_ids": [
+    2
+   ],
    "route": "person",
    "n_frames": 136,
    "first_frame": 61,
@@ -67,23 +85,12 @@
    "default_status": "person"
   },
   {
-   "segment_id": "2.1",
-   "track_id": 2,
-   "long_id": 2,
-   "route": "person",
-   "n_frames": 29,
-   "first_frame": 227,
-   "last_frame": 255,
-   "first_sec": 7.566666666666666,
-   "last_sec": 8.5,
-   "median_h": 66.0,
-   "default_gt_id": "P2",
-   "default_status": "person"
-  },
-  {
    "segment_id": "3.0",
    "track_id": 3,
    "long_id": 3,
+   "long_ids": [
+    3
+   ],
    "route": "reject",
    "n_frames": 36,
    "first_frame": 63,
@@ -98,6 +105,9 @@
    "segment_id": "4.0",
    "track_id": 4,
    "long_id": 4,
+   "long_ids": [
+    4
+   ],
    "route": "reject",
    "n_frames": 91,
    "first_frame": 230,
@@ -109,37 +119,12 @@
    "default_status": "ignore"
   },
   {
-   "segment_id": "2.2",
-   "track_id": 2,
-   "long_id": 5,
-   "route": "person",
-   "n_frames": 1,
-   "first_frame": 256,
-   "last_frame": 256,
-   "first_sec": 8.533333333333333,
-   "last_sec": 8.533333333333333,
-   "median_h": 66.5,
-   "default_gt_id": "P5",
-   "default_status": "person"
-  },
-  {
-   "segment_id": "0.1",
-   "track_id": 0,
-   "long_id": 5,
-   "route": "person",
-   "n_frames": 129,
-   "first_frame": 270,
-   "last_frame": 398,
-   "first_sec": 9.0,
-   "last_sec": 13.266666666666667,
-   "median_h": 83.4,
-   "default_gt_id": "P5",
-   "default_status": "person"
-  },
-  {
    "segment_id": "6.0",
    "track_id": 6,
    "long_id": 6,
+   "long_ids": [
+    6
+   ],
    "route": "object",
    "n_frames": 15,
    "first_frame": 317,
@@ -154,6 +139,9 @@
    "segment_id": "7.0",
    "track_id": 7,
    "long_id": 6,
+   "long_ids": [
+    6
+   ],
    "route": "person",
    "n_frames": 23,
    "first_frame": 412,
@@ -167,63 +155,65 @@
   {
    "segment_id": "8.0",
    "track_id": 8,
-   "long_id": 7,
+   "long_id": 13,
+   "long_ids": [
+    7,
+    12,
+    13
+   ],
    "route": "person",
-   "n_frames": 58,
+   "n_frames": 198,
    "first_frame": 424,
-   "last_frame": 481,
+   "last_frame": 626,
    "first_sec": 14.133333333333333,
-   "last_sec": 16.033333333333335,
-   "median_h": 108.9,
-   "default_gt_id": "P7",
-   "default_status": "person"
-  },
-  {
-   "segment_id": "8.2",
-   "track_id": 8,
-   "long_id": 7,
-   "route": "person",
-   "n_frames": 23,
-   "first_frame": 489,
-   "last_frame": 511,
-   "first_sec": 16.3,
-   "last_sec": 17.033333333333335,
-   "median_h": 111.5,
-   "default_gt_id": "P7",
+   "last_sec": 20.866666666666667,
+   "median_h": 107.1,
+   "default_gt_id": "P13",
    "default_status": "person"
   },
   {
    "segment_id": "9.0",
    "track_id": 9,
-   "long_id": 8,
+   "long_id": 14,
+   "long_ids": [
+    8,
+    14
+   ],
    "route": "person",
-   "n_frames": 79,
+   "n_frames": 181,
    "first_frame": 433,
-   "last_frame": 511,
+   "last_frame": 623,
    "first_sec": 14.433333333333334,
-   "last_sec": 17.033333333333335,
-   "median_h": 57.2,
-   "default_gt_id": "P8",
+   "last_sec": 20.766666666666666,
+   "median_h": 57.3,
+   "default_gt_id": "P14",
    "default_status": "person"
   },
   {
    "segment_id": "10.0",
    "track_id": 10,
-   "long_id": 9,
+   "long_id": 15,
+   "long_ids": [
+    9,
+    15
+   ],
    "route": "person",
-   "n_frames": 77,
+   "n_frames": 167,
    "first_frame": 435,
-   "last_frame": 511,
+   "last_frame": 617,
    "first_sec": 14.5,
-   "last_sec": 17.033333333333335,
-   "median_h": 63.6,
-   "default_gt_id": "P9",
+   "last_sec": 20.566666666666666,
+   "median_h": 63.9,
+   "default_gt_id": "P15",
    "default_status": "person"
   },
   {
    "segment_id": "11.0",
    "track_id": 11,
    "long_id": 10,
+   "long_ids": [
+    10
+   ],
    "route": "person",
    "n_frames": 53,
    "first_frame": 438,
@@ -238,84 +228,18 @@
    "segment_id": "12.0",
    "track_id": 12,
    "long_id": 11,
+   "long_ids": [
+    11,
+    16
+   ],
    "route": "person",
-   "n_frames": 43,
+   "n_frames": 61,
    "first_frame": 469,
-   "last_frame": 511,
-   "first_sec": 15.633333333333333,
-   "last_sec": 17.033333333333335,
-   "median_h": 51.0,
-   "default_gt_id": "P11",
-   "default_status": "person"
-  },
-  {
-   "segment_id": "8.1",
-   "track_id": 8,
-   "long_id": 12,
-   "route": "person",
-   "n_frames": 3,
-   "first_frame": 483,
-   "last_frame": 487,
-   "first_sec": 16.1,
-   "last_sec": 16.233333333333334,
-   "median_h": 71.9,
-   "default_gt_id": "P12",
-   "default_status": "person"
-  },
-  {
-   "segment_id": "8.3",
-   "track_id": 8,
-   "long_id": 13,
-   "route": "person",
-   "n_frames": 114,
-   "first_frame": 512,
-   "last_frame": 626,
-   "first_sec": 17.066666666666666,
-   "last_sec": 20.866666666666667,
-   "median_h": 96.0,
-   "default_gt_id": "P13",
-   "default_status": "person"
-  },
-  {
-   "segment_id": "9.1",
-   "track_id": 9,
-   "long_id": 14,
-   "route": "person",
-   "n_frames": 102,
-   "first_frame": 512,
-   "last_frame": 623,
-   "first_sec": 17.066666666666666,
-   "last_sec": 20.766666666666666,
-   "median_h": 57.7,
-   "default_gt_id": "P14",
-   "default_status": "person"
-  },
-  {
-   "segment_id": "10.1",
-   "track_id": 10,
-   "long_id": 15,
-   "route": "person",
-   "n_frames": 90,
-   "first_frame": 512,
-   "last_frame": 617,
-   "first_sec": 17.066666666666666,
-   "last_sec": 20.566666666666666,
-   "median_h": 65.2,
-   "default_gt_id": "P15",
-   "default_status": "person"
-  },
-  {
-   "segment_id": "12.1",
-   "track_id": 12,
-   "long_id": 16,
-   "route": "person",
-   "n_frames": 18,
-   "first_frame": 512,
    "last_frame": 529,
-   "first_sec": 17.066666666666666,
+   "first_sec": 15.633333333333333,
    "last_sec": 17.633333333333333,
-   "median_h": 84.4,
-   "default_gt_id": "P16",
+   "median_h": 67.0,
+   "default_gt_id": "P11",
    "default_status": "person"
   }
  ]

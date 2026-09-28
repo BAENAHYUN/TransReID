@@ -30,7 +30,7 @@ STAGES = list(ledger.STAGES)
 STAGE_LABEL = {"detect": "검출", "embed": "임베딩(단독)", "search": "검색 조합(단독)", "cluster": "클러스터링", "e2e": "전체 파이프라인",
                "track": "추적·스티칭", "object": "객체 재출현", "qwen": "Qwen 후처리"}
 STATUS_COLOR = {"pass": QColor("#e6f4ea"), "partial": QColor("#fff8e1"), "fail": QColor("#fdecea")}
-STATUS_MARK = {"pass": "✓", "partial": "△", "fail": "✗", "n/a": "—"}
+STATUS_MARK = {"pass": "✓", "partial": "△", "fail": "✗", "n/a": "—", "incomplete": "?"}
 
 
 class NumItem(QTableWidgetItem):

@@ -6,9 +6,10 @@ ADOPTION_RULES[stage] = [(지표, 연산자, 기준값, 설명)]. 기준값은 �
   search  mAP ≥ 기존 최선(88.07) AND pool_recall ≥ 90
   cluster 쌍 정밀도 ≥ 0.90 AND B³F1 ≥ 기존(0.851) AND 혼합 클러스터 ≤ 기존(138)
   e2e     mAP ≥ 운영(58.3) AND 검출 상한 ≥ 0.90
-  track   과병합 0 AND 스티칭 후 IDSW ≤ 전의 50 % (IDF1/HOTA "기존 −1%p" 는 첫 라벨 측정 뒤 절대값으로 채움)  — P6
-  object  쌍 AUC ≥ 0.90(잠정) AND 클러스터 쌍 정밀도 ≥ 0.90                                                — P6
-  qwen    P@10 ≥ +10 %p AND 오탈락률 ≤ 10 % AND 후보당 ≤ 30 s (2B)                                       — P6
+  track   과병합 0 AND IDSW ≤ 0.5 × before(구간) AND IDF1/HOTA ≥ 기존(기준값 None = 미정 → incomplete)          — P6
+  object  쌍 AUC ≥ 0.90(잠정) AND 클러스터 쌍 정밀도 ≥ 0.90 AND mAP ≥ 기존(미정 → incomplete)                 — P6
+  qwen    P@10 ≥ +10 %p AND 오탈락률(FAIL 중 정답) ≤ 10 % AND 후보당 ≤ 30 s (2B) / 60 s (4B)                  — P6
+evaluate() 의 status: pass / partial / fail 외에 incomplete(기준 지표 누락 또는 기준값 미정 = 확인 불가) 와 n/a(기준 지표 없음).
 evaluate(entry) → {"status": pass|partial|fail|n/a, "checks": [...]} — 리더보드 색과 "채택" 버튼 활성화에 쓴다.
 
 adopt_yaml(entry, root, overwrite=False) → 만든 파일 경로(들). 검출기 → pipeline_tracking_<이름>.yaml (tracker/stitcher 는 pipeline_tracking.yaml 에서),
@@ -37,10 +38,13 @@ ADOPTION_RULES: Dict[str, List[Tuple[str, str, float, str]]] = {
                 ("mixed_clusters", "<=", 138, "혼합 클러스터 ≤ 기존 138")],
     "e2e": [("map", ">=", 58.3, "e2e mAP ≥ 운영 58.3"), ("det_ceiling", ">=", 0.90, "검출 상한 ≥ 0.90")],
     # P6 — 사람 정답이 생기기 전에는 절대값을 둘 수 없는 지표(IDF1/HOTA "기존 −1%p", 객체 mAP)는 첫 라벨 측정 뒤 채운다.
-    "track": [("over_merges", "<=", 0, "과병합 0 (우선)"), ("idsw_ratio", "<=", 0.5, "스티칭 후 IDSW ≤ 전의 50 %")],
-    "object": [("pair_auc", ">=", 0.90, "쌍 AUC ≥ 0.90 (잠정)"), ("cluster_pair_precision", ">=", 0.90, "클러스터 쌍 정밀도 ≥ 0.90 (정밀 우선)")],
+    # 기준값 None = 첫 라벨 측정으로 "기존" 이 정해질 때까지 미정 → 판정은 incomplete(확인 불가). (metric, "<=x", (other, factor)) = 다른 지표의 배수.
+    "track": [("over_merges", "<=", 0, "과병합 0 (우선)"), ("idsw", "<=x", ("idsw_before", 0.5), "스티칭 후 IDSW ≤ 전(구간)의 50 %"),
+              ("idf1", ">=", None, "IDF1 ≥ 기존 − 1 %p (기존 미측정)"), ("hota", ">=", None, "HOTA ≥ 기존 (기존 미측정)")],
+    "object": [("pair_auc", ">=", 0.90, "쌍 AUC ≥ 0.90 (잠정)"), ("cluster_pair_precision", ">=", 0.90, "클러스터 쌍 정밀도 ≥ 0.90 (정밀 우선)"),
+               ("map", ">=", None, "객체 mAP ≥ 기존 (기존 미측정)")],
     "qwen": [("p10_gain_pp", ">=", 10.0, "P@10 ≥ +10 %p"), ("false_drop_rate", "<=", 0.10, "오탈락률 ≤ 10 %"),
-             ("sec_per_candidate", "<=", 30.0, "2B ≤ 30 s/후보")],
+             ("sec_per_candidate", "<=", 30.0, "2B ≤ 30 s/후보 (4B 는 60 s)")],
 }
 
 # 리더보드 그래프의 (x = 제약 지표, y = 목적 지표)
@@ -55,20 +59,41 @@ def _cmp(v: float, op: str, target: float) -> bool:
     return {">=": v >= target, "<=": v <= target, ">": v > target, "<": v < target}[op]
 
 
+def _num(v: Any) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
 def evaluate(entry: Dict[str, Any]) -> Dict[str, Any]:
-    """엔트리의 metrics 를 그 단계의 채택 기준에 대조. 지표가 없으면 그 검사는 건너뛴다(n/a)."""
+    """엔트리의 metrics 를 그 단계의 채택 기준에 대조.
+    status: pass / partial / fail — 기준 지표가 모두 있을 때 · incomplete — 기준 지표 일부가 없거나 기준값(기존)이 미정(확인 불가, 통과 아님) ·
+    n/a — 기준 지표가 하나도 없음."""
     stage = entry.get("stage")
     metrics = entry.get("metrics") or {}
+    model_id = str((entry.get("component") or {}).get("model_id") or "")
     checks = []
     for metric, op, target, label in ADOPTION_RULES.get(stage, []):
         v = metrics.get(metric)
-        if isinstance(v, bool) or not isinstance(v, (int, float)):
-            checks.append({"metric": metric, "label": label, "value": None, "ok": None})
+        if stage == "qwen" and metric == "sec_per_candidate" and "4B" in model_id.upper():
+            target = 60.0
+        if isinstance(target, tuple):                       # 다른 지표의 배수: (other, factor)
+            other, factor = target
+            base = metrics.get(other)
+            target = float(base) * float(factor) if _num(base) else None
+            op = op.rstrip("x")
+        if not _num(v):
+            checks.append({"metric": metric, "label": label, "value": None, "ok": None, "reason": "missing"})
+            continue
+        if target is None:
+            checks.append({"metric": metric, "label": label, "value": v, "ok": None, "reason": "baseline"})
             continue
         checks.append({"metric": metric, "label": label, "value": v, "ok": _cmp(float(v), op, target), "target": target, "op": op})
     applicable = [c for c in checks if c["ok"] is not None]
-    if not applicable:
+    missing = [c for c in checks if c["ok"] is None and c.get("reason") == "missing"]
+    pending = [c for c in checks if c["ok"] is None and c.get("reason") == "baseline"]
+    if not applicable and not pending:
         status = "n/a"
+    elif missing or pending:
+        status = "incomplete"
     elif all(c["ok"] for c in applicable):
         status = "pass"
     elif any(c["ok"] for c in applicable):
@@ -78,7 +103,8 @@ def evaluate(entry: Dict[str, Any]) -> Dict[str, Any]:
     return {"status": status, "checks": checks, "passed": sum(1 for c in applicable if c["ok"]), "applicable": len(applicable)}
 
 
-STATUS_LABEL = {"pass": "✓ 채택 기준 통과", "partial": "△ 일부 통과", "fail": "✗ 미달", "n/a": "— 기준 없음"}
+STATUS_LABEL = {"pass": "✓ 채택 기준 통과", "partial": "△ 일부 통과", "fail": "✗ 미달", "n/a": "— 기준 없음",
+                "incomplete": "? 확인 불가 (기준 지표 누락 또는 기준값 미정)"}
 
 
 # ---------------------------------------------------------------- 채택 → yaml

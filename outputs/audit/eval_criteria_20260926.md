@@ -50,7 +50,7 @@ HTML 판(공유용): `outputs/audit/eval_criteria_20260926.html`.
 
 ## 2. 추적 · 스티칭 (도구 준비, 라벨링 대기)
 
-**P6 (09-28) 도구 준비**: `eval/track_gt_eval.py sheet` 가 영상별 준정답 시트(`eval/gt/tracks/<영상>/sheet.html`, 썸네일 내장)를 만들고 `eval` 이 labels.json 으로 raw(추적기 id)/before(구간)/after(긴 트랙)의 IDF1·HOTA·MOTA·IDSW·단절·갈라짐·과병합을 낸다 (원장 stage=track). 시트 3편(048·289·100: 구간 116, 긴 트랙 77 중 person 54) 라벨링 대기. **실측 주의**: 추적기 id 는 시간이 지나면 재사용되고(한 id 가 5 명), SUSHI 는 512 프레임 창을 독립 처리해 같은 사람이 창마다 다른 긴 트랙 id 를 받는다 (048 영상의 정지 박스 하나가 L1·L8·L18·L28) — 라벨이 붙으면 after 의 `splits`/IDSW 로 정량화된다. pseudo(스티처 = 정답 가정) 실행: raw IDF1 0.585 / before 0.931 / after 0.998, IDSW 96 / 105 / 0.
+**P6 (09-28) 도구 준비**: `eval/track_gt_eval.py sheet` 가 영상별 준정답 시트(`eval/gt/tracks/<영상>/sheet.html`, 썸네일 내장)를 만들고 `eval` 이 labels.json 으로 raw(추적기 id)/before(구간)/after(긴 트랙)의 IDF1·HOTA·MOTA·IDSW·단절·갈라짐·과병합을 낸다 (원장 stage=track). 시트 3편(048·289·100: 구간 116, 긴 트랙 77 중 person 54) 라벨링 대기. **실측 주의**: 추적기 id 는 시간이 지나면 재사용되고(한 id 가 5 명), SUSHI 는 512 프레임 창을 독립 처리해 같은 사람이 창마다 다른 긴 트랙 id 를 받는다 (048 영상의 정지 박스 하나가 L1·L8·L18·L28) — 라벨이 붙으면 after 의 `splits`/IDSW 로 정량화된다. pseudo(제안값 = 정답 가정) 실행(09-28 초판 지표): raw IDF1 0.585 / before 0.931 / after 0.998, IDSW 96 / 105 / 0. **외부 검토(Astra, 09-28 16:09) 반영**: HOTA·CLEAR·ignore 를 TrackEval 정의로 재구현(프레임당 매칭 1회 후 α 필터, 직전 프레임 우선 매칭, MOTChallenge ignore), before 를 스티처와 무관한 추적기 tracklet 로 정의, 라벨 검토 체크·검토율·manifest 도입(제안값 승격 방지, 시트 재생성 시 옛 라벨 거부), 채택 판정에 `incomplete`(지표 누락·기준값 미정 = 확인 불가) 추가, Qwen 은 불변 후보 id 로 라벨 연결·filter 를 평가기에서 재현·캐시 계약(`<qid>.meta.json`)·오탈락률 두 정의, 객체는 캐시 정합성 검사·없는 트랙 쌍 제외·모순 보고·point 목록 보존. SUSHI 창 경계 연결 후처리(`pipeline_tracking_sushi_link.yaml`, raw track 연속 + IoU + 일대일)를 추가해 러너로 비교 가능.
 
 | 지표 | 정의 | 정답 확보 | 채택 기준 |
 |---|---|---|---|

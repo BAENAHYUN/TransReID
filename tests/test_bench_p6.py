@@ -67,6 +67,7 @@ class RunnerTests(unittest.TestCase):
         self.assertIn("--videos v1 v2", out)
         self.assertIn("--tracking-config pipeline_tracking_yolo26.yaml", out)
         self.assertIn("--name pipeline_tracking_yolo26", out)
+        self.assertIn("--record-pseudo", out)
         out2 = dry(["track", "--processed-root", "outputs/processed_videos"])
         self.assertNotIn("batch_preprocess", out2)
         self.assertIn("--processed-root outputs/processed_videos", out2)
@@ -97,11 +98,18 @@ class RunnerTests(unittest.TestCase):
         cmd = R.runner_command("track", a)
         self.assertEqual(cmd[2], "track")
         self.assertIn("--tracking-config", cmd)
-        self.assertEqual(C.evaluate(track)["status"], "pass")
+        ev = C.evaluate(track)
+        self.assertEqual(ev["status"], "incomplete")                          # idsw/idsw_before 누락 + IDF1/HOTA 기준값 미정 → 확인 불가
+        self.assertEqual({c["metric"]: c.get("reason") for c in ev["checks"] if c["ok"] is None}, {"idsw": "missing", "idf1": "baseline", "hota": "missing"})
         obj = L.entry_from_object_result({"name": "o", "metrics": {"map": 80.0, "pair_auc": 0.95, "cluster_pair_precision": 0.5},
                                           "config": {"vector": "dinov2", "collection": "forensic_object", "threshold": 0.97}, "gt": {}})
         self.assertEqual(R.args_from_entry(obj), {"name": "o", "vector": "dinov2", "collection": "forensic_object", "threshold": 0.97})
-        self.assertEqual(C.evaluate(obj)["status"], "partial")
+        self.assertEqual(C.evaluate(obj)["status"], "incomplete")              # 객체 mAP 기준값 미정
+        full = L.entry_from_track_result({"name": "t2", "metrics": {"idf1": 0.9, "hota": 0.8, "over_merges": 0, "idsw": 4, "idsw_before": 10}, "config": {}, "gt": {}})
+        ev2 = C.evaluate(full)
+        self.assertEqual(ev2["status"], "incomplete")                         # 기준값 미정이면 다 있어도 통과 아님
+        self.assertTrue(next(c for c in ev2["checks"] if c["metric"] == "idsw")["ok"])   # 4 ≤ 0.5 × 10
+        self.assertEqual(next(c for c in ev2["checks"] if c["metric"] == "idsw")["target"], 5.0)
         qwen = L.entry_from_qwen_result({"name": "q", "metrics": {"p10_gain_pp": 12.0, "false_drop_rate": 0.05, "sec_per_candidate": 20.0},
                                          "config": {"model_id": "Qwen/Q", "verify_mode": "flag", "top_k": 20, "alpha": 0.7, "threshold": 0.5, "no_reranker": False}, "gt": {}})
         a = R.args_from_entry(qwen)
@@ -109,6 +117,18 @@ class RunnerTests(unittest.TestCase):
         self.assertNotIn("no_reranker", a)                 # False 는 생략
         self.assertEqual(C.evaluate(qwen)["status"], "pass")
         self.assertEqual(R.default_name("qwen", {"verify_mode": "filter"}), "qwen_filter")
+
+    def test_pseudo_rows_are_flagged_and_kept_out_of_main_ledger(self):
+        e = L.entry_from_track_result({"name": "t", "metrics": {"idf1": 1.0}, "pseudo_gt": True, "config": {}, "gt": {}})
+        self.assertTrue(R.is_pseudo(e))
+        u = L.entry_from_qwen_result({"name": "q", "metrics": {"unknown_ratio": 0.2}, "unlabeled_only": True, "config": {}, "gt": {}})
+        self.assertTrue(R.is_pseudo(u))
+        self.assertEqual(u["note"], "unlabeled")
+        real = L.entry_from_track_result({"name": "t", "metrics": {"idf1": 0.9}, "config": {}, "gt": {}})
+        self.assertFalse(R.is_pseudo(real))
+        out = dry(["qwen", "--allow-unlabeled", "--max-queries", "1"])
+        self.assertIn("--allow-unlabeled", out)
+        self.assertIn("--record-pseudo", out)
 
     def test_import_skips_pseudo_and_unlabeled(self):
         with tempfile.TemporaryDirectory() as td:

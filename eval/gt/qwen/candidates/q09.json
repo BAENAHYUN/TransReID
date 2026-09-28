@@ -66,6 +66,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 1,
+     "orig_rank": 1,
+     "cand_id": "5def0f91-eaf8-5a02-a473-ec69af0c56ba",
      "pre_qwen_score": 0.59999996,
      "qdrant_score": 0.59999996
     },
@@ -117,6 +119,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 2,
+     "orig_rank": 2,
+     "cand_id": "83ac42f3-0c92-5205-b725-579ab4adac3f",
      "pre_qwen_score": 0.527027,
      "qdrant_score": 0.527027
     },
@@ -168,6 +172,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 3,
+     "orig_rank": 3,
+     "cand_id": "49072b6f-bf24-52f5-9ff3-abd8f03b5d31",
      "pre_qwen_score": 0.4285714,
      "qdrant_score": 0.4285714
     },
@@ -219,6 +225,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 4,
+     "orig_rank": 4,
+     "cand_id": "874cee85-afd2-56c6-83e6-8acc3b5c83cd",
      "pre_qwen_score": 0.33333334,
      "qdrant_score": 0.33333334
     },
@@ -270,6 +278,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 5,
+     "orig_rank": 5,
+     "cand_id": "b294e4a3-6bd3-5369-9815-9099a9cce7e3",
      "pre_qwen_score": 0.33333334,
      "qdrant_score": 0.33333334
     },
@@ -321,6 +331,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 6,
+     "orig_rank": 6,
+     "cand_id": "927d9837-3d43-52a0-88ea-997d68d5e8e5",
      "pre_qwen_score": 0.27272725,
      "qdrant_score": 0.27272725
     },
@@ -372,6 +384,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 7,
+     "orig_rank": 7,
+     "cand_id": "6f4e8191-b3e2-5ab4-91f2-ffa09d6b7c94",
      "pre_qwen_score": 0.25980392,
      "qdrant_score": 0.25980392
     },
@@ -423,6 +437,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 8,
+     "orig_rank": 8,
+     "cand_id": "839ae4ad-a789-5773-ba56-76f43a0c6ae4",
      "pre_qwen_score": 0.25,
      "qdrant_score": 0.25
     },
@@ -474,6 +490,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 9,
+     "orig_rank": 9,
+     "cand_id": "9dbbe7e0-d959-5546-8166-8333dfed841e",
      "pre_qwen_score": 0.23076925,
      "qdrant_score": 0.23076925
     },
@@ -525,6 +543,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 10,
+     "orig_rank": 10,
+     "cand_id": "21a3fd33-2fb2-5970-851b-ce824ec6c7c6",
      "pre_qwen_score": 0.2,
      "qdrant_score": 0.2
     },
@@ -576,6 +596,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 11,
+     "orig_rank": 11,
+     "cand_id": "1bf286cd-83c0-5970-b8a4-1a5c41fdacbd",
      "pre_qwen_score": 0.2,
      "qdrant_score": 0.2
     },
@@ -627,6 +649,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 12,
+     "orig_rank": 12,
+     "cand_id": "fe894f80-f00d-521d-8d32-5b7835b5ec99",
      "pre_qwen_score": 0.17198336,
      "qdrant_score": 0.17198336
     },
@@ -678,6 +702,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 13,
+     "orig_rank": 13,
+     "cand_id": "372580af-3712-5ed8-ade0-965df182d3bc",
      "pre_qwen_score": 0.16666667,
      "qdrant_score": 0.16666667
     },
@@ -729,6 +755,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 14,
+     "orig_rank": 14,
+     "cand_id": "8c39cecb-624f-58f7-958d-e4fa24251dde",
      "pre_qwen_score": 0.15789473,
      "qdrant_score": 0.15789473
     },
@@ -780,6 +808,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 15,
+     "orig_rank": 15,
+     "cand_id": "47a32d58-cc25-516f-b21e-622007a004ad",
      "pre_qwen_score": 0.14285715,
      "qdrant_score": 0.14285715
     },
@@ -831,6 +861,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 16,
+     "orig_rank": 16,
+     "cand_id": "6eee80fe-5ba5-5e46-bd54-998ea97789ff",
      "pre_qwen_score": 0.1304348,
      "qdrant_score": 0.1304348
     },
@@ -882,6 +914,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 17,
+     "orig_rank": 17,
+     "cand_id": "be7cb198-64a0-5e74-8690-f98449880a6c",
      "pre_qwen_score": 0.125817,
      "qdrant_score": 0.125817
     },
@@ -933,6 +967,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 18,
+     "orig_rank": 18,
+     "cand_id": "7ab56903-be7c-54f8-9e1a-2517c3633a03",
      "pre_qwen_score": 0.125,
      "qdrant_score": 0.125
     },
@@ -984,6 +1020,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 19,
+     "orig_rank": 19,
+     "cand_id": "ccd6a629-47dc-5ae6-81b1-4e40191deadb",
      "pre_qwen_score": 0.11999999,
      "qdrant_score": 0.11999999
     },
@@ -1035,6 +1073,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 20,
+     "orig_rank": 20,
+     "cand_id": "e4097438-542b-5a01-992c-93f6ca053f63",
      "pre_qwen_score": 0.11111111,
      "qdrant_score": 0.11111111
     }

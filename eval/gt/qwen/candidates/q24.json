@@ -66,6 +66,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 1,
+     "orig_rank": 1,
+     "cand_id": "11842bf6-fab3-5248-a8e0-b169a85e2c8b",
      "pre_qwen_score": 0.59999996,
      "qdrant_score": 0.59999996
     },
@@ -117,6 +119,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 2,
+     "orig_rank": 2,
+     "cand_id": "860f3456-7a97-52a4-924a-1b5670f4e8f0",
      "pre_qwen_score": 0.5,
      "qdrant_score": 0.5
     },
@@ -168,6 +172,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 3,
+     "orig_rank": 3,
+     "cand_id": "6010cba3-b150-5365-b47d-1a9b418c794c",
      "pre_qwen_score": 0.4285714,
      "qdrant_score": 0.4285714
     },
@@ -219,6 +225,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 4,
+     "orig_rank": 4,
+     "cand_id": "3e9cbc96-6364-53aa-a333-05e5ef175019",
      "pre_qwen_score": 0.33333334,
      "qdrant_score": 0.33333334
     },
@@ -276,6 +284,8 @@
       "cluster_resolution": 1.5
      },
      "pre_qwen_rank": 5,
+     "orig_rank": 5,
+     "cand_id": "eec980e9-8c55-5168-bf06-6119b790f694",
      "pre_qwen_score": 0.33333334,
      "qdrant_score": 0.33333334
     },
@@ -327,6 +337,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 6,
+     "orig_rank": 6,
+     "cand_id": "ae6e479a-3737-5784-996b-11ef1c96e490",
      "pre_qwen_score": 0.27272725,
      "qdrant_score": 0.27272725
     },
@@ -378,6 +390,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 7,
+     "orig_rank": 7,
+     "cand_id": "454789aa-929e-5d86-abda-6e78af58d1ab",
      "pre_qwen_score": 0.25,
      "qdrant_score": 0.25
     },
@@ -429,62 +443,13 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 8,
+     "orig_rank": 8,
+     "cand_id": "6252cc44-3eb3-5da4-a047-41bf69e2eb4d",
      "pre_qwen_score": 0.23076925,
      "qdrant_score": 0.23076925
     },
     {
      "rank": 9,
-     "score": 0.2,
-     "retrieval_score": 0.2,
-     "point_id": "ea84d8c4-cdb5-54c7-a8fd-be44e6be25a9",
-     "image_id": "coco_train2017/000000439658.jpg",
-     "label": "person",
-     "is_person": true,
-     "crop_path": "data\\crops\\000000439658_3a1c3ee776_person_004.jpg",
-     "bbox": [
-      134.0,
-      77.0,
-      292.0,
-      634.0
-     ],
-     "frame_idx": 0,
-     "track_id": null,
-     "media_type": "image",
-     "video": null,
-     "video_path": null,
-     "timestamp_sec": null,
-     "time_mmss": null,
-     "person_id": null,
-     "object_id": null,
-     "stitched_id": null,
-     "track_key": null,
-     "cluster_id": null,
-     "legacy_kmeans_cluster_id": null,
-     "payload": {
-      "media_type": "image",
-      "image_id": "coco_train2017/000000439658.jpg",
-      "frame_idx": 0,
-      "label": "person",
-      "is_person": true,
-      "score": 0.64501953125,
-      "bbox": [
-       134.0,
-       77.0,
-       292.0,
-       634.0
-      ],
-      "detection_id": "coco_train2017/000000439658.jpg#person#134_77_292_634",
-      "crop_path": "data\\crops\\000000439658_3a1c3ee776_person_004.jpg",
-      "bbox_space": "frame",
-      "source": "COCO",
-      "embedding_build_id": "emb_20260917_866abdad"
-     },
-     "pre_qwen_rank": 9,
-     "pre_qwen_score": 0.2,
-     "qdrant_score": 0.2
-    },
-    {
-     "rank": 10,
      "score": 0.2,
      "retrieval_score": 0.2,
      "point_id": "1f62c6b8-15c9-59ff-996c-454038be1d3c",
@@ -530,7 +495,62 @@
       "source": "COCO",
       "embedding_build_id": "emb_20260917_866abdad"
      },
+     "pre_qwen_rank": 9,
+     "orig_rank": 9,
+     "cand_id": "1f62c6b8-15c9-59ff-996c-454038be1d3c",
+     "pre_qwen_score": 0.2,
+     "qdrant_score": 0.2
+    },
+    {
+     "rank": 10,
+     "score": 0.2,
+     "retrieval_score": 0.2,
+     "point_id": "ea84d8c4-cdb5-54c7-a8fd-be44e6be25a9",
+     "image_id": "coco_train2017/000000439658.jpg",
+     "label": "person",
+     "is_person": true,
+     "crop_path": "data\\crops\\000000439658_3a1c3ee776_person_004.jpg",
+     "bbox": [
+      134.0,
+      77.0,
+      292.0,
+      634.0
+     ],
+     "frame_idx": 0,
+     "track_id": null,
+     "media_type": "image",
+     "video": null,
+     "video_path": null,
+     "timestamp_sec": null,
+     "time_mmss": null,
+     "person_id": null,
+     "object_id": null,
+     "stitched_id": null,
+     "track_key": null,
+     "cluster_id": null,
+     "legacy_kmeans_cluster_id": null,
+     "payload": {
+      "media_type": "image",
+      "image_id": "coco_train2017/000000439658.jpg",
+      "frame_idx": 0,
+      "label": "person",
+      "is_person": true,
+      "score": 0.64501953125,
+      "bbox": [
+       134.0,
+       77.0,
+       292.0,
+       634.0
+      ],
+      "detection_id": "coco_train2017/000000439658.jpg#person#134_77_292_634",
+      "crop_path": "data\\crops\\000000439658_3a1c3ee776_person_004.jpg",
+      "bbox_space": "frame",
+      "source": "COCO",
+      "embedding_build_id": "emb_20260917_866abdad"
+     },
      "pre_qwen_rank": 10,
+     "orig_rank": 10,
+     "cand_id": "ea84d8c4-cdb5-54c7-a8fd-be44e6be25a9",
      "pre_qwen_score": 0.2,
      "qdrant_score": 0.2
     },
@@ -582,6 +602,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 11,
+     "orig_rank": 11,
+     "cand_id": "3b5b3d8a-80d5-5e7f-8ce7-482b50e717a4",
      "pre_qwen_score": 0.1764706,
      "qdrant_score": 0.1764706
     },
@@ -633,6 +655,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 12,
+     "orig_rank": 12,
+     "cand_id": "cbcb9308-ba6c-5927-aa30-a31a2f5b8ae2",
      "pre_qwen_score": 0.16666667,
      "qdrant_score": 0.16666667
     },
@@ -684,62 +708,13 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 13,
+     "orig_rank": 13,
+     "cand_id": "2bc2ec62-57f2-5a94-bc98-2dfaace77017",
      "pre_qwen_score": 0.15789473,
      "qdrant_score": 0.15789473
     },
     {
      "rank": 14,
-     "score": 0.14285715,
-     "retrieval_score": 0.14285715,
-     "point_id": "6968edd0-1f1a-50e0-bac8-b174894ea20f",
-     "image_id": "coco_train2017/000000464274.jpg",
-     "label": "person",
-     "is_person": true,
-     "crop_path": "data\\crops\\000000464274_eee1331473_person_001.jpg",
-     "bbox": [
-      116.0,
-      150.0,
-      468.0,
-      634.0
-     ],
-     "frame_idx": 0,
-     "track_id": null,
-     "media_type": "image",
-     "video": null,
-     "video_path": null,
-     "timestamp_sec": null,
-     "time_mmss": null,
-     "person_id": null,
-     "object_id": null,
-     "stitched_id": null,
-     "track_key": null,
-     "cluster_id": null,
-     "legacy_kmeans_cluster_id": null,
-     "payload": {
-      "media_type": "image",
-      "image_id": "coco_train2017/000000464274.jpg",
-      "frame_idx": 0,
-      "label": "person",
-      "is_person": true,
-      "score": 0.93408203125,
-      "bbox": [
-       116.0,
-       150.0,
-       468.0,
-       634.0
-      ],
-      "detection_id": "coco_train2017/000000464274.jpg#person#116_150_468_634",
-      "crop_path": "data\\crops\\000000464274_eee1331473_person_001.jpg",
-      "bbox_space": "frame",
-      "source": "COCO",
-      "embedding_build_id": "emb_20260917_866abdad"
-     },
-     "pre_qwen_rank": 14,
-     "pre_qwen_score": 0.14285715,
-     "qdrant_score": 0.14285715
-    },
-    {
-     "rank": 15,
      "score": 0.14285715,
      "retrieval_score": 0.14285715,
      "point_id": "2f3a18f5-e9eb-524e-be3a-e9a064854adc",
@@ -785,7 +760,62 @@
       "source": "COCO",
       "embedding_build_id": "emb_20260917_866abdad"
      },
+     "pre_qwen_rank": 14,
+     "orig_rank": 14,
+     "cand_id": "2f3a18f5-e9eb-524e-be3a-e9a064854adc",
+     "pre_qwen_score": 0.14285715,
+     "qdrant_score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "score": 0.14285715,
+     "retrieval_score": 0.14285715,
+     "point_id": "6968edd0-1f1a-50e0-bac8-b174894ea20f",
+     "image_id": "coco_train2017/000000464274.jpg",
+     "label": "person",
+     "is_person": true,
+     "crop_path": "data\\crops\\000000464274_eee1331473_person_001.jpg",
+     "bbox": [
+      116.0,
+      150.0,
+      468.0,
+      634.0
+     ],
+     "frame_idx": 0,
+     "track_id": null,
+     "media_type": "image",
+     "video": null,
+     "video_path": null,
+     "timestamp_sec": null,
+     "time_mmss": null,
+     "person_id": null,
+     "object_id": null,
+     "stitched_id": null,
+     "track_key": null,
+     "cluster_id": null,
+     "legacy_kmeans_cluster_id": null,
+     "payload": {
+      "media_type": "image",
+      "image_id": "coco_train2017/000000464274.jpg",
+      "frame_idx": 0,
+      "label": "person",
+      "is_person": true,
+      "score": 0.93408203125,
+      "bbox": [
+       116.0,
+       150.0,
+       468.0,
+       634.0
+      ],
+      "detection_id": "coco_train2017/000000464274.jpg#person#116_150_468_634",
+      "crop_path": "data\\crops\\000000464274_eee1331473_person_001.jpg",
+      "bbox_space": "frame",
+      "source": "COCO",
+      "embedding_build_id": "emb_20260917_866abdad"
+     },
      "pre_qwen_rank": 15,
+     "orig_rank": 15,
+     "cand_id": "6968edd0-1f1a-50e0-bac8-b174894ea20f",
      "pre_qwen_score": 0.14285715,
      "qdrant_score": 0.14285715
     },
@@ -837,6 +867,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 16,
+     "orig_rank": 16,
+     "cand_id": "275f55df-268c-5083-84fb-d5dba4b4f6f4",
      "pre_qwen_score": 0.13793103,
      "qdrant_score": 0.13793103
     },
@@ -888,6 +920,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 17,
+     "orig_rank": 17,
+     "cand_id": "dcad17e6-2d9a-5db8-8cde-fe602600149d",
      "pre_qwen_score": 0.1304348,
      "qdrant_score": 0.1304348
     },
@@ -939,6 +973,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 18,
+     "orig_rank": 18,
+     "cand_id": "36422cf2-fcd7-582e-8288-b4054d18f142",
      "pre_qwen_score": 0.125,
      "qdrant_score": 0.125
     },
@@ -990,6 +1026,8 @@
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 19,
+     "orig_rank": 19,
+     "cand_id": "8aee4aa8-25da-5f62-b3b9-996cfe0b25bc",
      "pre_qwen_score": 0.11999999,
      "qdrant_score": 0.11999999
     },
@@ -997,16 +1035,16 @@
      "rank": 20,
      "score": 0.11111111,
      "retrieval_score": 0.11111111,
-     "point_id": "5bd93372-befa-58c6-8b69-c2a7ebee1626",
-     "image_id": "coco_train2017/000000434187.jpg",
+     "point_id": "be2dedb2-c6b4-5ae7-864c-8740cfcfb14f",
+     "image_id": "coco_train2017/000000200563.jpg",
      "label": "person",
      "is_person": true,
-     "crop_path": "data\\crops\\000000434187_b019ee237f_person_003.jpg",
+     "crop_path": "data\\crops\\000000200563_e14d4d9cd0_person_001.jpg",
      "bbox": [
-      40.0,
-      60.0,
-      191.0,
-      366.0
+      158.0,
+      219.0,
+      292.0,
+      398.0
      ],
      "frame_idx": 0,
      "track_id": null,
@@ -1023,24 +1061,26 @@
      "legacy_kmeans_cluster_id": null,
      "payload": {
       "media_type": "image",
-      "image_id": "coco_train2017/000000434187.jpg",
+      "image_id": "coco_train2017/000000200563.jpg",
       "frame_idx": 0,
       "label": "person",
       "is_person": true,
-      "score": 0.89453125,
+      "score": 0.94189453125,
       "bbox": [
-       40.0,
-       60.0,
-       191.0,
-       366.0
+       158.0,
+       219.0,
+       292.0,
+       398.0
       ],
-      "detection_id": "coco_train2017/000000434187.jpg#person#40_60_191_366",
-      "crop_path": "data\\crops\\000000434187_b019ee237f_person_003.jpg",
+      "detection_id": "coco_train2017/000000200563.jpg#person#158_219_292_398",
+      "crop_path": "data\\crops\\000000200563_e14d4d9cd0_person_001.jpg",
       "bbox_space": "frame",
       "source": "COCO",
       "embedding_build_id": "emb_20260917_866abdad"
      },
      "pre_qwen_rank": 20,
+     "orig_rank": 20,
+     "cand_id": "be2dedb2-c6b4-5ae7-864c-8740cfcfb14f",
      "pre_qwen_score": 0.11111111,
      "qdrant_score": 0.11111111
     }

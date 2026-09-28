@@ -306,12 +306,12 @@ class Stage:
                 videos = sorted(p.name for p in gt_dir.iterdir() if (p / "boxes.jsonl").is_file()) if gt_dir.is_dir() else []
             for v in videos:
                 cmd = [PY, "video/batch_preprocess_videos_parallel.py", "--processed-root", str(proc_root), "--work-root", str(self.run_dir / "work"),
-                       "--tracking-config", str(a["tracking_config"]), "--pattern", str(v), "--workers", "1"]
+                       "--tracking-config", str(a["tracking_config"]), "--pattern", f"{v}.", "--workers", "1"]   # "stem." 로 clip1 ≠ clip10
                 if a.get("videos_root"):
                     cmd += ["--videos-root", str(a["videos_root"])]
                 self.run_cmd(cmd)
             processed = str(proc_root)
-        cmd = [PY, "eval/track_gt_eval.py", "eval", "--output-dir", str(self.run_dir), "--ledger", str(self.part_ledger), "--name", name]
+        cmd = [PY, "eval/track_gt_eval.py", "eval", "--output-dir", str(self.run_dir), "--ledger", str(self.part_ledger), "--name", name, "--record-pseudo"]
         if a.get("gt_dir"):
             cmd += ["--gt-dir", str(a["gt_dir"])]
         if a.get("videos"):
@@ -328,7 +328,7 @@ class Stage:
         a = self.a
         name = a.get("name") or default_name("object", a)
         cmd = [PY, "eval/object_pair_eval.py", "eval", "--output-dir", str(self.run_dir), "--ledger", str(self.part_ledger), "--name", name,
-               "--vector", str(a.get("vector") or "dinov2")]
+               "--vector", str(a.get("vector") or "dinov2"), "--record-pseudo"]
         for k in ("gt_dir", "collection", "threshold", "assignments"):
             if not _empty(a.get(k)):
                 cmd += [f"--{k.replace('_', '-')}", str(a[k])]
@@ -337,7 +337,9 @@ class Stage:
     def qwen(self) -> None:
         a = self.a
         name = a.get("name") or default_name("qwen", a)
-        cmd = [PY, "eval/qwen_verify_eval.py", "eval", "--output-dir", str(self.run_dir), "--ledger", str(self.part_ledger), "--name", name]
+        cmd = [PY, "eval/qwen_verify_eval.py", "eval", "--output-dir", str(self.run_dir), "--ledger", str(self.part_ledger), "--name", name, "--record-pseudo"]
+        if a.get("allow_unlabeled"):
+            cmd.append("--allow-unlabeled")
         for k in ("gt_dir", "top_k", "alpha", "threshold", "verify_mode", "model_id", "max_queries", "qwen_dir"):
             if not _empty(a.get(k)):
                 cmd += [f"--{k.replace('_', '-')}", str(a[k])]
@@ -426,13 +428,14 @@ def args_from_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
         out = {"name": entry["name"]}
         if stage == "track":
             out.update({"tracking_config": comp.get("tracking_config"), "processed_root": comp.get("processed_root"),
-                        "pred_file": comp.get("pred_file"), "videos": params.get("videos")})
+                        "pred_file": comp.get("pred_file"), "videos": params.get("videos"), "gt_dir": params.get("gt_dir")})
         elif stage == "object":
             out.update({"vector": comp.get("vector"), "collection": comp.get("collection"), "threshold": params.get("threshold"),
-                        "assignments": params.get("assignments")})
+                        "assignments": params.get("assignments"), "gt_dir": params.get("gt_dir")})
         else:
             out.update({"model_id": comp.get("model_id"), "verify_mode": comp.get("verify_mode"), "top_k": params.get("top_k"),
-                        "alpha": params.get("alpha"), "threshold": params.get("threshold"), "no_reranker": bool(params.get("no_reranker"))})
+                        "alpha": params.get("alpha"), "threshold": params.get("threshold"), "no_reranker": bool(params.get("no_reranker")),
+                        "gt_dir": params.get("gt_dir")})
         return {k: v for k, v in out.items() if not _empty(v)}
     raise ValueError(f"알 수 없는 stage: {stage}")
 
@@ -575,6 +578,7 @@ def add_stage_options(p: argparse.ArgumentParser) -> None:
     g.add_argument("--no-reranker", action="store_true", help="qwen: Qwen3-VL-Reranker 생략")
     g.add_argument("--model-id", default=None, help="qwen: Instruct 모델 id")
     g.add_argument("--qwen-dir", default=None, help="qwen: Qwen 결과 캐시 폴더 (재사용)")
+    g.add_argument("--allow-unlabeled", action="store_true", help="qwen: 라벨 없는 쿼리도 실행 (시간·UNKNOWN 만)")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -612,7 +616,8 @@ STAGE_KEYS = {
     "e2e": {"config", "name", "stage1", "rerank", "limit", "pool", "max_queries", "gallery", "pid_split", "data_root"},
     "track": {"name", "gt_dir", "processed_root", "videos", "videos_root", "tracking_config", "pred_file", "data_root"},
     "object": {"name", "gt_dir", "vector", "collection", "threshold", "assignments", "data_root"},
-    "qwen": {"name", "gt_dir", "top_k", "alpha", "threshold", "verify_mode", "no_reranker", "model_id", "max_queries", "qwen_dir", "data_root"},
+    "qwen": {"name", "gt_dir", "top_k", "alpha", "threshold", "verify_mode", "no_reranker", "model_id", "max_queries", "qwen_dir", "allow_unlabeled",
+             "data_root"},
 }
 
 
@@ -685,6 +690,11 @@ def run_stage(stage: str, a: Dict[str, Any], runs_dir: Path, dry: bool, echo: Ca
     run_dir = runs_dir / f"{stage}_{time.strftime('%Y%m%dT%H%M%S')}_{default_name(stage, a)}_{uuid.uuid4().hex[:6]}"
     entries = Stage(stage, a, run_dir, dry, echo).execute()
     return entries, run_dir
+
+
+def is_pseudo(entry: Dict[str, Any]) -> bool:
+    """라벨 없는 결과(pseudo GT / unlabeled) — 실행 폴더에는 남기되 기본 원장에는 넣지 않는다."""
+    return str(entry.get("note") or "") in ("pseudo GT", "unlabeled")
 
 
 def summarize(entries: Sequence[Dict[str, Any]], echo: Callable[[str], Any] = print) -> None:
@@ -771,7 +781,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.dry_run:
         return 0
     if ledger_path is not None:
-        n, _ = ledger.append_entries(ledger_path, entries)
+        keep = [e for e in entries if not is_pseudo(e)]
+        if len(keep) < len(entries):
+            print(f"[ledger] 라벨 없는(pseudo/unlabeled) {len(entries) - len(keep)} 건은 기본 원장에 기록하지 않음 (실행 폴더 ledger_part.jsonl 에만)")
+        n, _ = ledger.append_entries(ledger_path, keep) if keep else (0, 0)
         print(f"[ledger] {n} 건 기록 → {ledger_path}")
     summarize(entries)
     print(f"[run] 폴더: {run_dir}")

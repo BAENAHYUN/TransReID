@@ -66,11 +66,12 @@ METRIC_KEYS: Dict[str, List[str]] = {
     "cluster": ["pair_precision", "pair_recall", "pair_f1", "b3_precision", "b3_recall", "b3_f1", "purity",
                 "mixed_clusters", "pids_split", "noise_ratio"],
     "e2e": ["map", "map_db", "rank1", "rank5", "rank10", "recall_at_k", "det_ceiling", "distractor_ratio", "sec_per_query"],
-    "track": ["idf1", "hota", "deta", "assa", "mota", "idsw", "fragments", "splits", "over_merges", "idf1_before", "idsw_before", "idsw_ratio"],
+    "track": ["idf1", "hota", "deta", "assa", "mota", "idsw", "fragments", "splits", "over_merges", "pred_dup_boxes", "idf1_before", "idsw_before",
+              "idsw_ratio", "coverage"],
     "object": ["map", "rank1", "map_labeled", "pair_auc", "pair_f1", "pair_threshold", "pair_acc_at_threshold", "cluster_pair_precision",
-               "cluster_pair_recall", "queries", "pairs_same", "pairs_diff"],
-    "qwen": ["p10_before", "p10_after", "p10_gain_pp", "p5_before", "p5_after", "p20_before", "p20_after", "false_drop_rate", "unknown_ratio",
-             "sec_per_candidate", "queries", "candidates"],
+               "cluster_pair_recall", "queries", "pairs_same", "pairs_diff", "pairs_missing", "label_contradictions", "coverage"],
+    "qwen": ["p10_before", "p10_after", "p10_gain_pp", "p5_before", "p5_after", "p20_before", "p20_after", "false_drop_rate", "lost_relevant_rate",
+             "unknown_ratio", "sec_per_candidate", "queries", "candidates", "coverage"],
 }
 
 # verify 허용 오차 (지표 이름 → 절대 오차). 없는 지표는 비교하지 않는다(정보용: fps, sec …).
@@ -85,6 +86,7 @@ VERIFY_TOLERANCES: Dict[str, Dict[str, float]] = {
     "track": {"idf1": 0.005, "hota": 0.005, "mota": 0.005, "idsw": 0, "over_merges": 0, "splits": 0},
     "object": {"map": 0.1, "rank1": 0.2, "map_labeled": 0.1, "pair_auc": 0.005, "pair_f1": 0.005, "cluster_pair_precision": 0.005},
     # Qwen 생성은 완전 결정적이지 않다 → 검증 전 P@K 만 엄격, 검증 후·오탈락은 느슨하게
+    # 잠정값: Qwen 재추론의 변동 폭은 반복 실측으로 정한 것이 아니다 (저장 관찰의 재채점은 결정적이므로 0 이어야 한다).
     "qwen": {"p10_before": 0.01, "p10_after": 5.0, "false_drop_rate": 0.1, "unknown_ratio": 0.1},
 }
 
@@ -574,18 +576,20 @@ def _p6_entry(stage: str, out: Dict[str, Any], component: Dict[str, Any], params
     gt = dict(out.get("gt") or {})
     gt.update(gt_extra)
     timing = {k: m[k] for k in ("elapsed_sec", "sec_per_candidate", "wall_sec_per_candidate") if m.get(k) is not None}
+    inputs = [dict(i) for i in (out.get("inputs") or []) if isinstance(i, dict)]
     return make_entry(stage, out.get("producer") or stage, str(out.get("name")), component=component, params=params, gt=gt, metrics=m,
-                      timing=timing, versions=versions, report=report, command=command, created_at=out.get("generated_at"), env=env,
-                      note="pseudo GT" if out.get("pseudo_gt") else None)
+                      timing=timing, versions=versions, inputs=inputs, report=report, command=command, created_at=out.get("generated_at"), env=env,
+                      note="pseudo GT" if out.get("pseudo_gt") else ("unlabeled" if out.get("unlabeled_only") else None))
 
 
 def entry_from_track_result(out: Dict[str, Any], report: Any = None, command: Optional[Sequence[str]] = None,
                             env: Optional[Dict[str, Any]] = None, versions: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """track_gt_eval 의 결과 dict → 엔트리 (stage=track: 추적기 before / 스티처 after, metrics 는 after + *_before)."""
     cfg = out.get("config") or {}
-    component = {"pipeline": "detect→track→stitch", "tracking_config": cfg.get("tracking_config"), "pred_file": cfg.get("pred_file"),
-                 "processed_root": cfg.get("processed_root")}
-    params = {"videos": cfg.get("videos"), "iou": cfg.get("iou")}
+    component = {"pipeline": "detect→track→stitch", "tracking_config": cfg.get("tracking_config"), "tracking_config_sha256": cfg.get("tracking_config_sha256"),
+                 "pred_file": cfg.get("pred_file"), "processed_root": cfg.get("processed_root")}
+    params = {"videos": cfg.get("videos"), "iou": cfg.get("iou"), "max_gap": cfg.get("max_gap"), "min_coverage": cfg.get("min_coverage"),
+              "gt_dir": cfg.get("gt_dir")}
     return _p6_entry("track", out, component, params, {"dataset": "semi-GT tracks"}, report, command, versions, env)
 
 
@@ -593,8 +597,9 @@ def entry_from_object_result(out: Dict[str, Any], report: Any = None, command: O
                              env: Optional[Dict[str, Any]] = None, versions: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """object_pair_eval 의 결과 dict → 엔트리 (stage=object: 객체 트랙 벡터의 검색 mAP·쌍 AUC·클러스터 일치)."""
     cfg = out.get("config") or {}
-    component = {"vector": cfg.get("vector"), "collection": cfg.get("collection")}
-    params = {"threshold": cfg.get("threshold"), "assignments": cfg.get("assignments")}
+    component = {"vector": cfg.get("vector"), "collection": cfg.get("collection"), "dim": cfg.get("dim")}
+    params = {"threshold": cfg.get("threshold"), "assignments": cfg.get("assignments"), "gt_dir": cfg.get("gt_dir"), "min_coverage": cfg.get("min_coverage"),
+              "cache_generated_at": cfg.get("cache_generated_at"), "cache_tracks": cfg.get("cache_tracks")}
     return _p6_entry("object", out, component, params, {"dataset": "object pairs"}, report, command, versions, env)
 
 
@@ -602,8 +607,9 @@ def entry_from_qwen_result(out: Dict[str, Any], report: Any = None, command: Opt
                            env: Optional[Dict[str, Any]] = None, versions: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """qwen_verify_eval 의 결과 dict → 엔트리 (stage=qwen: P@K 전/후, 오탈락률, UNKNOWN, 후보당 초)."""
     cfg = out.get("config") or {}
-    component = {"model_id": cfg.get("model_id"), "reranker": cfg.get("reranker_used"), "verify_mode": cfg.get("verify_mode")}
-    params = {k: cfg.get(k) for k in ("top_k", "alpha", "threshold", "no_reranker", "rescore")}
+    component = {"model_id": cfg.get("model_id"), "reranker": cfg.get("reranker_used"), "reranker_model_id": cfg.get("reranker_model_id"),
+                 "verify_mode": cfg.get("verify_mode"), "dtype": cfg.get("dtype"), "max_pixels": cfg.get("max_pixels")}
+    params = {k: cfg.get(k) for k in ("top_k", "alpha", "threshold", "no_reranker", "rescore", "gt_dir")}
     return _p6_entry("qwen", out, component, params, {"dataset": "qwen judgements"}, report, command, versions, env)
 
 
