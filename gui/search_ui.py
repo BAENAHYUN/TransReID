@@ -60,6 +60,17 @@ def _per_video_spin() -> QSpinBox:
     return s
 
 
+def _qwen_batch_spin() -> QSpinBox:
+    s = QSpinBox()
+    s.setRange(1, 32)
+    s.setValue(1)
+    s.setToolTip(
+        "Qwen 이 후보를 몇 장씩 묶어 볼지. 1 = 한 장씩(기본, 평가 기준). 크면 후보당 시간이 크게 줄지만(2B 기준 22 s → 3~4 s) "
+        "판정이 일부 달라질 수 있다 — 벤치마크의 qwen 단계에서 _bN 이름으로 따로 평가된다."
+    )
+    return s
+
+
 def _form_row(pairs: Sequence[Tuple[str, QWidget]]) -> QWidget:
     w = QWidget()
     h = QHBoxLayout(w)
@@ -201,7 +212,8 @@ def build_search_header(page: Any, *, video: bool) -> QFrame:
         page.video_qwen_source.addItem("사진(crop) 검색 결과", "image-video")
         page.video_qwen_source.addItem("자연어 검색 결과", "text-video")
         page.video_qwen_top_k = _spin(1, 200, 10, "Qwen 이 다시 볼 상위 후보 수")
-        page.qwen_adv = _form_row([("AI 재확인 대상", page.video_qwen_source), ("후보 수", page.video_qwen_top_k)])
+        page.qwen_batch = _qwen_batch_spin()
+        page.qwen_adv = _form_row([("AI 재확인 대상", page.video_qwen_source), ("후보 수", page.video_qwen_top_k), ("배치", page.qwen_batch)])
         page._qwen_source_combo = page.video_qwen_source
         page._mode_keys = {"text": "text-video", "crop": "image-video"}
     else:
@@ -217,7 +229,8 @@ def build_search_header(page: Any, *, video: bool) -> QFrame:
         page.qwen_source.addItem("사진(crop) 검색 결과", "crop")
         page.qwen_source.addItem("자연어 검색 결과", "text")
         page.qwen_top_k = _spin(1, 200, 20, "Qwen 이 다시 볼 상위 후보 수")
-        page.qwen_adv = _form_row([("AI 재확인 대상", page.qwen_source), ("후보 수", page.qwen_top_k)])
+        page.qwen_batch = _qwen_batch_spin()
+        page.qwen_adv = _form_row([("AI 재확인 대상", page.qwen_source), ("후보 수", page.qwen_top_k), ("배치", page.qwen_batch)])
         page._qwen_source_combo = page.qwen_source
         page._mode_keys = {"text": "text", "crop": "crop"}
     ag.addWidget(page.text_adv)

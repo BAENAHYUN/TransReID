@@ -1552,6 +1552,7 @@ class ImageSearchPage(QWidget):
         script = QWEN_CROP_SCRIPT if source == "crop" else QWEN_TEXT_SCRIPT
         self._last_qwen_source = source
         self._last_qwen_top_k = top_k
+        batch_size = int(getattr(self, "qwen_batch", None).value()) if getattr(self, "qwen_batch", None) is not None else 1
 
         def job() -> Dict[str, Any]:
             out = run_qwen_subprocess(
@@ -1561,6 +1562,7 @@ class ImageSearchPage(QWidget):
                 threshold=QWEN_THRESHOLD_DEFAULT,
                 verify_mode=QWEN_VERIFY_MODE_DEFAULT,
                 script_path=script,
+                batch_size=batch_size,
             )
             crops = out.get("crops") or []
             rows = list(crops[0].get("results") or []) if crops else []

@@ -546,6 +546,9 @@ class ArgField:
         elif self.type == "choice":
             # 표시 이름과 실제 값(명령에 넘기는 문자열)이 다를 수 있다 — 값은 itemData 에 둔다.
             self.widget = QComboBox()
+            # 가장 긴 항목 폭을 최소 폭으로 잡지 않게 — 항목이 길면(yaml 경로 등) 폼이 옆으로 넘쳐 '찾기' 버튼이 잘렸다
+            self.widget.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            self.widget.setMinimumContentsLength(18)
             for value, label in _choice_values(spec):
                 self.widget.addItem(str(label), str(value))
             idx = self.widget.findData(str(default))
@@ -561,6 +564,8 @@ class ArgField:
                 self.widget = QComboBox()
                 self.widget.setEditable(True)
                 self.widget.setInsertPolicy(QComboBox.NoInsert)
+                self.widget.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+                self.widget.setMinimumContentsLength(18)
                 for value, _label in _choice_values(spec):
                     self.widget.addItem(str(value), str(value))
                 self.widget.setEditText(str(default if default is not None else ""))
