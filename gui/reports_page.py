@@ -22,11 +22,14 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QPushButton,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
+
+from gui.html_view import HtmlView
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -123,7 +126,21 @@ class ReportsPage(QWidget):
     def __init__(self, root: Optional[Path] = None, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.root = Path(root) if root is not None else ROOT
-        layout = QVBoxLayout(self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        # 목록(0) ↔ 내장 뷰어(1): '열기' 는 GUI 안에서 보여 주고 '← 목록' 으로 돌아온다
+        self.stack = QStackedWidget()
+        outer.addWidget(self.stack)
+        list_page = QWidget()
+        self.stack.addWidget(list_page)
+        self.viewer = HtmlView(back_label="← 목록")
+        self.viewer.back_btn.clicked.connect(lambda: self.stack.setCurrentIndex(0))
+        viewer_page = QWidget()
+        vl = QVBoxLayout(viewer_page)
+        vl.setContentsMargins(16, 12, 16, 12)
+        vl.addWidget(self.viewer)
+        self.stack.addWidget(viewer_page)
+        layout = QVBoxLayout(list_page)
         layout.setContentsMargins(16, 12, 16, 12)
         layout.setSpacing(10)
 
@@ -141,13 +158,13 @@ class ReportsPage(QWidget):
         lab1.setObjectName("subtleLabel")
         lab1.setWordWrap(True)
         layout.addWidget(lab1)
-        self.sheets = self._table(["종류", "이름", "항목", "상태", "", ""], stretch_col=3)
+        self.sheets = self._table(["종류", "이름", "항목", "상태", "", "", ""], stretch_col=3)
         layout.addWidget(self.sheets, 1)
 
         lab2 = QLabel("생성된 리포트 — 결과창·갤러리·DB 리포트·문서 (최근 수정순)")
         lab2.setObjectName("subtleLabel")
         layout.addWidget(lab2)
-        self.reports = self._table(["종류", "파일", "수정", "", ""], stretch_col=1)
+        self.reports = self._table(["종류", "파일", "수정", "", "", ""], stretch_col=1)
         layout.addWidget(self.reports, 2)
         self.refresh()
 
@@ -174,7 +191,10 @@ class ReportsPage(QWidget):
             for c, (label, path) in enumerate(btns, start=len(cells)):
                 b = QPushButton(label)
                 b.setFixedHeight(26)
-                b.clicked.connect(lambda _=False, p=path: _open(p))
+                if label in ("열기", "시트 열기"):
+                    b.clicked.connect(lambda _=False, p=path: self.show(p))          # GUI 안에서
+                else:
+                    b.clicked.connect(lambda _=False, p=path: _open(p))              # 브라우저 / 폴더
                 table.setCellWidget(r, c, b)
         # 이름/파일은 내용 폭대로, 긴 설명 열(상태 / 파일) 하나만 늘어난다
         table.resizeColumnsToContents()
@@ -182,10 +202,15 @@ class ReportsPage(QWidget):
         for c in range(table.columnCount()):
             table.horizontalHeader().setSectionResizeMode(c, QHeaderView.Stretch if c == stretch else QHeaderView.ResizeToContents)
 
+    def show(self, path: Path) -> None:
+        """결과 HTML 을 GUI 안 뷰어로 보여 준다."""
+        self.viewer.load(path)
+        self.stack.setCurrentIndex(1)
+
     def refresh(self) -> None:
         self.sheet_rows = scan_sheets(self.root)
         self._fill(self.sheets, [[s["kind"], s["name"], s["items"], s["status"]] for s in self.sheet_rows],
-                   [[("시트 열기", s["path"]), ("폴더", s["folder"])] for s in self.sheet_rows])
+                   [[("시트 열기", s["path"]), ("브라우저", s["path"]), ("폴더", s["folder"])] for s in self.sheet_rows])
         self.report_rows = scan_reports(self.root)
         self._fill(self.reports, [[r["kind"], r["name"], datetime.fromtimestamp(r["mtime"]).strftime("%m-%d %H:%M")] for r in self.report_rows],
-                   [[("열기", r["path"]), ("폴더", r["folder"])] for r in self.report_rows])
+                   [[("열기", r["path"]), ("브라우저", r["path"]), ("폴더", r["folder"])] for r in self.report_rows])

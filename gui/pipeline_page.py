@@ -60,9 +60,12 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSpinBox,
     QSplitter,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
+
+from gui.html_view import HtmlView
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = ROOT / "gui_pipelines.json"
@@ -768,7 +771,12 @@ class StagePanel(QWidget):
             "background:#1e242b; color:#d6dde5;"
         )
         ll.addWidget(self.log)
-        split.addWidget(log_box)
+        # 아래쪽은 '실행 로그' / '결과' 탭: 실행이 RESULT_HTML 을 남기면 결과 HTML 을 GUI 안에서 바로 보여 준다
+        self.bottom_tabs = QTabWidget()
+        self.bottom_tabs.addTab(log_box, "실행 로그")
+        self.result_view = HtmlView()
+        self.bottom_tabs.addTab(self.result_view, "결과")
+        split.addWidget(self.bottom_tabs)
         split.setSizes([360, 420])
         outer.addWidget(split, 1)
 
@@ -975,6 +983,11 @@ class StagePanel(QWidget):
         w = data.get("warnings") if isinstance(data, dict) else None
         return len(w) if isinstance(w, list) else None
 
+    def show_result(self, path: Path) -> None:
+        """결과 HTML 을 '결과' 탭에 띄우고 그 탭으로 넘어간다."""
+        self.result_view.load(path)
+        self.bottom_tabs.setCurrentWidget(self.result_view)
+
     def _open_result(self) -> None:
         p = self._result_path
         if p is None:
@@ -1107,8 +1120,9 @@ class StagePanel(QWidget):
                 self.open_btn.setEnabled(True)
                 self._append_html(
                     f'<span style="color:#2a78d6;">결과 HTML: {html_escape(str(rp))}'
-                    f' — "결과 열기" 버튼으로 엽니다</span>'
+                    f' — 아래 "결과" 탭에 표시됩니다 ("결과 열기" 는 브라우저로)</span>'
                 )
+                self.show_result(rp)
             elif not rp.is_file():
                 self._append(f"[경고] 스크립트가 알린 결과 파일이 없습니다: {rp}")
 

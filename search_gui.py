@@ -2249,6 +2249,12 @@ def main() -> int:
     )
     cli, qt_args = parser.parse_known_args(sys.argv[1:])
 
+    # 결과 HTML 내장 뷰어(QtWebEngine) 는 QApplication 보다 먼저 import 해야 OpenGL 공유 속성이 맞춰진다. 없으면 QTextBrowser 로 대신한다.
+    try:
+        from PySide6 import QtWebEngineWidgets  # noqa: F401
+    except Exception:  # noqa: BLE001
+        pass
+
     app = QApplication([sys.argv[0]] + qt_args)
     apply_theme(app)
 

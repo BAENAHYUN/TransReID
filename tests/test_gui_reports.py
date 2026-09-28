@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault("TRANSREID_NO_WEBENGINE", "1")
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -75,6 +76,14 @@ class PageTests(ScanTests):
         self.assertEqual(page.reports.rowCount(), 2)
         self.assertEqual(page.sheets.item(0, 1).text(), "v1")
         self.assertIsNotNone(page.sheets.cellWidget(0, 4))           # 시트 열기 버튼
+        self.assertEqual(page.stack.currentIndex(), 0)
+        page.sheets.cellWidget(0, 4).click()                           # GUI 안 뷰어로
+        self.assertEqual(page.stack.currentIndex(), 1)
+        self.assertEqual(page.viewer.path, self.root / "eval" / "gt" / "tracks" / "v1" / "sheet.html")
+        self.assertEqual(page.viewer.backend, "textbrowser")
+        page.viewer.back_btn.click()
+        self.assertEqual(page.stack.currentIndex(), 0)
+        self.assertEqual(page.reports.cellWidget(0, 4).text(), "브라우저")
         (self.root / "outputs" / "image_db_html").mkdir(parents=True)
         (self.root / "outputs" / "image_db_html" / "db.html").write_text("x", encoding="utf-8")
         page.refresh()

@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault("TRANSREID_NO_WEBENGINE", "1")     # 테스트는 QTextBrowser 폴백 (WebEngine 프로세스 없이)
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -142,6 +143,26 @@ class QtTests(unittest.TestCase):
         with self.assertRaises(pp.RegistryError):
             pp._check_stages("x", "g", [{"id": "a", "title": "A", "script": "s.py", "tools": [{"label": "t", "stage": "nope"}]}])
         pp._check_stages("x", "g", [{"id": "a", "title": "A", "script": "s.py", "tools": [{"label": "t", "stage": "a"}]}])
+
+    def test_result_shown_inline_after_run(self):
+        import tempfile as _tf
+        import time as _time
+        page = pp.PipelineGroupPage(self._group())
+        panel = page.panel
+        self.assertEqual(panel.bottom_tabs.count(), 2)
+        with _tf.TemporaryDirectory() as td:
+            html = Path(td) / "r.html"
+            html.write_text("<html><body><h1>결과</h1></body></html>", encoding="utf-8")
+            panel._result_path = html
+            panel._run_started = _time.time()
+            panel._done(0)
+            self.assertTrue(panel.open_btn.isEnabled())
+            self.assertIs(panel.bottom_tabs.currentWidget(), panel.result_view)      # 결과 탭으로 넘어감
+            self.assertEqual(panel.result_view.path, html)
+            self.assertTrue(panel.result_view.ext_btn.isEnabled())
+            panel._result_path = Path(td) / "missing.html"
+            panel._done(0)                                                          # 없는 파일 → 뷰는 그대로, 경고만
+            self.assertEqual(panel.result_view.path, html)
 
     def test_group_without_core_shows_everything(self):
         g = self._group()
