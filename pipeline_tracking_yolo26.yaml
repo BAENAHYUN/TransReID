@@ -1,0 +1,26 @@
+# 영상 검출·추적·스티칭 설정 — 검출기를 YOLO26 (ultralytics) 으로 바꾼 판.
+# pipeline_tracking.yaml 과 tracker/stitcher 는 같고 detector: 만 다르다.
+# 사용: python -m detect.runner <video> --config pipeline_tracking_yolo26.yaml
+#       python eval/detect_eval_prw.py --mode run --detector-config pipeline_tracking_yolo26.yaml --name yolo26m
+detector:
+  module: detect.detectors.yolo26_detector
+  class: YOLO26Detector
+  params:
+    weights: yolo26m.pt        # yolo26n / s / m / l / x .pt — weights/yolo/ 에 없으면 첫 실행 때 자동 다운로드
+    conf_threshold: 0.2
+    filter_forensic: true
+    imgsz: 640                 # 작은 사람이 많은 1080p 영상이면 960~1280 도 시험할 것 (속도 ↓, 재현율 ↑)
+
+tracker:
+  module: detect.trackers.botsort_tracker
+  class: BoTSORTTracker
+  params:
+    device: cuda:0
+    half: true
+
+stitcher:
+  module: detect.stitchers.sushi_stitcher
+  class: SUSHIStitcher
+  params:
+    sushi_root: ./third_party/SUSHI
+    window_sec: 30

@@ -55,6 +55,15 @@ class Router:
     # ---------------- 분류 ---------------- #
 
     def is_person(self, det: Detection) -> bool:
+        extra = getattr(det, "extra", None) or {}
+        scope = str(extra.get("candidate_scope", "")).strip().lower()
+
+        if scope == "person":
+            return True
+
+        if scope == "object":
+            return False
+
         return det.label.lower() in self.cfg.person_labels
 
     def _targets(self, det: Detection) -> List[str]:

@@ -298,6 +298,7 @@ class QdrantStore:
         "bbox",
         "detection_id",
         "track_id",
+        "embedding_build_id",
     })
 
     # extra에 들어와도 충돌로 보지 않고 정규 필드로 승격시키는 key.
@@ -319,6 +320,21 @@ class QdrantStore:
 
         self.client = client
         self.collection = cfg.collection
+
+        # 컬렉션 스키마(cfg.retrievers)에 선언된 named vector 는 point 마다 전부 있어야 한다.
+        # person 컬렉션의 SOLIDER 처럼 "모든 point 가 반드시 가진다" 는 검색 불변식을
+        # 저장 계층에서 강제한다. 부분 벡터 적재가 필요한 특수 호출부는 False 로 끈다.
+        self.require_all_vectors: bool = True
+
+        # 이 store 로 적재되는 모든 point 의 payload 에 붙는 build provenance.
+        # None 이면 필드를 넣지 않는다 (구버전 호출부 / legacy point 와 호환).
+        # 모델·설정·pipeline SHA 등 상세는 point 마다 복제하지 않고
+        # build_db.py 가 쓰는 build manifest(JSON) 한 곳에만 둔다.
+        self.embedding_build_id: Optional[str] = None
+
+        # 마지막 upsert_stream 의 건수 통계. 반환값(committed)만으로는
+        # 호출부가 skip 을 대조할 수 없어서 따로 남긴다.
+        self.last_upsert_stats: Dict[str, int] = {}
 
     # -----------------------------------------------------------------------
     # 기본 설정
@@ -826,6 +842,9 @@ class QdrantStore:
             "video": "keyword",
             "track_id": "integer",
             "detection_id": "keyword",
+            # build provenance. 구/신 임베딩 혼재 검사와 특정 build 만 골라
+            # 검색할 때 필터 키가 된다. legacy point 에는 필드가 없다.
+            "embedding_build_id": "keyword",
         }
 
         info = self.client.get_collection(self.collection)
@@ -951,6 +970,15 @@ class QdrantStore:
 
         checked_vectors = self._validate_vector_map(vec)
 
+        if self.require_all_vectors:
+            missing = sorted(set(self.cfg.retrievers) - set(checked_vectors))
+            if missing:
+                raise ValueError(
+                    f"point 에 named vector 가 빠졌습니다: {missing} "
+                    f"(컬렉션 {self.collection} 스키마 {sorted(self.cfg.retrievers)}). "
+                    "부분 벡터 point 는 검색에서 조용히 빠지므로 적재를 거부합니다."
+                )
+
         detection_id = self._get_detection_id(det)
         track_id = self._get_track_id(det)
         media_type = self._get_media_type(det)
@@ -999,6 +1027,10 @@ class QdrantStore:
             payload["track_id"] = track_id
 
         payload.update(extra_payload)
+
+        # provenance 는 id 하나만. 없으면(legacy 호출부) 필드 자체를 생략한다.
+        if self.embedding_build_id:
+            payload["embedding_build_id"] = str(self.embedding_build_id)
 
         point_id, used_bbox_fallback = self._stable_point_id(det)
 
@@ -1060,9 +1092,11 @@ class QdrantStore:
         skipped = 0
         bbox_fallback_ids = 0
         batch_index = 0
+        submitted = 0
 
         for raw_batch in _chunked(items, batch_size):
             batch_index += 1
+            submitted += len(raw_batch)
 
             points = []
             batch_skipped = 0
@@ -1132,6 +1166,15 @@ class QdrantStore:
                 "항상 설정하는 것을 권장합니다.",
                 bbox_fallback_ids,
             )
+
+        # 호출부가 submitted == committed, skipped == 0 을 대조할 수 있게 남긴다.
+        # (build_db.py assert_upsert_complete) 반환값은 호환성 때문에 그대로 둔다.
+        self.last_upsert_stats = {
+            "submitted": int(submitted),
+            "committed": int(committed),
+            "skipped": int(skipped),
+            "bbox_fallback": int(bbox_fallback_ids),
+        }
 
         logger.info("upsert_stream 완료: %d committed points", committed)
 

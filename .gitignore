@@ -7,5 +7,9 @@ CLIP-ReID_official/
 __pycache__/
 *.zip
 log*.txt
-filtered_list.txt.venv/
-
+filtered_list.txt
+bench/runs/
+bench/cache/
+bench/studies/
+bench/combos/
+.venv/

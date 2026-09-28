@@ -1,0 +1,28 @@
+﻿detector:
+  module: detect.detectors.rfdetr_detector
+  class: RFDETRDetector
+  params:
+    conf_threshold: 0.2
+    filter_forensic: true
+
+tracker:
+  module: detect.trackers.botsort_tracker
+  class: BoTSORTTracker
+  params:
+    device: cuda:0
+    half: true
+
+stitcher:
+  module: detect.stitchers.sushi_stitcher
+  class: SUSHIStitcher
+  params:
+    sushi_root: ./third_party/SUSHI
+    window_sec: 30
+
+# 검출기 교체: detector: 의 module/class 만 바꾼다. YOLO26 판은 pipeline_tracking_yolo26.yaml 참고.
+#   module: detect.detectors.yolo26_detector
+#   class: YOLO26Detector
+#   params: {weights: yolo26m.pt, conf_threshold: 0.2, imgsz: 640}
+
+
+

@@ -1,0 +1,19 @@
+detector:
+  module: detect.detectors.rfdetr_detector
+  class: RFDETRDetector
+  params:
+    conf_threshold: 0.5
+
+tracker:
+  module: detect.trackers.botsort_tracker
+  class: BoTSORTTracker
+  params:
+    device: cuda:0
+    half: true
+
+stitcher:
+  module: detect.stitchers.sushi_stitcher
+  class: SUSHIStitcher
+  params:
+    sushi_root: ./third_party/SUSHI
+    window_sec: 30

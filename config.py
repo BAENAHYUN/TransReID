@@ -6,6 +6,10 @@ pipeline.yaml 로더 + 검증.
 
 이번 개정
 --------
+  6) Hybrid-C duplicate_grouping 설정 추가.
+     pipeline.yaml 의 duplicate_grouping 을 검색 중복 collapse 정책의 SSOT로 사용한다.
+     enabled / overfetch_factor / max_fetch / payload key를 로드 시점에 검증한다.
+
   5) collection_prefix 추가 + person_collection() / object_collection().
 
      기존에는 pipeline.yaml 에 collection: person_db 가 적혀 있는데
@@ -50,9 +54,20 @@ logger = logging.getLogger(__name__)
 VALID_SCOPES = {"all", "person", "object"}
 VALID_FUSION = {"dbsf", "rrf"}
 VALID_QUANT = {"scalar", "binary", "none"}
+VALID_TRANSLATION_BACKENDS = {"opus", "nllb", "none"}
 
 # Qdrant 가 지원하는 distance. 대소문자는 무시하고 비교한다.
 VALID_DISTANCE = {"cosine", "dot", "euclid", "manhattan"}
+
+# pipeline yaml 최상위에서 허용하는 키. 이 로더가 읽는 키 + 다른 스크립트가 읽는
+# 선택 섹션(detector/tracker/stitcher: detect/runner, clustering: report_common,
+# fingerprint: build_db). 여기 없는 키는 from_dict 가 오타로 간주해 거부한다.
+TOP_LEVEL_KEYS = frozenset({
+    "retrievers", "collection", "collection_prefix", "person_labels",
+    "fusion", "qdrant", "duplicate_grouping", "query", "verifiers",
+    "detector", "tracker", "stitcher",
+    "clustering", "fingerprint",
+})
 
 # score 가 작을수록 가까운 distance. threshold 방향이 반대가 된다.
 SMALLER_IS_BETTER_DISTANCE = {"euclid", "manhattan"}
@@ -95,6 +110,39 @@ class FusionSpec:
     method: str = "dbsf"
     prefetch_limit: int = 100
     limit: int = 20
+
+
+@dataclass(frozen=True)
+class DuplicateGroupingSpec:
+    """Hybrid-C 검색 결과 duplicate-group collapse 설정.
+
+    semantic duplicate는 DB point를 삭제하지 않고 duplicate_group_id로 보존한다.
+    검색 시에만 같은 duplicate_group_id 결과를 하나로 collapse한다.
+    ambiguous_group_id는 collapse key로 사용하지 않는다.
+    """
+
+    enabled: bool = True
+    overfetch_factor: int = 3
+    max_fetch: int = 200
+    group_payload_key: str = "duplicate_group_id"
+    ambiguous_payload_key: str = "ambiguous_group_id"
+
+
+@dataclass(frozen=True)
+class TranslationSpec:
+    """자연어 query 번역 설정."""
+    enabled: bool = True
+    backend: str = "opus"
+    model_id: Optional[str] = None
+    max_new_tokens: int = 64
+    cache_size: int = 2048
+
+
+@dataclass(frozen=True)
+class QuerySpec:
+    """자연어 query 전처리 설정."""
+    translation: TranslationSpec = field(default_factory=TranslationSpec)
+    expand: bool = False
 
 
 @dataclass(frozen=True)
@@ -179,6 +227,10 @@ class PipelineConfig:
     retrievers: Dict[str, RetrieverSpec]
     fusion: FusionSpec
     qdrant: QdrantSpec
+    duplicate_grouping: DuplicateGroupingSpec = field(
+        default_factory=DuplicateGroupingSpec
+    )
+    query: QuerySpec = field(default_factory=QuerySpec)
     verifiers: Dict[str, Any] = field(default_factory=dict)
 
     # ---------- 로드 ---------- #
@@ -197,6 +249,23 @@ class PipelineConfig:
         raw: Dict[str, Any],
         base_dir: Optional[Path] = None,
     ) -> "PipelineConfig":
+        if not isinstance(raw, dict):
+            raise ValueError("설정 최상위는 매핑(dict)이어야 합니다.")
+
+        # 최상위 키 오타 차단. 예: collection_prefx 는 무시되고 기본 'forensic' 으로
+        # 연결되어 다른 컬렉션을 의도한 build 가 운영 컬렉션에 적재된다.
+        # '_' 로 시작하는 키는 메타데이터로 허용한다.
+        unknown_top = sorted(
+            str(k) for k in raw
+            if not str(k).startswith("_") and str(k) not in TOP_LEVEL_KEYS
+        )
+        if unknown_top:
+            raise ValueError(
+                f"pipeline yaml 최상위에 알 수 없는 키 {unknown_top}\n"
+                f"  허용값={sorted(TOP_LEVEL_KEYS)}\n"
+                "  오타라면 고치고, 새 섹션이면 config.TOP_LEVEL_KEYS 에 추가하세요."
+            )
+
         if "retrievers" not in raw or not raw["retrievers"]:
             raise ValueError("설정에 retrievers 가 최소 하나는 있어야 합니다.")
 
@@ -220,8 +289,16 @@ class PipelineConfig:
                     f"중 하나여야 합니다 (받은 값: {r['scope']})"
                 )
 
-            if int(r["dim"]) <= 0:
-                raise ValueError(f"retriever '{name}': dim 은 양수여야 합니다")
+            dim = r["dim"]
+            if (
+                not isinstance(dim, int)
+                or isinstance(dim, bool)
+                or dim <= 0
+            ):
+                raise ValueError(
+                    f"retriever '{name}': dim 은 1 이상의 정수여야 합니다 "
+                    f"(받은 값: {dim!r})"
+                )
 
             weight = float(r.get("weight", 1.0))
             if weight < 0:
@@ -293,6 +370,204 @@ class PipelineConfig:
             limit=limit,
         )
 
+        # ---------------- Hybrid-C duplicate grouping ---------------- #
+        dg_raw = raw.get("duplicate_grouping") or {}
+        if not isinstance(dg_raw, dict):
+            raise ValueError(
+                "duplicate_grouping 은 mapping이어야 합니다 "
+                f"(받은 값: {dg_raw!r})"
+            )
+
+        _check_keys(
+            "duplicate_grouping",
+            "duplicate_grouping",
+            dg_raw,
+            DuplicateGroupingSpec,
+        )
+
+        dg_enabled = dg_raw.get("enabled", True)
+        if not isinstance(dg_enabled, bool):
+            raise ValueError(
+                "duplicate_grouping.enabled 는 true/false 여야 합니다 "
+                f"(받은 값: {dg_enabled!r})"
+            )
+
+        overfetch_factor = dg_raw.get("overfetch_factor", 3)
+        if (
+            not isinstance(overfetch_factor, int)
+            or isinstance(overfetch_factor, bool)
+            or overfetch_factor < 1
+        ):
+            raise ValueError(
+                "duplicate_grouping.overfetch_factor 는 1 이상의 정수여야 합니다 "
+                f"(받은 값: {overfetch_factor!r})"
+            )
+
+        max_fetch = dg_raw.get("max_fetch", 200)
+        if (
+            not isinstance(max_fetch, int)
+            or isinstance(max_fetch, bool)
+            or max_fetch < 1
+        ):
+            raise ValueError(
+                "duplicate_grouping.max_fetch 는 1 이상의 정수여야 합니다 "
+                f"(받은 값: {max_fetch!r})"
+            )
+
+        if dg_enabled and max_fetch < fusion.limit:
+            raise ValueError(
+                "duplicate_grouping.max_fetch 는 grouping이 활성화된 경우 "
+                "fusion.limit 이상이어야 합니다 "
+                f"(max_fetch={max_fetch}, fusion.limit={fusion.limit})"
+            )
+
+        group_payload_key = dg_raw.get(
+            "group_payload_key",
+            "duplicate_group_id",
+        )
+        ambiguous_payload_key = dg_raw.get(
+            "ambiguous_payload_key",
+            "ambiguous_group_id",
+        )
+
+        for key_name, value in (
+            ("group_payload_key", group_payload_key),
+            ("ambiguous_payload_key", ambiguous_payload_key),
+        ):
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(
+                    f"duplicate_grouping.{key_name} 는 비어 있지 않은 문자열이어야 "
+                    f"합니다 (받은 값: {value!r})"
+                )
+
+        group_payload_key = group_payload_key.strip()
+        ambiguous_payload_key = ambiguous_payload_key.strip()
+
+        if group_payload_key == ambiguous_payload_key:
+            raise ValueError(
+                "duplicate_grouping.group_payload_key 와 "
+                "ambiguous_payload_key 는 서로 달라야 합니다. "
+                "Hybrid C에서는 duplicate group만 collapse하고 ambiguous group은 "
+                "collapse하지 않습니다."
+            )
+
+        # Unified Hybrid-C payload contract is canonical across dedup, adapter,
+        # audit and search. Allowing arbitrary key names here would make search
+        # read a key that upstream never writes, silently disabling collapse.
+        if group_payload_key != "duplicate_group_id":
+            raise ValueError(
+                "duplicate_grouping.group_payload_key 는 현재 통합 payload 계약상 "
+                "'duplicate_group_id' 이어야 합니다 "
+                f"(받은 값: {group_payload_key!r})"
+            )
+        if ambiguous_payload_key != "ambiguous_group_id":
+            raise ValueError(
+                "duplicate_grouping.ambiguous_payload_key 는 현재 통합 payload 계약상 "
+                "'ambiguous_group_id' 이어야 합니다 "
+                f"(받은 값: {ambiguous_payload_key!r})"
+            )
+
+        duplicate_grouping = DuplicateGroupingSpec(
+            enabled=dg_enabled,
+            overfetch_factor=overfetch_factor,
+            max_fetch=max_fetch,
+            group_payload_key=group_payload_key,
+            ambiguous_payload_key=ambiguous_payload_key,
+        )
+
+        # ---------------- query / translation ---------------- #
+        query_raw = raw.get("query") or {}
+        if not isinstance(query_raw, dict):
+            raise ValueError(
+                f"query 는 mapping이어야 합니다 (받은 값: {query_raw!r})"
+            )
+        _check_keys("query", "query", query_raw, QuerySpec)
+
+        translation_raw = query_raw.get("translation") or {}
+        if not isinstance(translation_raw, dict):
+            raise ValueError(
+                "query.translation 은 mapping이어야 합니다 "
+                f"(받은 값: {translation_raw!r})"
+            )
+        _check_keys(
+            "translation",
+            "query.translation",
+            translation_raw,
+            TranslationSpec,
+        )
+
+        enabled = translation_raw.get("enabled", True)
+        if not isinstance(enabled, bool):
+            raise ValueError(
+                "query.translation.enabled 는 true/false 여야 합니다 "
+                f"(받은 값: {enabled!r})"
+            )
+
+        backend = str(
+            translation_raw.get("backend", "opus")
+        ).strip().lower()
+        if backend not in VALID_TRANSLATION_BACKENDS:
+            raise ValueError(
+                "query.translation.backend 는 "
+                f"{sorted(VALID_TRANSLATION_BACKENDS)} 중 하나여야 합니다 "
+                f"(받은 값: {backend!r})"
+            )
+
+        model_id = translation_raw.get("model_id")
+        if model_id is not None:
+            if not isinstance(model_id, str) or not model_id.strip():
+                raise ValueError(
+                    "query.translation.model_id 는 null 또는 비어 있지 않은 "
+                    f"문자열이어야 합니다 (받은 값: {model_id!r})"
+                )
+            model_id = model_id.strip()
+
+        if backend == "none" and model_id is not None:
+            raise ValueError(
+                "query.translation.backend='none' 에서는 "
+                "model_id 를 지정할 수 없습니다."
+            )
+
+        max_new_tokens = translation_raw.get("max_new_tokens", 64)
+        if (
+            not isinstance(max_new_tokens, int)
+            or isinstance(max_new_tokens, bool)
+            or max_new_tokens <= 0
+        ):
+            raise ValueError(
+                "query.translation.max_new_tokens 는 1 이상의 정수여야 합니다 "
+                f"(받은 값: {max_new_tokens!r})"
+            )
+
+        cache_size = translation_raw.get("cache_size", 2048)
+        if (
+            not isinstance(cache_size, int)
+            or isinstance(cache_size, bool)
+            or cache_size <= 0
+        ):
+            raise ValueError(
+                "query.translation.cache_size 는 1 이상의 정수여야 합니다 "
+                f"(받은 값: {cache_size!r})"
+            )
+
+        expand = query_raw.get("expand", False)
+        if not isinstance(expand, bool):
+            raise ValueError(
+                "query.expand 는 true/false 여야 합니다 "
+                f"(받은 값: {expand!r})"
+            )
+
+        query_cfg = QuerySpec(
+            translation=TranslationSpec(
+                enabled=enabled,
+                backend=backend,
+                model_id=model_id,
+                max_new_tokens=max_new_tokens,
+                cache_size=cache_size,
+            ),
+            expand=expand,
+        )
+
         # ---------------- qdrant ---------------- #
         q = raw.get("qdrant") or {}
 
@@ -339,6 +614,8 @@ class PipelineConfig:
             retrievers=retrievers,
             fusion=fusion,
             qdrant=qdrant,
+            duplicate_grouping=duplicate_grouping,
+            query=query_cfg,
             verifiers=raw.get("verifiers") or {},
         )
 
@@ -401,9 +678,26 @@ class PipelineConfig:
             f"prefetch={self.fusion.prefetch_limit} limit={self.fusion.limit}"
         )
         lines.append(
+            "duplicate_grouping: "
+            f"enabled={self.duplicate_grouping.enabled} "
+            f"overfetch={self.duplicate_grouping.overfetch_factor}x "
+            f"max_fetch={self.duplicate_grouping.max_fetch} "
+            f"group_key={self.duplicate_grouping.group_payload_key} "
+            f"ambiguous_key={self.duplicate_grouping.ambiguous_payload_key}"
+        )
+        lines.append(
             f"qdrant: distance={self.qdrant.distance} "
             f"quant={self.qdrant.quantization.type} "
             f"on_disk={self.qdrant.on_disk}"
+        )
+        lines.append(
+            "query: "
+            f"translate={self.query.translation.enabled} "
+            f"backend={self.query.translation.backend} "
+            f"model={self.query.translation.model_id or '<backend-default>'} "
+            f"max_new_tokens={self.query.translation.max_new_tokens} "
+            f"cache_size={self.query.translation.cache_size} "
+            f"expand={self.query.expand}"
         )
         for name in self.retrievers:
             qs = self.qdrant.quant_for(name)

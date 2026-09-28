@@ -87,12 +87,12 @@ class SigLIP2Embedder(BaseEmbedder):
 
     def __init__(
         self,
-        model_id: str = "google/siglip2-base-patch16-naflex",
+        model_id: str = "google/siglip2-so400m-patch16-naflex",
         max_num_patches: int = 576,
         device: Optional[str] = None,
         batch_size: int = 32,
         l2_normalize: bool = True,
-        fp16: bool = True,
+        fp16: bool = False,
         cache_dir: Optional[str] = None,
         local_files_only: bool = False,
         l2_normalize_out: Optional[bool] = None,   # 구버전 인자명 호환
@@ -394,11 +394,18 @@ if __name__ == "__main__":
     )
 
     ap = argparse.ArgumentParser(description="SigLIP2 embedding smoke test")
-    ap.add_argument("--model-id", default="google/siglip2-base-patch16-naflex")
+    ap.add_argument(
+        "--model-id",
+        default="google/siglip2-so400m-patch16-naflex"
+    )
+    
     ap.add_argument("--max-num-patches", type=int, default=576)
     ap.add_argument("--device", default=None)
-    ap.add_argument("--no-fp16", action="store_true",
-                    help="autocast 끄고 순수 fp32 로 실행")
+    ap.add_argument(
+        "--fp16",
+        action="store_true",
+        help="FP16 autocast 사용 (기본: FP32)"
+    )
     ap.add_argument("--image", required=True)
     ap.add_argument("--texts", nargs="+", required=True)
     args = ap.parse_args()
@@ -407,7 +414,7 @@ if __name__ == "__main__":
         model_id=args.model_id,
         max_num_patches=args.max_num_patches,
         device=args.device,
-        fp16=not args.no_fp16,
+        fp16=args.fp16,
     )
 
     # 경로를 그대로 넘긴다 — BaseEmbedder 가 처리한다

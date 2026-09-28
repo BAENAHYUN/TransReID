@@ -113,12 +113,15 @@ for pid, cid in zip(all_ids, all_labels):
 # 같은 cluster_id의 포인트 id들 리스트로 묶기
 
 for cluster_id, point_ids in tqdm(cluster_to_ids.items()):
-    client.overwrite_payload(
+    # set_payload: 지정한 키만 추가/갱신. overwrite_payload 는 나머지 payload
+    # (video_path/crop_path/track_id/source ...) 를 전부 지워 추적성을 파괴한다.
+    # minibatch_person_safe.py 와 같은 안전한 호출로 통일.
+    client.set_payload(
         collection_name=COLLECTION,
         payload={"cluster_id": cluster_id},
         points=point_ids
     )
-# overwrite_payload는 여러 포인트에 동시에 같은 payload를 씀
+# set_payload는 여러 포인트에 동시에 같은 payload 키를 추가함
 # cluster_id당 1번 요청 → 총 300번만 Qdrant 서버에 요청
 
 print("\n ----- 클러스터링 완료 -----")

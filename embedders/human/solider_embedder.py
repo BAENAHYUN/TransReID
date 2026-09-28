@@ -63,6 +63,18 @@ teacher checkpoint를 자동 판별/변환하지 않는다. 그런 checkpoint는
 
 * 테스트 전처리는 SOLIDER-REID 평가 경로에 맞춰
   torchvision Resize 기본 interpolation(BILINEAR)을 사용한다.
+
+안전성 검증
+----------
+
+* 공식 SOLIDER-REID checkpoint만 사용한다는 운영 전제에 따라
+  backbone state_dict는 현재 모델과 key/shape가 100% 일치해야 한다.
+
+* Semantic Controller(semantic_embed_w.*, semantic_embed_b.*)는
+  모델과 checkpoint 양쪽에 모두 존재해야 하며, 로드 후 값까지 일치하는지 확인한다.
+
+* semantic_weight tensor cache는 (batch_size, semantic_weight)를 key로 사용한다.
+  운영 중 semantic_weight가 변경되더라도 이전 cache가 잘못 재사용되지 않는다.
 """
 
 from __future__ import annotations
@@ -184,7 +196,8 @@ class SoliderEmbedder(BaseEmbedder):
         self.transform = self._build_transform()
 
         # semantic_weight tensor cache
-        self._sw_cache: dict[int, torch.Tensor] = {}
+        # 안전성: batch size뿐 아니라 현재 semantic_weight까지 key에 포함한다.
+        self._sw_cache: dict[Tuple[int, float], torch.Tensor] = {}
 
         logger.info(
             "SoliderEmbedder ready | "
@@ -503,63 +516,144 @@ class SoliderEmbedder(BaseEmbedder):
 
         model_sd = model.state_dict()
 
+        # ---------------------------------------------------------------
+        # 안전성 강화 1: backbone state_dict 100% 일치 강제
+        #
+        # 이 adapter는 공식 SOLIDER-REID fine-tuned checkpoint만 지원한다.
+        # 따라서 "90% 이상이면 허용"하지 않고, 현재 backbone과 checkpoint의
+        # key/shape가 완전히 일치할 때만 로드한다.
+        # ---------------------------------------------------------------
+
+        non_tensor_keys = sorted(
+            key
+            for key, value in backbone_sd.items()
+            if not torch.is_tensor(value)
+        )
+
+        if non_tensor_keys:
+            raise RuntimeError(
+                "SOLIDER-REID backbone checkpoint에 tensor가 아닌 값이 있습니다.\n"
+                f"key 예시: {non_tensor_keys[:5]}"
+            )
+
+        model_keys = set(model_sd)
+        checkpoint_keys = set(backbone_sd)
+
+        missing = sorted(
+            model_keys - checkpoint_keys
+        )
+        unexpected = sorted(
+            checkpoint_keys - model_keys
+        )
+
         shape_mismatch = []
-        for key, value in backbone_sd.items():
-            if key in model_sd and model_sd[key].shape != value.shape:
+        for key in sorted(model_keys & checkpoint_keys):
+            if model_sd[key].shape != backbone_sd[key].shape:
                 shape_mismatch.append(
                     (
                         key,
-                        tuple(value.shape),
+                        tuple(backbone_sd[key].shape),
                         tuple(model_sd[key].shape),
                     )
                 )
 
-        if shape_mismatch:
-            key, got, expected = shape_mismatch[0]
-            raise RuntimeError(
-                "SOLIDER-REID backbone checkpoint shape가 모델과 다릅니다.\n"
-                f"key={key} checkpoint={got} model={expected}\n"
-                f"pipeline.yaml의 backbone='{self.backbone}'과 checkpoint가 "
-                "일치하는지 확인하세요."
+        if missing or unexpected or shape_mismatch:
+            shape_example = (
+                shape_mismatch[:3]
+                if shape_mismatch
+                else []
             )
-
-        missing, unexpected = model.load_state_dict(
-            backbone_sd,
-            strict=False,
-        )
-
-        loaded = sum(
-            1
-            for key in backbone_sd
-            if key in model_sd
-        )
-        total = len(model_sd)
-        coverage = loaded / max(total, 1)
-
-        # 공식 ReID checkpoint라면 대부분의 backbone state가 일치해야 한다.
-        # 버전별 비영속 buffer 차이는 허용하되, 대규모 불일치는 즉시 차단한다.
-        if unexpected or coverage < 0.90:
             raise RuntimeError(
-                "SOLIDER-REID backbone checkpoint가 현재 backbone과 충분히 "
-                "일치하지 않습니다.\n"
-                f"loaded={loaded}/{total} ({coverage:.1%})\n"
-                f"unexpected 예시: {unexpected[:5]}\n"
-                f"missing 예시: {missing[:5]}\n"
+                "SOLIDER-REID backbone checkpoint가 현재 backbone과 "
+                "100% 일치하지 않습니다.\n"
+                f"missing={len(missing)} 예시={missing[:5]}\n"
+                f"unexpected={len(unexpected)} 예시={unexpected[:5]}\n"
+                f"shape_mismatch={len(shape_mismatch)} 예시={shape_example}\n"
                 f"pipeline.yaml의 backbone='{self.backbone}'과 checkpoint를 "
                 "확인하세요."
             )
 
-        if missing:
-            logger.debug(
-                "SOLIDER backbone missing keys: %s",
-                missing[:10],
+        # ---------------------------------------------------------------
+        # 안전성 강화 2: Semantic Controller 필수 검사
+        #
+        # 공식 SOLIDER Swin backbone의 controller parameter:
+        #   semantic_embed_w.*
+        #   semantic_embed_b.*
+        #
+        # 모델에는 있는데 checkpoint에 없거나, 반대로 checkpoint에만 있는
+        # 경우를 모두 즉시 차단한다.
+        # ---------------------------------------------------------------
+
+        semantic_prefixes = (
+            "semantic_embed_w.",
+            "semantic_embed_b.",
+        )
+
+        semantic_model_keys = sorted(
+            key
+            for key in model_sd
+            if key.startswith(semantic_prefixes)
+        )
+        semantic_checkpoint_keys = sorted(
+            key
+            for key in backbone_sd
+            if key.startswith(semantic_prefixes)
+        )
+
+        if not semantic_model_keys:
+            raise RuntimeError(
+                "현재 SOLIDER backbone에서 Semantic Controller parameter를 "
+                "찾을 수 없습니다.\n"
+                "필요 key prefix: semantic_embed_w.*, semantic_embed_b.*"
             )
 
+        if semantic_model_keys != semantic_checkpoint_keys:
+            missing_semantic = sorted(
+                set(semantic_model_keys) - set(semantic_checkpoint_keys)
+            )
+            unexpected_semantic = sorted(
+                set(semantic_checkpoint_keys) - set(semantic_model_keys)
+            )
+            raise RuntimeError(
+                "SOLIDER Semantic Controller checkpoint가 모델과 일치하지 "
+                "않습니다.\n"
+                f"missing_semantic={missing_semantic[:8]}\n"
+                f"unexpected_semantic={unexpected_semantic[:8]}"
+            )
+
+        # 전체 backbone key/shape가 완전히 일치했으므로 strict=True로 로드한다.
+        model.load_state_dict(
+            backbone_sd,
+            strict=True,
+        )
+
+        # 로드 후 controller tensor가 checkpoint와 정확히 같은지 한 번 더 확인한다.
+        loaded_model_sd = model.state_dict()
+        semantic_value_mismatch = [
+            key
+            for key in semantic_model_keys
+            if not torch.equal(
+                loaded_model_sd[key].detach().cpu(),
+                backbone_sd[key].detach().cpu(),
+            )
+        ]
+
+        if semantic_value_mismatch:
+            raise RuntimeError(
+                "SOLIDER Semantic Controller가 checkpoint 값과 정확히 "
+                "로드되지 않았습니다.\n"
+                f"불일치 key 예시: {semantic_value_mismatch[:8]}"
+            )
+
+        loaded = len(model_sd)
+        total = len(model_sd)
+
         logger.info(
-            "SOLIDER-REID backbone 로드 | %d/%d (%.1f%%)",
+            "SOLIDER-REID backbone strict 로드 | %d/%d (100.0%%) | "
+            "semantic controller %d keys verified",
             loaded,
             total,
-            coverage * 100.0,
+            len(semantic_model_keys),
         )
 
         # ---------------------------------------------------------------
@@ -678,8 +772,17 @@ class SoliderEmbedder(BaseEmbedder):
         항상 명시적으로 forward에 넘긴다.
         """
 
+        # 안전성 강화 3:
+        # batch_size만 key로 쓰면 런타임에서 semantic_weight가 변경됐을 때
+        # 이전 weight tensor가 재사용될 수 있다. 현재 weight까지 cache key에
+        # 포함하여 잘못된 재사용을 막는다.
+        cache_key = (
+            int(batch_size),
+            float(self.semantic_weight),
+        )
+
         cached = self._sw_cache.get(
-            batch_size
+            cache_key
         )
 
         if cached is not None:
@@ -703,7 +806,7 @@ class SoliderEmbedder(BaseEmbedder):
         )
 
         self._sw_cache[
-            batch_size
+            cache_key
         ] = sw
 
         return sw

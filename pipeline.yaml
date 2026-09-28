@@ -1,71 +1,71 @@
-# =============================================================================
-# DB 구축 / 검색 공용 설정
+﻿# =============================================================================
+# DB 援ъ텞 / 寃??怨듭슜 ?ㅼ젙
 #
-# 이 파일 하나가 파이프라인의 단일 진실 공급원(single source of truth)이다.
-# 구축 스크립트와 검색 스크립트가 같은 파일을 읽기 때문에, "인덱싱할 때와
-# 질의할 때 차원/전처리/가중치가 어긋나는" 사고가 구조적으로 막힌다.
+# ???뚯씪 ?섎굹媛 ?뚯씠?꾨씪?몄쓽 ?⑥씪 吏꾩떎 怨듦툒??single source of truth)?대떎.
+# 援ъ텞 ?ㅽ겕由쏀듃? 寃???ㅽ겕由쏀듃媛 媛숈? ?뚯씪???쎄린 ?뚮Ц?? "?몃뜳?깊븷 ?뚯?
+# 吏덉쓽????李⑥썝/?꾩쿂由?媛以묒튂媛 ?닿툔?섎뒗" ?ш퀬媛 援ъ“?곸쑝濡?留됲엺??
 #
-# 새 임베더를 추가하려면 아래 retrievers 에 항목 하나만 늘리면 된다.
-# 파이프라인 코드는 건드리지 않는다.
+# ???꾨쿋?붾? 異붽??섎젮硫??꾨옒 retrievers ????ぉ ?섎굹留??섎━硫??쒕떎.
+# ?뚯씠?꾨씪??肄붾뱶??嫄대뱶由ъ? ?딅뒗??
 #
 # -----------------------------------------------------------------------------
-# 경로 규칙: params 안의 './' 상대경로는 **이 yaml 파일이 있는 디렉터리** 기준
-#            으로 절대경로화된다 (config._resolve_paths). 실행 위치(CWD)는
-#            무관하다.
-#            단, 이 파일을 하위 폴더로 옮기면 './IRRA' 도 함께 따라 움직이므로
-#            (예: configs/pipeline.yaml -> './IRRA' 가 configs/IRRA 로 풀린다),
-#            옮길 때는 params 의 상대경로를 같이 조정해야 한다.
+# 寃쎈줈 洹쒖튃: params ?덉쓽 './' ?곷?寃쎈줈??**??yaml ?뚯씪???덈뒗 ?붾젆?곕━** 湲곗?
+#            ?쇰줈 ?덈?寃쎈줈?붾맂??(config._resolve_paths). ?ㅽ뻾 ?꾩튂(CWD)??
+#            臾닿??섎떎.
+#            ?? ???뚯씪???섏쐞 ?대뜑濡???린硫?'./IRRA' ???④퍡 ?곕씪 ?吏곸씠誘濡?
+#            (?? configs/pipeline.yaml -> './IRRA' 媛 configs/IRRA 濡??由곕떎),
+#            ??만 ?뚮뒗 params ???곷?寃쎈줈瑜?媛숈씠 議곗젙?댁빞 ?쒕떎.
 # -----------------------------------------------------------------------------
 # =============================================================================
 
-# --- Qdrant 컬렉션 이름 -------------------------------------------------------
+# --- Qdrant 而щ젆???대쫫 -------------------------------------------------------
 #
-# person / object crop 은 처리하는 vector 집합이 다르므로 컬렉션을 분리한다.
+# person / object crop ? 泥섎━?섎뒗 vector 吏묓빀???ㅻⅤ誘濡?而щ젆?섏쓣 遺꾨━?쒕떎.
 #   {collection_prefix}_person : siglip2 / irra / solider
 #   {collection_prefix}_object : siglip2 / dinov2
 #
 # collection_prefix
-#   DB 구축 구조의 SSOT. build_db.py 가 cfg.person_collection() /
-#   cfg.object_collection() 으로 읽어 두 컬렉션을 만든다.
-#   접미어("_person" / "_object")는 config.py 에만 존재하므로 오타로 두 이름이
-#   갈라질 수 없다.
+#   DB 援ъ텞 援ъ“??SSOT. build_db.py 媛 cfg.person_collection() /
+#   cfg.object_collection() ?쇰줈 ?쎌뼱 ??而щ젆?섏쓣 留뚮뱺??
+#   ?묐???"_person" / "_object")??config.py ?먮쭔 議댁옱?섎?濡??ㅽ?濡????대쫫??
+#   媛덈씪吏????녿떎.
 #
 # collection
-#   QdrantStore(cfg) 가 직접 읽는 필드. 단일 컬렉션만 대상으로 하는 관리
-#   스크립트(delete_query_crops.py 등)의 기본 대상이다.
-#   **DB 구축과는 무관하다** — 이 값 자체로 구축되지 않는다.
-#   object 컬렉션을 대상으로 하려면 해당 스크립트에서 명시적으로 지정할 것.
+#   QdrantStore(cfg) 媛 吏곸젒 ?쎈뒗 ?꾨뱶. ?⑥씪 而щ젆?섎쭔 ??곸쑝濡??섎뒗 愿由?
+#   ?ㅽ겕由쏀듃(delete_query_crops.py ????湲곕낯 ??곸씠??
+#   **DB 援ъ텞怨쇰뒗 臾닿??섎떎** ????媛??먯껜濡?援ъ텞?섏? ?딅뒗??
+#   object 而щ젆?섏쓣 ??곸쑝濡??섎젮硫??대떦 ?ㅽ겕由쏀듃?먯꽌 紐낆떆?곸쑝濡?吏?뺥븷 寃?
 #
 collection_prefix: forensic
 collection: forensic_person
 
-# --- 사람으로 취급할 detection 라벨 ------------------------------------------
+# --- ?щ엺?쇰줈 痍④툒??detection ?쇰꺼 ------------------------------------------
 person_labels: [person, pedestrian, people, human]
 
-# --- 검색 대상 벡터(=ANN 인덱스에 올라가는 것) --------------------------------
+# --- 寃?????踰≫꽣(=ANN ?몃뜳?ㅼ뿉 ?щ씪媛??寃? --------------------------------
 #
-#   tool   : 논리적 묶음 라벨. 코드 동작에는 영향 없고 문서용.
+#   tool   : ?쇰━??臾띠쓬 ?쇰꺼. 肄붾뱶 ?숈옉?먮뒗 ?곹뼢 ?녾퀬 臾몄꽌??
 #            common | human | object
 #
-#   scope  : 이 임베더가 처리할 crop 종류. all | person | object
-#            **QdrantStore 가 이 값으로 is_person 필터를 자동 결정한다.**
-#              all    -> 필터 없음 (None)
+#   scope  : ???꾨쿋?붽? 泥섎━??crop 醫낅쪟. all | person | object
+#            **QdrantStore 媛 ??媛믪쑝濡?is_person ?꾪꽣瑜??먮룞 寃곗젙?쒕떎.**
+#              all    -> ?꾪꽣 ?놁쓬 (None)
 #              person -> is_person == true
 #              object -> is_person == false
-#            세 값 외에는 ValueError. config.py 가 이 필드를 반드시
-#            retrievers[name].scope 로 노출해야 한다.
+#            ??媛??몄뿉??ValueError. config.py 媛 ???꾨뱶瑜?諛섎뱶??
+#            retrievers[name].scope 濡??몄텧?댁빞 ?쒕떎.
 #
 #   supports_text
-#          : 자연어 질의를 직접 임베딩할 수 있는 retriever 인지 여부.
-#              true  -> Router.embed_query_text() 의 로드 대상
-#              false -> 텍스트 질의에서는 registry.get()조차 호출하지 않음
-#            모든 retriever 에 반드시 명시한다.
-#            누락 시 config.py 가 로드 단계에서 실패시킨다.
+#          : ?먯뿰??吏덉쓽瑜?吏곸젒 ?꾨쿋?⑺븷 ???덈뒗 retriever ?몄? ?щ?.
+#              true  -> Router.embed_query_text() ??濡쒕뱶 ???
+#              false -> ?띿뒪??吏덉쓽?먯꽌??registry.get()議곗감 ?몄텧?섏? ?딆쓬
+#            紐⑤뱺 retriever ??諛섎뱶??紐낆떆?쒕떎.
+#            ?꾨씫 ??config.py 媛 濡쒕뱶 ?④퀎?먯꽌 ?ㅽ뙣?쒗궓??
 #
-#   dim    : 임베딩 차원. Qdrant 컬렉션 생성과 검증에 쓰인다.
-#   weight : 현재 fusion 검색은 사용하지 않지만 기존 설정 계약은 유지한다.
-#   module / class : 지연 로딩할 파이썬 경로. 실제로 쓸 때만 import 된다.
-#   params : 생성자 인자 그대로 전달.
+#   dim    : ?꾨쿋??李⑥썝. Qdrant 而щ젆???앹꽦怨?寃利앹뿉 ?곗씤??
+#   weight : ?꾩옱 fusion 寃?됱? ?ъ슜?섏? ?딆?留?湲곗〈 ?ㅼ젙 怨꾩빟? ?좎??쒕떎.
+#   module / class : 吏??濡쒕뵫???뚯씠??寃쎈줈. ?ㅼ젣濡????뚮쭔 import ?쒕떎.
+#   params : ?앹꽦???몄옄 洹몃?濡??꾨떖.
 #
 retrievers:
 
@@ -78,13 +78,13 @@ retrievers:
     module: embedders.siglip2_embedder
     class: SigLIP2Embedder
     params:
-      # naflex = 원본 종횡비 유지. 3:1 보행자 crop 이 안 뭉개진다.
+      # naflex = ?먮낯 醫낇슒鍮??좎?. 3:1 蹂댄뻾??crop ????萸됯컻吏꾨떎.
       model_id: google/siglip2-base-patch16-naflex
 
-      # 색인할 때와 질의할 때 반드시 같은 값.
-      # 다르면 같은 이미지도 다른 벡터가 나온다.
+      # ?됱씤???뚯? 吏덉쓽????諛섎뱶??媛숈? 媛?
+      # ?ㅻⅤ硫?媛숈? ?대?吏???ㅻⅨ 踰≫꽣媛 ?섏삩??
       #
-      # 실제 crop 분포:
+      # ?ㅼ젣 crop 遺꾪룷:
       #   width  median = 98
       #   height median = 106
       #
@@ -92,9 +92,9 @@ retrievers:
       #   Top-1  : 96% / 96%
       #   Top-5  : 100% / 100%
       #   Top-10 : 100% / 100%
-      #   256이 처리속도와 VRAM 사용량에서 우세.
+      #   256??泥섎━?띾룄? VRAM ?ъ슜?됱뿉???곗꽭.
       #
-      # 따라서 운영 baseline은 256으로 고정한다.
+      # ?곕씪???댁쁺 baseline? 256?쇰줈 怨좎젙?쒕떎.
       max_num_patches: 256
 
       batch_size: 32
@@ -134,74 +134,24 @@ retrievers:
     tool: object
     scope: object
     supports_text: false
-    dim: 768
+    dim: 1536
     weight: 1.0
-    module: embedders.object.dinov2_embedder
-    class: DINOv2Embedder
+    module: embedders.object.dinov2_embedder_g14_reg_pad_final
+    class: DINOv2G14RegistersPadEmbedder
     params:
-      # -----------------------------------------------------------------------
-      # 운영 baseline
-      #
-      # 데이터셋 변화에 대한 일반화와 외부 공개 근거를 우선한다.
-      # RF-DETR tight crop 자체는 detection 단계에서 생성된다.
-      #
-      #   tight crop
-      #   -> Resize(shortest edge=256)
-      #   -> CenterCrop(224)
-      #   -> DINOv2
-      #   -> CLS
-      #   -> 768-d
-      #   -> L2 normalize
-      #
-      # 색인과 query는 반드시 아래와 동일한 설정을 사용한다.
-      # -----------------------------------------------------------------------
-      model_id: facebook/dinov2-base
-      feature: cls
-      image_size: 224
-      resize_mode: center_crop
-      l2_normalize: true
-      batch_size: 64
-
-      # -----------------------------------------------------------------------
-      # 실험/성능 최적화용 설정
-      #
-      # 운영 baseline에서는 아래 후보를 임의로 활성화하지 않는다.
-      #
-      # feature 후보:
-      #   mean
-      #   cls+mean
-      #     - cls+mean 사용 시 출력 차원이 768 -> 1536 이므로
-      #       retrievers.dinov2.dim도 반드시 1536으로 변경해야 한다.
-      #
-      # resize_mode 후보:
-      #   native
-      #   resize
-      #   pad
-      #
-      # 별도 후처리/모델 실험:
-      #   PCA / whitening
-      #   GeM
-      #   DINOv2 with Registers
-      #
-      # square-context 및 10/20/30% margin context는 자체 A/B에서
-      # tight crop 대비 개선되지 않아 현재 운영 후보에서 제외한다.
-      # -----------------------------------------------------------------------
-
-      # native 모드 전용 토큰 예산.
-      # 256 = 224x224 상당.
-      max_num_patches: 256
+      batch_size: 4
 
 
-# --- 융합 검색 ----------------------------------------------------------------
+# --- ?듯빀 寃??----------------------------------------------------------------
 #
-# 현재 검색 파이프라인에서는 fusion 검색을 사용하지 않는다.
+# ?꾩옱 寃???뚯씠?꾨씪?몄뿉?쒕뒗 fusion 寃?됱쓣 ?ъ슜?섏? ?딅뒗??
 #
-# 이 section 자체는 config.py 의 기존 설정 계약 때문에 유지한다.
-# 삭제해도 fusion 이 "비활성화"되는 것이 아니라 config.py 의 기본 FusionSpec
-# 값으로 폴백하므로, 현재는 명시적으로 남겨 둔다.
+# ??section ?먯껜??config.py ??湲곗〈 ?ㅼ젙 怨꾩빟 ?뚮Ц???좎??쒕떎.
+# ??젣?대룄 fusion ??"鍮꾪솢?깊솕"?섎뒗 寃껋씠 ?꾨땲??config.py ??湲곕낯 FusionSpec
+# 媛믪쑝濡??대갚?섎?濡? ?꾩옱??紐낆떆?곸쑝濡??④꺼 ?붾떎.
 #
-# Router / DB 구축에는 이 값이 직접 관여하지 않는다.
-# fused_search 계열을 호출하지 않는 한 실제 검색 결과에도 사용되지 않는다.
+# Router / DB 援ъ텞?먮뒗 ??媛믪씠 吏곸젒 愿?ы븯吏 ?딅뒗??
+# fused_search 怨꾩뿴???몄텧?섏? ?딅뒗 ???ㅼ젣 寃??寃곌낵?먮룄 ?ъ슜?섏? ?딅뒗??
 #
 fusion:
   method: rrf
@@ -209,23 +159,23 @@ fusion:
   limit: 20
 
 
-# --- Qdrant 저장 설정 ---------------------------------------------------------
+# --- Qdrant ????ㅼ젙 ---------------------------------------------------------
 #
-# 1000만 규모에서는 양자화가 선택이 아니라 전제다.
-#   float32 원본은 디스크에, int8 양자화본만 RAM 에 올리고,
-#   상위 후보는 원본으로 rescore 해서 정확도를 회복한다.
+# 1000留?洹쒕え?먯꽌???묒옄?붽? ?좏깮???꾨땲???꾩젣??
+#   float32 ?먮낯? ?붿뒪?ъ뿉, int8 ?묒옄?붾낯留?RAM ???щ━怨?
+#   ?곸쐞 ?꾨낫???먮낯?쇰줈 rescore ?댁꽌 ?뺥솗?꾨? ?뚮났?쒕떎.
 #
-# 용량 추정 (사람 비중 30% 가정):
+# ?⑸웾 異붿젙 (?щ엺 鍮꾩쨷 30% 媛??:
 #
-#   siglip2  768 x 10M ≈ 30.7 GB
-#   dinov2   768 x  7M ≈ 21.5 GB
-#   solider 1024 x  3M ≈ 12.3 GB
-#   irra     512 x  3M ≈  6.1 GB
+#   siglip2  768 x 10M ??30.7 GB
+#   dinov2   768 x  7M ??21.5 GB
+#   solider 1024 x  3M ??12.3 GB
+#   irra     512 x  3M ?? 6.1 GB
 #
-# 합계 약 70 GB (on_disk)
-# + int8 양자화본 약 17.5 GB (RAM)
+# ?⑷퀎 ??70 GB (on_disk)
+# + int8 ?묒옄?붾낯 ??17.5 GB (RAM)
 #
-# HNSW 그래프까지 하면 RAM 20 GB 안팎.
+# HNSW 洹몃옒?꾧퉴吏 ?섎㈃ RAM 20 GB ?덊뙉.
 #
 qdrant:
   url: http://localhost:6333
@@ -238,23 +188,23 @@ qdrant:
     always_ram: true
     quantile: 0.99
 
-    # rescore / oversampling 은 QdrantStore 기본값
-    # true / 2.0 을 사용한다.
+    # rescore / oversampling ? QdrantStore 湲곕낯媛?
+    # true / 2.0 ???ъ슜?쒕떎.
     #
-    # 저차원 벡터일수록 INT8 손실이 상대적으로 클 수 있으므로,
-    # IRRA 같은 벡터는 실제 Qdrant 정확도 검증 후
-    # overrides 로 조정한다.
+    # ?李⑥썝 踰≫꽣?쇱닔濡?INT8 ?먯떎???곷??곸쑝濡??????덉쑝誘濡?
+    # IRRA 媛숈? 踰≫꽣???ㅼ젣 Qdrant ?뺥솗??寃利???
+    # overrides 濡?議곗젙?쒕떎.
 
   hnsw:
     m: 16
     ef_construct: 100
 
-  # 벡터별 개별 설정.
+  # 踰≫꽣蹂?媛쒕퀎 ?ㅼ젙.
   #
-  # 생략 시 위 전역값 사용.
-  # 실제로 전역값과 다른 설정이 필요할 때만 추가한다.
+  # ?앸왂 ?????꾩뿭媛??ъ슜.
+  # ?ㅼ젣濡??꾩뿭媛믨낵 ?ㅻⅨ ?ㅼ젙???꾩슂???뚮쭔 異붽??쒕떎.
   #
-  # 예:
+  # ??
   #
   # overrides:
   #   irra:
@@ -269,17 +219,79 @@ qdrant:
   #       type: binary
   #       always_ram: true
   #
-  # 주의:
-  # config.py 의 hnsw_for(name) 은 overrides 에 hnsw 가 없을 때
-  # 반드시 전역 hnsw 로 폴백해야 한다.
+  # 二쇱쓽:
+  # config.py ??hnsw_for(name) ? overrides ??hnsw 媛 ?놁쓣 ??
+  # 諛섎뱶???꾩뿭 hnsw 濡??대갚?댁빞 ?쒕떎.
   #
   overrides: {}
 
 
-# --- 검증 단계 (현재 미사용) --------------------------------------------------
+# --- 寃利??④퀎 (?꾩옱 誘몄궗?? --------------------------------------------------
 #
-# SuperPoint / LightGlue 는 제외하기로 결정.
-# Qwen3-VL 은 DB 구축과 무관하며,
-# 검색 정확도 측정 후 도입 여부를 판단한다.
+# SuperPoint / LightGlue ???쒖쇅?섍린濡?寃곗젙.
+# Qwen3-VL ? DB 援ъ텞怨?臾닿??섎ŉ,
+# 寃???뺥솗??痢≪젙 ???꾩엯 ?щ?瑜??먮떒?쒕떎.
 #
 verifiers: {}
+
+detector:
+  module: detect.detectors.rfdetr_detector
+  class: RFDETRDetector
+  params:
+    conf_threshold: 0.5
+
+tracker:
+  module: detect.trackers.botsort_tracker
+  class: BoTSORTTracker
+  params:
+    device: cuda:0
+    half: true
+
+stitcher:
+  module: detect.stitchers.sushi_stitcher
+  class: SUSHIStitcher
+  params:
+    sushi_root: ./third_party/SUSHI
+    window_sec: 30
+
+
+# --- Query / translation ------------------------------------------------------
+#
+# 자연어 검색 query 전처리 설정의 SSOT.
+#
+# translation.enabled
+#   true  -> 한국어 query 를 영어로 번역한 뒤 text encoder 에 전달
+#   false -> 원문을 그대로 전달
+#
+#   IRRA / SigLIP2 는 CLIP 계열 영어 토크나이저를 쓰므로 한국어 원문은
+#   사실상 무의미한 토큰이 된다. 한국어 질의를 쓰려면 enabled: true 가 필요.
+#
+# backend
+#   opus | nllb | none
+#
+#   opus : Helsinki-NLP/opus-mt-ko-en (약 300MB). 현재 baseline.
+#   nllb : facebook/nllb-200-* (약 2.5GB). 품질은 더 나을 수 있으나 무겁다.
+#   none : 번역하지 않음. 영어로만 질의할 때 사용.
+#
+#   OPUS 가 최고 성능으로 검증됐다는 뜻은 아니다. 기존 baseline 재현용 설정이며
+#   OPUS / NLLB / SigLIP2 direct Korean 비교는 별도 retrieval A/B 로 판단한다.
+#
+# model_id
+#   실제 번역 checkpoint. backend: none 에서는 반드시 null.
+#
+# max_new_tokens / cache_size
+#   QueryTranslator 생성자에 그대로 연결된다.
+#
+# expand
+#   짧은 query 를 scope-aware template 로 감싸는 선택 기능.
+#   query 의미를 바꿀 수 있는 실험 변수이므로 baseline 은 false.
+#
+query:
+  translation:
+    enabled: true
+    backend: opus
+    model_id: Helsinki-NLP/opus-mt-ko-en
+    max_new_tokens: 64
+    cache_size: 2048
+
+  expand: false

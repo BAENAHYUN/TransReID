@@ -1,0 +1,19 @@
+# bench/register.py 등록 (2026-09-28 12:45): detector 'yolo26s' = detect.detectors.yolo26_detector.YOLO26Detector. 원본 설정 파일은 바꾸지 않았다.
+# tracker/stitcher 는 pipeline_tracking.yaml 그대로
+detector:
+  module: detect.detectors.yolo26_detector
+  class: YOLO26Detector
+  params:
+    weights: yolo26s.pt
+tracker:
+  module: detect.trackers.botsort_tracker
+  class: BoTSORTTracker
+  params:
+    device: cuda:0
+    half: true
+stitcher:
+  module: detect.stitchers.sushi_stitcher
+  class: SUSHIStitcher
+  params:
+    sushi_root: ./third_party/SUSHI
+    window_sec: 30
