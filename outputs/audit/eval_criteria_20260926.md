@@ -90,6 +90,8 @@ HTML 판(공유용): `outputs/audit/eval_criteria_20260926.html`.
 
 ### 4b. 전체 파이프라인 검색 (운영 DB 의 검출 crop, e2e, 2026-09-28)
 
+> 프로토콜 주의(외부 검토 지적): gallery=test 는 운영 DB 안의 PRW test 프레임 point 만 남기지만 쿼리는 query_box 이고 DB 는 검출 crop 이라 §4 단독 평가(GT crop)와 정확히 같은 갤러리가 아니다. 두 표는 같은 순위 정의를 쓰되 절대값을 직접 비교하지 않는다. 등록기 표본 갤러리(`__sampleN`)는 GT 양성의 일부만 담아 `map_db`·R1 로만 비교한다.
+
 단독 평가(위 표, GT crop 입력)와 달리 실제 파이프라인이 만든 운영 DB(RF-DETR 검출 → crop 필터 → 임베딩 → Qdrant 43,343 point)를
 GUI 와 같은 검색 경로로 PRW query_box 로 검색하고 point→pid IoU≥0.5 매칭으로 채점 (`eval/prw_e2e_search_eval.py`, 순위 길이 K=200, gallery = test 프레임).
 mAP 는 GT 박스 수가 분모(검출 손실 포함), mAP(db) 는 DB 에 들어간 point 수가 분모(검색만). 검출 상한 = 검출이 DB 에 넣은 GT 비율.
