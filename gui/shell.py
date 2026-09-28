@@ -31,7 +31,7 @@ ICON_SIZE = 20
 
 
 def _paint_icon(kind: str, color: str, size: int = ICON_SIZE) -> QPixmap:
-    """작은 선 아이콘. kind ∈ search, video, photo, film, chart, bench, gear."""
+    """작은 선 아이콘. kind ∈ search, video, photo, film, chart, bench, folder, gear."""
     pix = QPixmap(size, size)
     pix.fill(Qt.transparent)
     p = QPainter(pix)
@@ -77,6 +77,9 @@ def _paint_icon(kind: str, color: str, size: int = ICON_SIZE) -> QPixmap:
         p.setBrush(QColor(color))
         for x, y in ((3, 15), (7.5, 10), (11, 12.5), (17, 5)):
             p.drawEllipse(R(x - 1.3, y - 1.3, 2.6, 2.6))
+    elif kind == "folder":
+        p.drawPolyline(QPolygonF([P(2, 6), P(2, 16), P(18, 16), P(18, 7), P(9, 7), P(7.5, 5), P(2, 5), P(2, 6)]))
+        p.drawLine(P(2, 9), P(18, 9))
     elif kind == "gear":
         p.drawEllipse(R(6, 6, 8, 8))
         for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0), (0.7, 0.7), (-0.7, 0.7), (0.7, -0.7), (-0.7, -0.7)):

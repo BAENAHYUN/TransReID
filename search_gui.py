@@ -2191,6 +2191,15 @@ class MainWindow(QMainWindow):
         except Exception as exc:  # noqa: BLE001
             pipeline_note = f"  ·  파이프라인 탭 로드 실패: {exc}"
 
+        # 결과 보기: 라벨링 시트(사람이 할 일) + 생성된 리포트 HTML 을 한 곳에서 연다
+        try:
+            from gui.reports_page import ReportsPage
+
+            shell.add_section("결과")
+            shell.add_page("reports", "결과 보기", "folder", ReportsPage())
+        except Exception as exc:  # noqa: BLE001
+            pipeline_note += f"  ·  결과 보기 로드 실패: {exc}"
+
         shell.add_section("평가")
         for g in eval_groups:
             try:
