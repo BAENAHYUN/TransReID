@@ -159,13 +159,18 @@ def _check_stages(where: str, group_id: str, stages: Any) -> None:
                     f"{where}: type=choice 인데 choices / choices_glob 가 없습니다 "
                     f"(stage={st['id']}, label={a.get('label')})"
                 )
-    ids = {str(st["id"]) for st in stages}
-    for st in stages:
-        for t in st.get("tools") or []:
-            if not isinstance(t, dict) or str(t.get("stage") or "") not in ids:
-                raise RegistryError(
-                    f"{where}: 단계 '{st['id']}' 의 tools 항목은 같은 그룹의 단계 id 를 가리켜야 합니다: {t}"
-                )
+
+
+def _check_tools(where: str, groups: List[Dict[str, Any]]) -> None:
+    """tools 항목은 어느 그룹이든 실존하는 단계 id 를 가리켜야 한다 (예: 영상 클러스터 → 이미지 그룹의 플러그인 러너)."""
+    ids = {str(st.get("id")) for g in groups for st in (g.get("stages") or [])}
+    for g in groups:
+        for st in g.get("stages") or []:
+            for t in st.get("tools") or []:
+                if not isinstance(t, dict) or str(t.get("stage") or "") not in ids:
+                    raise RegistryError(
+                        f"{where}: 단계 '{st.get('id')}' 의 tools 항목은 실존하는 단계 id 를 가리켜야 합니다: {t}"
+                    )
 
 
 def load_registry(path: Optional[Path] = None) -> List[Dict[str, Any]]:
@@ -217,6 +222,7 @@ def load_registry(path: Optional[Path] = None) -> List[Dict[str, Any]]:
             })
         if not out:
             raise RegistryError(f"{p.name}: groups 가 비어 있습니다.")
+        _check_tools(p.name, out)
         return out
 
     # ---- 평평한 형식 ----
@@ -240,6 +246,7 @@ def load_registry(path: Optional[Path] = None) -> List[Dict[str, Any]]:
             f"{p.name}: 단계 그룹을 하나도 찾지 못했습니다.\n"
             f"  최상위에 \"video_pipeline\": [ ... ] 형태의 키가 필요합니다."
         )
+    _check_tools(p.name, out)
     return out
 
 
@@ -1139,9 +1146,10 @@ class StagePanel(QWidget):
 # =============================================================================
 
 class PipelineGroupPage(QWidget):
-    def __init__(self, group: Dict[str, Any], parent: Optional[QWidget] = None):
+    def __init__(self, group: Dict[str, Any], parent: Optional[QWidget] = None, all_stages: Optional[List[Dict[str, Any]]] = None):
         super().__init__(parent)
         self.group = group
+        self.all_stages = list(all_stages or [])
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -1185,7 +1193,9 @@ class PipelineGroupPage(QWidget):
         layout.addWidget(left)
 
         self.panel = StagePanel(self)
-        self.panel.stages_by_id = {str(st.get("id")): st for st in stages}
+        # 도구가 가리킬 수 있는 단계: 모든 그룹(다른 그룹의 플러그인 러너 등) + 자기 그룹 우선
+        self.panel.stages_by_id = {str(st.get("id")): st for st in self.all_stages}
+        self.panel.stages_by_id.update({str(st.get("id")): st for st in stages})
         layout.addWidget(self.panel, 1)
 
         self.listw.currentItemChanged.connect(self._on_select)
@@ -1248,7 +1258,7 @@ class PipelinePage(QWidget):
             layout.addStretch(1)
             return
 
-        self.group_page = PipelineGroupPage(group, self)
+        self.group_page = PipelineGroupPage(group, self, all_stages=[st for g in groups for st in (g.get("stages") or [])])
         layout.addWidget(self.group_page)
 
     def select_stage(self, stage_id: str) -> bool:

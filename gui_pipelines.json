@@ -146,9 +146,21 @@
       "args": [
         {
           "flag": "--video-dir",
+          "basic": true,
           "label": "영상 폴더",
           "type": "dir",
           "default": "./data/videos"
+        },
+        {
+          "flag": "--config",
+          "label": "임베더 구성",
+          "type": "choice",
+          "default": "pipeline.yaml",
+          "choices_glob": "pipeline*.yaml",
+          "choices_yaml_key": "retrievers",
+          "choices_unique_by": "*",
+          "basic": true,
+          "help": "어떤 임베더로 벡터를 만들지 (yaml 의 retrievers). 이미지 2단계와 같다"
         },
         {
           "flag": "--person-per-track",
@@ -200,8 +212,14 @@
       "core_title": "3. 클러스터 — 같은 사람·물건 묶기",
       "core_desc": "DB의 track을 같은 사람 또는 같은 물건끼리 묶습니다. 사람/물건은 위의 '도구'에서 고릅니다. 기본 설정은 DB를 건드리지 않고 결과 파일만 만듭니다(dry-run).",
       "tools": [
-        {"label": "사람", "stage": "video_cluster_person"},
-        {"label": "물건", "stage": "video_cluster_object"}
+        {"label": "사람 — Leiden (track 평균, 기본)", "stage": "video_cluster_person"},
+        {"label": "물건 — Leiden (track 평균)", "stage": "video_cluster_object"},
+        {"label": "사람 — DBSCAN v6 (crop 단위, 실험)", "stage": "image_cluster_plugin",
+         "set": {"--target": "person", "--method": "dbscan_v6", "--sources": "video_tracks_stitched", "--output-dir": "outputs/clustering/plugin_video", "--vector-cache": "outputs/clustering/cache/plugin_video"},
+         "description": "영상 track 의 crop 들을 track 평균 없이 하나씩 DBSCAN 으로 묶습니다. 결과는 '인물 분류' 에서 볼 수 있고, 4단계 갤러리는 Leiden(track 평균) 결과용입니다."},
+        {"label": "물건 — DBSCAN v6 (crop 단위, 실험)", "stage": "image_cluster_plugin",
+         "set": {"--target": "object", "--method": "dbscan_v6", "--sources": "video_tracks_stitched", "--output-dir": "outputs/clustering/plugin_video", "--vector-cache": "outputs/clustering/cache/plugin_video"},
+         "description": "영상 물건 track 의 crop 들을 DBSCAN 으로 묶습니다 (crop 단위, 실험)."}
       ],
       "title": "3. Person Leiden 클러스터링",
       "script": "clustering/cluster_leiden_track_centroid.py",

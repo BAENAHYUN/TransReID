@@ -33,6 +33,7 @@ def parse_args():
     p.add_argument("--person-per-track", type=int, default=5)
     p.add_argument("--object-per-track", type=int, default=5)
     p.add_argument("--batch-size", type=int, default=16)
+    p.add_argument("--config", default="pipeline.yaml", help="임베더 구성 yaml (ingest_final_candidates_qdrant.py --config 로 전달)")
     p.add_argument("--person-collection", default="forensic_person")
     p.add_argument("--object-collection", default="forensic_object")
     p.add_argument(
@@ -100,6 +101,7 @@ def main():
     print("person per track   :", args.person_per_track)
     print("object per track   :", args.object_per_track)
     print("batch size         :", args.batch_size)
+    print("config (embedders) :", args.config)
     print("audit each         :", args.audit_each)
     print("=" * 100)
 
@@ -148,6 +150,7 @@ def main():
                 str(ingest_script),
                 "--video-stem", stem,
                 "--batch-size", str(args.batch_size),
+                "--config", str(args.config),
                 "--person-collection", args.person_collection,
                 "--object-collection", args.object_collection,
             ]

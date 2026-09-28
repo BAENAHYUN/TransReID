@@ -141,8 +141,10 @@ class QtTests(unittest.TestCase):
 
     def test_registry_rejects_unknown_tool_stage(self):
         with self.assertRaises(pp.RegistryError):
-            pp._check_stages("x", "g", [{"id": "a", "title": "A", "script": "s.py", "tools": [{"label": "t", "stage": "nope"}]}])
-        pp._check_stages("x", "g", [{"id": "a", "title": "A", "script": "s.py", "tools": [{"label": "t", "stage": "a"}]}])
+            pp._check_tools("x", [{"id": "g", "stages": [{"id": "a", "title": "A", "script": "s.py", "tools": [{"label": "t", "stage": "nope"}]}]}])
+        # 다른 그룹의 단계를 가리키는 도구는 허용 (영상 클러스터 → 이미지 그룹 플러그인 러너)
+        pp._check_tools("x", [{"id": "g", "stages": [{"id": "a", "title": "A", "script": "s.py", "tools": [{"label": "t", "stage": "b"}]}]},
+                              {"id": "h", "stages": [{"id": "b", "title": "B", "script": "s.py"}]}])
 
     def test_result_shown_inline_after_run(self):
         import tempfile as _tf
@@ -163,6 +165,16 @@ class QtTests(unittest.TestCase):
             panel._result_path = Path(td) / "missing.html"
             panel._done(0)                                                          # 없는 파일 → 뷰는 그대로, 경고만
             self.assertEqual(panel.result_view.path, html)
+
+    def test_cross_group_tool_resolves_other_groups_stage(self):
+        g1 = self._group()
+        g1["stages"][2]["tools"] = [{"label": "기본", "stage": "s3"}, {"label": "다른 그룹", "stage": "z9", "set": {"--m": "x"}}]
+        other = {"id": "z9", "title": "9. 다른 그룹 단계", "script": "report/build_image_db_html.py", "args": [{"flag": "--m", "label": "m", "type": "str", "default": ""}]}
+        page = pp.PipelineGroupPage(g1, all_stages=g1["stages"] + [other])
+        page.listw.setCurrentRow(1)
+        page.panel.tool_combo.setCurrentIndex(1)
+        self.assertEqual(page.panel.stage["id"], "z9")
+        self.assertIn("build_image_db_html.py", " ".join(page.panel._build_cmd()))
 
     def test_group_without_core_shows_everything(self):
         g = self._group()
@@ -193,7 +205,10 @@ class LiveRegistryTests(unittest.TestCase):
         self.assertGreaterEqual(len(vp["tools"]), 4)                                           # 영상도 검출기·스티처 조합을 도구로 고른다
         self.assertTrue(all(t["stage"] == "video_preprocess" and (ROOT / t["set"]["--tracking-config"]).is_file() for t in vp["tools"]))
         vc = next(s for s in groups["video_pipeline"]["stages"] if s["id"] == "video_cluster_person")
-        self.assertEqual([t["stage"] for t in vc["tools"]], ["video_cluster_person", "video_cluster_object"])
+        self.assertEqual([t["stage"] for t in vc["tools"]], ["video_cluster_person", "video_cluster_object", "image_cluster_plugin", "image_cluster_plugin"])
+        vi = next(s for s in groups["video_pipeline"]["stages"] if s["id"] == "video_ingest")
+        cfg = next(a for a in vi["args"] if a["flag"] == "--config")
+        self.assertEqual(cfg["choices_yaml_key"], "retrievers")                                   # 영상 임베딩도 임베더 구성 선택
         res = next(s for s in groups["image_pipeline"]["stages"] if s["id"] == "image_results")
         self.assertTrue((ROOT / res["script"]).is_file())
         self.assertTrue(any(a.get("basic") for a in res["args"]))

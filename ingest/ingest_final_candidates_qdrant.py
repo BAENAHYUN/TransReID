@@ -55,6 +55,11 @@ def parse_args():
     )
     p.add_argument("--batch-size", type=int, default=16)
     p.add_argument(
+        "--config",
+        default=str(CONFIG_PATH),
+        help="임베더(retrievers)·컬렉션 설정 yaml (기본 pipeline.yaml). 이미지 적재(build_db.py --config) 와 같은 역할.",
+    )
+    p.add_argument(
         "--person-collection",
         default="forensic_person",
     )
@@ -488,7 +493,7 @@ def main():
     args = parse_args()
     total_started = time.time()
 
-    cfg = PipelineConfig.load(CONFIG_PATH)
+    cfg = PipelineConfig.load(Path(args.config) if getattr(args, "config", None) else CONFIG_PATH)
     person_cfg, object_cfg = make_collection_configs(
         cfg,
         args.person_collection,
