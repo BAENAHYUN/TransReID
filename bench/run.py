@@ -226,7 +226,7 @@ class Stage:
         if a.get("weights"):
             w = a["weights"]
             cmd += ["--weights", ",".join(f"{k}={v}" for k, v in w.items()) if isinstance(w, dict) else str(w)]
-        for k in ("rrf_k", "prefetch", "pool", "pools", "batch_size"):
+        for k in ("rrf_k", "prefetch", "pool", "pools", "models", "batch_size"):
             if a.get(k) is not None:
                 cmd += [f"--{k.replace('_', '-')}", str(a[k])]
         if a.get("data_root"):
@@ -586,6 +586,7 @@ def add_stage_options(p: argparse.ArgumentParser) -> None:
     g.add_argument("--prefetch", type=int, default=None)
     g.add_argument("--pool", type=int, default=None, help="search/e2e: 재정렬 후보 수")
     g.add_argument("--pools", default=None)
+    g.add_argument("--models", default=None, help="search: 평가할 모델 (쉼표; 기본 핵심 3종 + yaml person retriever 전부)")
     g = p.add_argument_group("cluster")
     g.add_argument("--method", default=None, help="내장 클러스터러 (leiden | dbscan_v6)")
     g.add_argument("--method-config", default=None, help="clusterer: yaml")
@@ -658,7 +659,7 @@ STAGE_KEYS = {
     "detect": {"config", "name", "module", "cls", "params", "split", "limit", "every", "conf_threshold", "operating_threshold",
                "compare", "reuse_detections", "no_images", "data_root"},
     "embed": {"config", "model", "batch_size", "backbone", "semantic_weight", "neck_feat", "data_root"},
-    "search": {"config", "weights", "rrf_k", "prefetch", "pool", "pools", "batch_size", "data_root"},
+    "search": {"config", "weights", "rrf_k", "prefetch", "pool", "pools", "models", "batch_size", "data_root"},
     "cluster": {"config", "name", "module", "cls", "params", "method", "method_config", "target", "sources", "vector",
                 "max_points", "min_cluster_size", "vector_cache", "pid_split", "data_root"},
     "e2e": {"config", "name", "stage1", "rerank", "limit", "pool", "max_queries", "gallery", "pid_split", "data_root"},

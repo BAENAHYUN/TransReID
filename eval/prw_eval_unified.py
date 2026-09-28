@@ -47,7 +47,25 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from eval import prw_eval  # noqa: E402  (기존 스크립트 재사용, 수정 없음)
 
-MODELS = ("siglip2", "irra", "solider")
+MODELS = ("siglip2", "irra", "solider")          # 운영 핵심 3종 (변형 이름·기준표가 이 이름을 쓴다)
+
+
+def models_from_config(config_path, requested=None, log=print) -> List[str]:
+    """평가할 모델 목록: --models 가 있으면 그것, 없으면 yaml 의 person scope retriever 전부(핵심 3종 + 등록된 새 임베더). 핵심 3종은 항상 포함."""
+    if requested:
+        names = [x.strip() for x in str(requested).split(",") if x.strip()]
+        return list(dict.fromkeys(list(MODELS) + [n for n in names if n not in MODELS]))
+    extra: List[str] = []
+    try:
+        from config import PipelineConfig
+        cfg = PipelineConfig.load(config_path)
+        for name, spec in cfg.retrievers.items():
+            scope = str(getattr(spec, "scope", "all") or "all")
+            if name not in MODELS and scope in ("all", "person"):
+                extra.append(name)
+    except Exception as exc:  # noqa: BLE001
+        log(f"[경고] pipeline.yaml retrievers 읽기 실패 — 핵심 3종만 평가: {exc}")
+    return list(MODELS) + extra
 DEFAULT_WEIGHTS = {"siglip2": 1.0, "irra": 1.5, "solider": 1.5}   # pipeline.yaml retrievers.weight
 QDRANT_RRF_K_DEFAULT = 2   # Qdrant 서버 Rrf.k 기본값 (client 는 None 으로 넘긴다)
 
@@ -145,7 +163,7 @@ def evaluate_ranked(ranked_lists: Sequence[np.ndarray], q_pids, q_frames, g_pids
 # 변형 실행
 # ---------------------------------------------------------------------------
 def run_variants(sims: Dict[str, np.ndarray], q_pids, q_frames, g_pids, g_frames, weights: Dict[str, float],
-                 rrf_k: float, prefetch: int, pool: int, pools: Sequence[int], log=print) -> Dict[str, dict]:
+                 rrf_k: float, prefetch: int, pool: int, pools: Sequence[int], log=print, models: Optional[Sequence[str]] = None) -> Dict[str, dict]:
     Q = next(iter(sims.values())).shape[0]
     results: Dict[str, dict] = {}
 
@@ -159,8 +177,10 @@ def run_variants(sims: Dict[str, np.ndarray], q_pids, q_frames, g_pids, g_frames
         log(f"  {name:<28} mAP={res['mAP']:6.2f}  R1={res['Rank-1']:6.2f}  R5={res['Rank-5']:6.2f}  "
             f"R10={res['Rank-10']:6.2f}  pool_recall={res['pool_recall(%)']:6.2f}")
 
-    # 단독 (전체 순위)
-    for m in MODELS:
+    all_models = [m for m in (models or MODELS) if m in sims]
+    extra = [m for m in all_models if m not in MODELS]
+    # 단독 (전체 순위) — 핵심 3종 + 등록된 새 임베더
+    for m in all_models:
         evaluate(f"single:{m}", lambda qi, m=m: np.argsort(-sims[m][qi], kind="stable"), f"{m} 단독, 전체 순위")
 
     def stage1(qi, names=("siglip2", "irra"), P=prefetch, k=rrf_k):
@@ -188,6 +208,15 @@ def run_variants(sims: Dict[str, np.ndarray], q_pids, q_frames, g_pids, g_frames
     evaluate("rrf3", lambda qi: stage1(qi, names=MODELS)[:pool], f"SigLIP2+IRRA+SOLIDER 가중RRF(k={rrf_k}) 상위 {pool}")
     evaluate("rrf3_solider_rerank", lambda qi: rerank_by(stage1(qi, names=MODELS)[:pool], sims["solider"][qi]),
              "세 임베딩 RRF 후보 → SOLIDER 재정렬")
+    # 등록된 새 임베더 변형: 단독 후보 → SOLIDER 재정렬 / 운영 STEP1 → 새 임베더 재정렬 / 전체 RRF
+    for m in extra:
+        evaluate(f"{m}_prefetch_solider", lambda qi, m=m: rerank_by(topk_indices(sims[m][qi], pool), sims["solider"][qi]),
+                 f"{m} 단독 후보 {pool} → SOLIDER 재정렬")
+        evaluate(f"stage1_rrf_{m}_rerank", lambda qi, m=m: rerank_by(stage1(qi)[:pool], sims[m][qi]), f"STEP1 상위 {pool} → {m} 재정렬")
+    if extra:
+        evaluate("rrf_all", lambda qi: stage1(qi, names=tuple(all_models))[:pool], f"{'+'.join(all_models)} 가중RRF(k={rrf_k}) 상위 {pool}")
+        evaluate("rrf_all_solider_rerank", lambda qi: rerank_by(stage1(qi, names=tuple(all_models))[:pool], sims["solider"][qi]),
+                 "전체 임베딩 RRF 후보 → SOLIDER 재정렬")
     # RRF k 민감도
     evaluate("stage1_rrf_k60", lambda qi: stage1(qi, k=60)[:pool], "STEP1 을 k=60 으로")
     evaluate("unified_k60", lambda qi: rerank_by(stage1(qi, k=60)[:pool], sims["solider"][qi]), "k=60 STEP1 → SOLIDER 재정렬")
@@ -258,6 +287,7 @@ def build_parser():
     ap.add_argument("--pools", default="50,100,500,1000", help="후보 수 변형 목록")
     ap.add_argument("--rrf-k", type=float, default=QDRANT_RRF_K_DEFAULT, help="RRF k (Qdrant 기본 2)")
     ap.add_argument("--weights", default=None, help="예: siglip2=1.0,irra=1.5,solider=1.5 (기본 pipeline.yaml 값)")
+    ap.add_argument("--models", default=None, help="평가할 모델 (쉼표). 기본: 핵심 3종 + yaml 의 person scope retriever 전부 (등록된 새 임베더 포함)")
     ap.add_argument("--out-json", default="eval/results/unified_eval.json")
     ap.add_argument("--out-csv", default="eval/results/unified_eval.csv")
     ap.add_argument("--ledger", default=None, help="실행 원장 JSONL (기본 bench/ledger.jsonl; '' 또는 none 이면 기록 안 함)")
@@ -285,10 +315,13 @@ def main(argv=None):
         try:
             from config import PipelineConfig
             cfg = PipelineConfig.load(args.config)
-            weights = {m: float(cfg.retrievers[m].weight) for m in MODELS if m in cfg.retrievers}
+            weights = {m: float(cfg.retrievers[m].weight) for m in models_from_config(args.config, args.models) if m in cfg.retrievers}
         except Exception as exc:
             print(f"[경고] pipeline.yaml 가중치 읽기 실패, 기본값 사용: {exc}")
     pools = [int(x) for x in args.pools.split(",") if x.strip()]
+    models = models_from_config(args.config, args.models)
+    for m in models:
+        weights.setdefault(m, 1.0)
 
     data_root = Path(args.data_root).expanduser().resolve()
     frames_dir, ann_dir = data_root / "frames", data_root / "annotations"
@@ -321,8 +354,8 @@ def main(argv=None):
     cache_dir = Path(args.cache_dir)
     if args.only_embed:
         for m in [x.strip() for x in args.only_embed.split(",") if x.strip()]:
-            if m not in MODELS:
-                raise SystemExit(f"알 수 없는 모델: {m} (선택: {MODELS})")
+            if m not in models:
+                raise SystemExit(f"알 수 없는 모델: {m} (선택: {models})")
             print(f"[embed-only] {m}")
             load_or_embed(m, cache_dir, g_crops, q_crops, (g_pids, g_frames), (q_pids, q_frames), args)
         print("embed-only 완료")
@@ -330,17 +363,17 @@ def main(argv=None):
 
     print("[3/3] 임베딩 (캐시 있으면 생략)...")
     sims: Dict[str, np.ndarray] = {}
-    for m in MODELS:
+    for m in models:
         g_vecs, q_vecs = load_or_embed(m, cache_dir, g_crops, q_crops, (g_pids, g_frames), (q_pids, q_frames), args)
         sims[m] = l2n(q_vecs) @ l2n(g_vecs).T
     del g_crops, q_crops
 
     print("\n=== 변형별 결과 (mAP / Rank-k, %) ===")
-    results = run_variants(sims, q_pids, q_frames, g_pids, g_frames, weights, args.rrf_k, args.prefetch, args.pool, pools)
+    results = run_variants(sims, q_pids, q_frames, g_pids, g_frames, weights, args.rrf_k, args.prefetch, args.pool, pools, models=models)
 
     out = dict(protocol="PRW GT crops (gallery=test frames GT bbox, query=query_box), junk=same frame same pid",
                gallery_size=int(len(g_pids)), query_total=int(len(q_pids)),
-               weights=weights, rrf_k=args.rrf_k, prefetch=args.prefetch, pool=args.pool, pools=pools,
+               weights=weights, rrf_k=args.rrf_k, prefetch=args.prefetch, pool=args.pool, pools=pools, models=models,
                config=str(Path(args.config).resolve()), config_sha256=args.config_sha256,
                generated_at=time.strftime("%Y-%m-%d %H:%M:%S"), results=results)
     Path(args.out_json).parent.mkdir(parents=True, exist_ok=True)
