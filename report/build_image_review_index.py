@@ -118,6 +118,12 @@ def main(argv=None):
         folder = cluster_dir / target
         rp = folder / f'{target}_leiden_report.json'
         ap = folder / f'{target}_leiden_assignments.jsonl'
+        if not ap.is_file() and folder.is_dir():
+            # 플러그인 러너(cluster_qdrant.py) 출력은 <target>_<method>_assignments.jsonl — leiden 이 없으면 그것을 쓴다
+            others = sorted(folder.glob(f'{target}_*_assignments.jsonl'))
+            if others:
+                ap = others[0]
+                rp = ap.with_name(ap.name.replace('_assignments.jsonl', '_report.json'))
         gp = Path(getattr(args, f'{target}_gallery_report') or folder / 'gallery' / 'gallery_report.json').resolve()
         report = read('cluster_report', rp, target)
         report_valid = isinstance(report, dict) and isinstance(report.get('config'), dict) and isinstance(report.get('stats'), dict) and isinstance(report['stats'].get('points'), int)

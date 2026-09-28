@@ -101,6 +101,39 @@ class QtTests(unittest.TestCase):
         panel.set_stage(self._group()["stages"][1])
         self.assertTrue(panel.adv_check.isHidden())
 
+    def test_tools_switch_stage_and_presets(self):
+        g = self._group()
+        g["stages"][2]["tools"] = [{"label": "기본", "stage": "s3"},
+                                   {"label": "다른 도구", "stage": "s4", "set": {"--m": "dbscan"}, "description": "설명 D"}]
+        g["stages"][3]["args"] = [{"flag": "--m", "label": "알고리즘", "type": "str", "default": "leiden"},
+                                  {"flag": "--x", "label": "기타", "type": "int", "default": 1}]
+        g["stages"][3]["script"] = "report/build_image_db_html.py"
+        page = pp.PipelineGroupPage(g)
+        page.listw.setCurrentRow(1)                                 # 보이는 두 번째 = s3 (core)
+        panel = page.panel
+        self.assertFalse(panel.tool_row.isHidden())
+        self.assertEqual(panel.tool_combo.count(), 2)
+        self.assertEqual(panel.stage["id"], "s3")
+        panel.tool_combo.setCurrentIndex(1)
+        self.assertEqual(panel.stage["id"], "s4")                  # 실행 대상은 s4
+        self.assertEqual(panel.title.text(), "3. 쉬운 제목")          # 제목은 핵심 단계 것
+        self.assertEqual(panel.desc.text(), "설명 D")
+        self.assertIn("build_image_db_html.py", " ".join(panel._build_cmd()))
+        m = next(f for f in panel.fields if f.flag == "--m")
+        self.assertEqual(m.value(), "dbscan")                       # set 프리셋이 기본값
+        self.assertFalse(m.advanced)                                # 프리셋 필드는 basic
+        self.assertTrue(next(f for f in panel.fields if f.flag == "--x").advanced)
+        page.listw.setCurrentRow(0)
+        self.assertTrue(panel.tool_row.isHidden())                  # 도구 없는 단계
+        page.listw.setCurrentRow(1)
+        self.assertEqual(panel.tool_combo.currentIndex(), 1)        # 선택 기억
+        self.assertEqual(panel.stage["id"], "s4")
+
+    def test_registry_rejects_unknown_tool_stage(self):
+        with self.assertRaises(pp.RegistryError):
+            pp._check_stages("x", "g", [{"id": "a", "title": "A", "script": "s.py", "tools": [{"label": "t", "stage": "nope"}]}])
+        pp._check_stages("x", "g", [{"id": "a", "title": "A", "script": "s.py", "tools": [{"label": "t", "stage": "a"}]}])
+
     def test_group_without_core_shows_everything(self):
         g = self._group()
         for st in g["stages"]:
@@ -123,6 +156,11 @@ class LiveRegistryTests(unittest.TestCase):
             if a.get("required"):
                 v = pp.resolve_default(a)
                 self.assertTrue(v or a.get("choices_dirs"), a["flag"])   # 값이 있거나 폴더 드롭다운
+        cl = next(s for s in groups["image_pipeline"]["stages"] if s["id"] == "image_cluster")
+        self.assertGreaterEqual(len(cl["tools"]), 3)                  # Leiden / DBSCAN / 커스텀
+        self.assertEqual({t["stage"] for t in cl["tools"]}, {"image_cluster", "image_cluster_plugin"})
+        vc = next(s for s in groups["video_pipeline"]["stages"] if s["id"] == "video_cluster_person")
+        self.assertEqual([t["stage"] for t in vc["tools"]], ["video_cluster_person", "video_cluster_object"])
         res = next(s for s in groups["image_pipeline"]["stages"] if s["id"] == "image_results")
         self.assertTrue((ROOT / res["script"]).is_file())
         self.assertTrue(any(a.get("basic") for a in res["args"]))

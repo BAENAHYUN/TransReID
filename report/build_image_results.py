@@ -32,6 +32,17 @@ def slug(text: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", str(text or "")).strip("_") or "all"
 
 
+def find_assignments(cluster_dir: Path, target: str) -> Optional[Path]:
+    """<cluster-dir>/<target>/<target>_<method>_assignments.jsonl — Leiden 기본 스크립트와 플러그인 러너(다른 method 이름) 모두.
+    leiden 이 있으면 그것, 아니면 이름순 첫 파일."""
+    folder = cluster_dir / target
+    leiden = folder / f"{target}_leiden_assignments.jsonl"
+    if leiden.is_file():
+        return leiden
+    found = sorted(folder.glob(f"{target}_*_assignments.jsonl")) if folder.is_dir() else []
+    return found[0] if found else None
+
+
 def plan(args: argparse.Namespace) -> List[List[str]]:
     """실행할 명령 목록 [(설명 포함 argv)]. 각 항목의 첫 원소는 단계 이름(로그용), 나머지가 argv."""
     py = args.python or sys.executable
@@ -53,12 +64,13 @@ def plan(args: argparse.Namespace) -> List[List[str]]:
         cmds.append(["DB 리포트"] + cmd)
 
     for target in ("person", "object"):
-        assignments = cluster_dir / target / f"{target}_leiden_assignments.jsonl"
+        assignments = find_assignments(cluster_dir, target)
         gallery_dir = cluster_dir / target / "gallery"
         html_name = f"leiden_{target}_gallery.html"
-        if not assignments.is_file():
-            cmds.append([f"skip:{target} 갤러리", f"assignments 없음 → 건너뜀: {assignments} (3. 클러스터 단계를 먼저 실행)"])
+        if assignments is None:
+            cmds.append([f"skip:{target} 갤러리", f"assignments 없음 → 건너뜀: {cluster_dir / target} (3. 클러스터 단계를 먼저 실행)"])
             continue
+        report = assignments.with_name(assignments.name.replace("_assignments.jsonl", "_report.json"))
         if args.reuse and (gallery_dir / html_name).is_file():
             cmds.append([f"skip:{target} 갤러리", f"이미 있음 → 재사용: {gallery_dir / html_name}"])
             continue
@@ -67,6 +79,8 @@ def plan(args: argparse.Namespace) -> List[List[str]]:
                "--html-name", html_name, "--inline-images", "--thumb-size", "240", "--top-clusters", str(args.top_clusters),
                "--medium-clusters", str(args.medium_clusters), "--small-clusters", str(args.small_clusters),
                "--images-per-cluster", str(args.images_per_cluster), "--noise-samples", str(args.noise_samples), "--seed", "42"] + common_q
+        if report.is_file():
+            cmd += ["--report", str(report)]
         cmds.append([f"{target} 갤러리"] + cmd)
 
     index = out_dir / f"index_{tag}.html"

@@ -49,6 +49,16 @@ class PlanTests(unittest.TestCase):
         self.assertIn("[결과창] DB 리포트: 이미 있음", out)
         self.assertIn("[결과창] person 갤러리:", out)                 # 갤러리 HTML 은 없으므로 실행 계획
 
+    def test_non_leiden_assignments_are_found_and_report_passed(self):
+        (self.root / "cl" / "object").mkdir()
+        (self.root / "cl" / "object" / "object_dbscan_v6_assignments.jsonl").write_text("{}\n", encoding="utf-8")
+        (self.root / "cl" / "object" / "object_dbscan_v6_report.json").write_text("{}", encoding="utf-8")
+        code, out = self.run_dry()
+        line = next(l for l in out.splitlines() if l.startswith("[결과창] object 갤러리:"))
+        self.assertIn("object_dbscan_v6_assignments.jsonl", line)
+        self.assertIn("--report", line)
+        self.assertIn("object_dbscan_v6_report.json", line)
+
     def test_marker_lines_are_prefixed(self):
         self.assertTrue(R.MARKER_RE.match("RESULT_HTML: C:/x.html"))
         self.assertTrue(R.MARKER_RE.match("  RESULT_SUMMARY: y.json"))

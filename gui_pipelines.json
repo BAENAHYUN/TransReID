@@ -181,7 +181,11 @@
     {
       "id": "video_cluster_person",
       "core": true,
-      "core_title": "3. 클러스터 — 같은 사람 묶기",
+      "core_title": "3. 클러스터 — 같은 사람·물건 묶기",
+      "tools": [
+        {"label": "사람 — Leiden (track centroid, SOLIDER)", "stage": "video_cluster_person"},
+        {"label": "물건 — Leiden (track centroid, DINOv2)", "stage": "video_cluster_object"}
+      ],
       "title": "3. Person Leiden 클러스터링",
       "script": "clustering/cluster_leiden_track_centroid.py",
       "description": "person track centroid 를 노드로 mutual-kNN 그래프를 만들고 Leiden 으로 군집화한다. 기본값은 마지막 실행 리포트와 같다 (knn 15 / threshold 0.88 → 1,354 tracks → 24 clusters). --dry-run 을 끄면 payload 의 cluster_id 를 덮어쓴다.",
@@ -355,7 +359,11 @@
     {
       "id": "video_gallery_person",
       "core": true,
-      "core_title": "4. 결과창 — 사람 군집 갤러리",
+      "core_title": "4. 결과창 — 군집 갤러리",
+      "tools": [
+        {"label": "사람 군집 갤러리", "stage": "video_gallery_person"},
+        {"label": "물건 군집 갤러리", "stage": "video_gallery_object"}
+      ],
       "title": "5. Person 군집 갤러리",
       "script": "report/build_leiden_gallery_track.py",
       "description": "person 클러스터링 결과를 눈으로 검수할 HTML 갤러리를 만든다. 큰 / 중간 / 작은 군집과 noise 를 표본으로 보여준다.",
@@ -743,6 +751,13 @@
       "id": "image_cluster",
       "core": true,
       "core_title": "3. 클러스터 — 같은 사람·물건 묶기",
+      "tools": [
+        {"label": "Leiden — crop kNN 그래프 (기본, cluster_leiden_qdrant.py)", "stage": "image_cluster"},
+        {"label": "Leiden — 플러그인 러너 (cluster_qdrant.py)", "stage": "image_cluster_plugin", "set": {"--method": "leiden"}},
+        {"label": "DBSCAN v6 — 플러그인 러너 (cluster_qdrant.py)", "stage": "image_cluster_plugin", "set": {"--method": "dbscan_v6"}},
+        {"label": "커스텀 클러스터러 — yaml 의 clusterer: 블록 (cluster_qdrant.py)", "stage": "image_cluster_plugin", "set": {"--method-config": ""},
+         "description": "pipeline*.yaml 의 clusterer: {module, class, params} 블록으로 직접 만든 클러스터러를 돌린다 (yaml 이 --method 보다 우선). 등록 규격은 bench/REGISTER_GUIDE.md."}
+      ],
       "title": "4. Leiden 클러스터링 (crop 단위)",
       "script": "clustering/cluster_leiden_qdrant.py",
       "description": "이미지 crop 하나를 노드로 Qdrant ANN kNN 그래프를 만들고 Leiden 으로 군집화한다. person 은 solider, object 는 dinov2. kNN 질의는 같은 source 안에서만 이웃을 찾는다. dry-run 이 켜져 있으면 assignments jsonl 만 쓰고 Qdrant payload 는 건드리지 않는다 — 갤러리는 jsonl 만 있으면 된다.",
@@ -945,6 +960,7 @@
         },
         {
           "flag": "--target",
+          "basic": true,
           "label": "대상",
           "type": "choice",
           "default": "person",
@@ -956,7 +972,9 @@
         {
           "flag": "--method",
           "label": "알고리즘 (내장)",
-          "type": "choice",
+          "basic": true,
+          "placeholder": "비우면 --method-config 의 클러스터러",
+          "type": "str",
           "default": "leiden",
           "choices": [
             "leiden",
@@ -968,6 +986,9 @@
           "label": "플러그인 yaml (clusterer: 블록)",
           "type": "path",
           "default": "",
+          "choices_glob": "pipeline*.yaml",
+          "choices_yaml_key": "clusterer",
+          "placeholder": "비우면 --method 내장 알고리즘",
           "help": "주면 내장 선택 대신 이 yaml 의 module/class/params"
         },
         {
@@ -992,6 +1013,7 @@
         },
         {
           "flag": "--sources",
+          "basic": true,
           "label": "source 필터",
           "type": "str",
           "default": "prw_image",
@@ -1007,6 +1029,7 @@
         },
         {
           "flag": "--min-cluster-size",
+          "basic": true,
           "label": "최소 군집 크기",
           "type": "int",
           "default": 2,
@@ -1030,6 +1053,7 @@
         },
         {
           "flag": "--output-dir",
+          "basic": true,
           "label": "출력 폴더",
           "type": "dir",
           "default": "outputs/clustering/plugin_image_prw"

@@ -155,6 +155,13 @@ def _check_stages(where: str, group_id: str, stages: Any) -> None:
                     f"{where}: type=choice 인데 choices / choices_glob 가 없습니다 "
                     f"(stage={st['id']}, label={a.get('label')})"
                 )
+    ids = {str(st["id"]) for st in stages}
+    for st in stages:
+        for t in st.get("tools") or []:
+            if not isinstance(t, dict) or str(t.get("stage") or "") not in ids:
+                raise RegistryError(
+                    f"{where}: 단계 '{st['id']}' 의 tools 항목은 같은 그룹의 단계 id 를 가리켜야 합니다: {t}"
+                )
 
 
 def load_registry(path: Optional[Path] = None) -> List[Dict[str, Any]]:
@@ -702,6 +709,24 @@ class StagePanel(QWidget):
         )
         outer.addWidget(self.script_label)
 
+        # 핵심 단계의 '도구' 선택 (JSON stage.tools: 같은 단계를 다른 스크립트/프리셋으로) — 도구가 없으면 숨김
+        self.tool_row = QWidget()
+        tr = QHBoxLayout(self.tool_row)
+        tr.setContentsMargins(0, 4, 0, 4)
+        tool_label = QLabel("도구")
+        tool_label.setObjectName("toolLabel")
+        tr.addWidget(tool_label)
+        self.tool_combo = QComboBox()
+        self.tool_combo.setMinimumWidth(340)
+        self.tool_combo.currentIndexChanged.connect(self._on_tool_changed)
+        tr.addWidget(self.tool_combo)
+        tr.addStretch(1)
+        self.tool_row.setVisible(False)
+        outer.addWidget(self.tool_row)
+        self.core_stage: Optional[Dict[str, Any]] = None
+        self.stages_by_id: Dict[str, Dict[str, Any]] = {}
+        self._tool_choice: Dict[str, int] = {}
+
         split = QSplitter(Qt.Vertical)
 
         # ---- 폼 ----
@@ -789,6 +814,48 @@ class StagePanel(QWidget):
             return
 
         self._remember_values()
+        self.core_stage = stage
+        tools = list((stage or {}).get("tools") or [])
+        self.tool_row.setVisible(bool(tools))
+        if tools:
+            self.tool_combo.blockSignals(True)
+            self.tool_combo.clear()
+            for t in tools:
+                self.tool_combo.addItem(str(t.get("label") or t.get("stage")), t)
+            idx = min(self._tool_choice.get(str(stage.get("id")), 0), len(tools) - 1)
+            self.tool_combo.setCurrentIndex(idx)
+            self.tool_combo.blockSignals(False)
+            self._build_form(self.resolve_tool(stage, tools[idx]))
+        else:
+            self._build_form(stage)
+
+    def _on_tool_changed(self, idx: int) -> None:
+        if self.core_stage is None or idx < 0:
+            return
+        if self.worker is not None and self.worker.isRunning():
+            return
+        self._remember_values()
+        self._tool_choice[str(self.core_stage.get("id"))] = idx
+        tool = self.tool_combo.itemData(idx) or {}
+        self._build_form(self.resolve_tool(self.core_stage, tool))
+
+    def resolve_tool(self, core: Dict[str, Any], tool: Dict[str, Any]) -> Dict[str, Any]:
+        """도구 항목 → 실제 실행할 단계 정의. 대상 단계(tool.stage)의 스크립트·인자를 쓰되 제목은 핵심 단계 것을 쓰고,
+        tool.set 의 값은 해당 인자의 기본값으로 넣어 basic 으로 올린다 (사용자가 바로 보고 고칠 수 있게)."""
+        target = self.stages_by_id.get(str(tool.get("stage") or ""), core)
+        eff = json.loads(json.dumps(target, ensure_ascii=False))
+        eff["core_title"] = core.get("core_title") or core.get("title")
+        if tool.get("description"):
+            eff["description"] = str(tool["description"])
+        presets = dict(tool.get("set") or {})
+        for a in eff.get("args", []):
+            if a.get("flag") in presets:
+                a["default"] = presets[a["flag"]]
+                a["basic"] = True
+        eff["tool_label"] = tool.get("label")
+        return eff
+
+    def _build_form(self, stage: Optional[Dict[str, Any]]) -> None:
         self.stage = stage
         while self.form.rowCount():
             self.form.removeRow(0)
@@ -1089,6 +1156,7 @@ class PipelineGroupPage(QWidget):
         layout.addWidget(left)
 
         self.panel = StagePanel(self)
+        self.panel.stages_by_id = {str(st.get("id")): st for st in stages}
         layout.addWidget(self.panel, 1)
 
         self.listw.currentItemChanged.connect(self._on_select)
