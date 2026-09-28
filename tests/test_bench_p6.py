@@ -139,6 +139,15 @@ class RunnerTests(unittest.TestCase):
         self.assertIn("--allow-unlabeled", out)
         self.assertIn("--record-pseudo", out)
 
+    def test_e2e_sample_gallery_is_incomplete(self):
+        # 등록기 --ingest-frames 의 표본 갤러리(검출 상한 < 0.5) 는 GT 분모 mAP 로 운영 기준을 판정할 수 없다
+        e = L.make_entry("e2e", "t", "x__sample300", env={"git_commit": "a", "host": "h"}, metrics={"map": 3.5, "map_db": 89.1, "det_ceiling": 0.041})
+        ev = C.evaluate(e)
+        self.assertEqual(ev["status"], "incomplete")
+        self.assertEqual(ev["checks"][0]["reason"], "sample")
+        full = L.make_entry("e2e", "t", "prod", env={"git_commit": "a", "host": "h"}, metrics={"map": 58.3, "map_db": 63.0, "det_ceiling": 0.908})
+        self.assertEqual(C.evaluate(full)["status"], "pass")
+
     def test_import_skips_pseudo_and_unlabeled(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

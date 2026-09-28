@@ -259,9 +259,11 @@ def ingest_and_compare(name: str, yaml_path: Path, n_frames: int, *, root: Path 
     rows = {}
     for key in (f"{name}__sample{info['frames']}", f"prod__sample{info['frames']}"):
         e = latest.get(key)
-        rows[key] = {k: (e.get("metrics") or {}).get(k) for k in ("map", "map_db", "rank1", "det_ceiling")} if e else None
+        rows[key] = {k: (e.get("metrics") or {}).get(k) for k in ("map", "map_db", "rank1", "rank5", "det_ceiling", "sec_per_query")} if e else None
     out["e2e"] = rows
-    log(f"[register] e2e 비교 (같은 표본 컬렉션 {collection}): " + " · ".join(f"{k}: mAP {ledger.fmt((v or {}).get('map'))} / R1 {ledger.fmt((v or {}).get('rank1'))}" for k, v in rows.items()))
+    # 표본 갤러리에는 GT 양성의 일부만 있으므로(det_ceiling ≈ 표본 비율) 비교 지표는 DB 양성 기준 mAP(db) 와 Rank-1 이다. GT 분모 mAP 는 운영 전체 적재와 비교할 수 없다.
+    log(f"[register] e2e 비교 (같은 표본 컬렉션 {collection}, 검출 상한 {ledger.fmt((next(iter(rows.values())) or {}).get('det_ceiling'))} → 지표는 mAP(db)·R1): "
+        + " · ".join(f"{k}: mAP(db) {ledger.fmt((v or {}).get('map_db'))} / R1 {ledger.fmt((v or {}).get('rank1'))} / {ledger.fmt((v or {}).get('sec_per_query'))} s·q" for k, v in rows.items()))
     return out
 
 

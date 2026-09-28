@@ -71,6 +71,11 @@ def evaluate(entry: Dict[str, Any]) -> Dict[str, Any]:
     metrics = entry.get("metrics") or {}
     model_id = str((entry.get("component") or {}).get("model_id") or "")
     checks = []
+    # 표본 갤러리(등록기 --ingest-frames): 검출 상한 < 0.5 이면 GT 분모 mAP 로 운영 기준을 판정할 수 없다 → 확인 불가 (비교는 map_db 로)
+    dc = metrics.get("det_ceiling")
+    if stage == "e2e" and _num(dc) and float(dc) < 0.5:
+        return {"status": "incomplete", "checks": [{"metric": "det_ceiling", "label": f"표본 갤러리 (검출 상한 {float(dc):.3f} < 0.5) — 운영 기준 판정 불가, map_db 로 비교", "value": dc, "ok": None, "reason": "sample"}],
+                "passed": 0, "applicable": 0}
     for metric, op, target, label in ADOPTION_RULES.get(stage, []):
         v = metrics.get(metric)
         if stage == "qwen" and metric == "sec_per_candidate" and "4B" in model_id.upper():
