@@ -45,6 +45,7 @@
       "id": "video_preprocess",
       "core": true,
       "core_title": "1. 검출·추적 — 영상 → track",
+      "core_desc": "영상 폴더의 영상에서 사람·물건을 찾고 움직임을 따라가(track) 처리 결과 폴더에 저장합니다. 가장 오래 걸리는 단계이며 중간에 멈춰도 이어서 할 수 있습니다.",
       "title": "1. 전처리 + 트래킹",
       "script": "video/batch_preprocess_videos_parallel.py",
       "description": "data/videos 의 영상을 검출기(yaml 의 detector: RF-DETR 또는 YOLO26) + BoT-SORT + SUSHI 로 처리해 outputs/processed_videos 를 만든다. 가장 오래 걸리는 단계이며 --resume 으로 이어서 할 수 있다.",
@@ -124,6 +125,7 @@
       "id": "video_ingest",
       "core": true,
       "core_title": "2. 임베딩 — track crop → 벡터 DB",
+      "core_desc": "각 track의 대표 이미지를 벡터로 바꿔 검색용 DB에 넣습니다. 이 단계가 끝나야 '영상에서 찾기' 검색이 됩니다. 다시 실행해도 중복이 쌓이지 않습니다.",
       "title": "2. Qdrant 적재",
       "script": "ingest/batch_ingest_all_videos.py",
       "description": "처리된 영상의 track 별 대표 crop 을 임베딩해 forensic_person / forensic_object 에 넣는다. deterministic point ID 라 재실행해도 중복이 쌓이지 않고 덮어쓴다.",
@@ -182,9 +184,10 @@
       "id": "video_cluster_person",
       "core": true,
       "core_title": "3. 클러스터 — 같은 사람·물건 묶기",
+      "core_desc": "DB의 track을 같은 사람 또는 같은 물건끼리 묶습니다. 사람/물건은 위의 '도구'에서 고릅니다. 기본 설정은 DB를 건드리지 않고 결과 파일만 만듭니다(dry-run).",
       "tools": [
-        {"label": "사람 — Leiden (track centroid, SOLIDER)", "stage": "video_cluster_person"},
-        {"label": "물건 — Leiden (track centroid, DINOv2)", "stage": "video_cluster_object"}
+        {"label": "사람", "stage": "video_cluster_person"},
+        {"label": "물건", "stage": "video_cluster_object"}
       ],
       "title": "3. Person Leiden 클러스터링",
       "script": "clustering/cluster_leiden_track_centroid.py",
@@ -360,9 +363,10 @@
       "id": "video_gallery_person",
       "core": true,
       "core_title": "4. 결과창 — 군집 갤러리",
+      "core_desc": "묶음 결과를 눈으로 확인할 갤러리 HTML을 만듭니다. 사람/물건은 위의 '도구'에서 고릅니다. 끝나면 '결과 열기'로 봅니다.",
       "tools": [
-        {"label": "사람 군집 갤러리", "stage": "video_gallery_person"},
-        {"label": "물건 군집 갤러리", "stage": "video_gallery_object"}
+        {"label": "사람", "stage": "video_gallery_person"},
+        {"label": "물건", "stage": "video_gallery_object"}
       ],
       "title": "5. Person 군집 갤러리",
       "script": "report/build_leiden_gallery_track.py",
@@ -504,6 +508,7 @@
       "id": "image_detect",
       "core": true,
       "core_title": "1. 검출 — 사진 → 사람·물건 crop",
+      "core_desc": "사진 폴더를 고르면 사람과 물건을 찾아 잘라낸 이미지(crop)를 출력 폴더에 모아 둡니다. 다음 단계(임베딩)가 이 결과를 그대로 읽습니다. 중간에 멈춰도 이어서 할 수 있습니다. 검출기는 아래 '검출기'에서 고릅니다.",
       "title": "1. 배치 검출 / crop (RF-DETR · YOLO26)",
       "script": "detect/RF-DETR_batch.py",
       "description": "입력 폴더의 이미지를 검출기 플러그인(기본 RF-DETR Medium; '검출기 yaml' 로 YOLO26 등으로 교체) 으로 일괄 검출해 crop 을 출력 폴더에 쓰고, 마지막에 filter_stats.json 을 재생성한다. 2단계가 바로 이 파일을 읽는다. 중단해도 checkpoint 로 이어서 진행되며, 검출기·임계값이 바뀌면 checkpoint 불일치로 멈춘다.",
@@ -641,6 +646,7 @@
       "id": "image_build",
       "core": true,
       "core_title": "2. 임베딩 — crop → 벡터 DB",
+      "core_desc": "잘라낸 이미지를 벡터로 바꿔 검색용 DB에 넣습니다. 이 단계가 끝나야 '사진에서 찾기' 검색이 됩니다. 어떤 임베더를 쓸지는 '임베더 구성'에서 고릅니다.",
       "title": "2. 임베딩 + Qdrant 구축",
       "script": "ingest/build_db.py",
       "description": "filter_stats.json 의 crop 을 SigLIP2 / IRRA / SOLIDER / DINOv2 로 임베딩해 person·object 컬렉션에 적재한다. checkpoint 가 있어 중단해도 이어서 진행된다.",
@@ -751,12 +757,11 @@
       "id": "image_cluster",
       "core": true,
       "core_title": "3. 클러스터 — 같은 사람·물건 묶기",
+      "core_desc": "DB에 있는 사람·물건을 비슷한 것끼리 묶습니다. 묶는 방법은 위의 '도구'에서 고릅니다. 기본 설정은 DB를 건드리지 않고 결과 파일만 만듭니다(dry-run).",
       "tools": [
-        {"label": "Leiden — crop kNN 그래프 (기본, cluster_leiden_qdrant.py)", "stage": "image_cluster"},
-        {"label": "Leiden — 플러그인 러너 (cluster_qdrant.py)", "stage": "image_cluster_plugin", "set": {"--method": "leiden"}},
-        {"label": "DBSCAN v6 — 플러그인 러너 (cluster_qdrant.py)", "stage": "image_cluster_plugin", "set": {"--method": "dbscan_v6"}},
-        {"label": "커스텀 클러스터러 — yaml 의 clusterer: 블록 (cluster_qdrant.py)", "stage": "image_cluster_plugin", "set": {"--method-config": ""},
-         "description": "pipeline*.yaml 의 clusterer: {module, class, params} 블록으로 직접 만든 클러스터러를 돌린다 (yaml 이 --method 보다 우선). 등록 규격은 bench/REGISTER_GUIDE.md."}
+        {"label": "Leiden (기본)", "stage": "image_cluster"},
+        {"label": "DBSCAN v6", "stage": "image_cluster_plugin", "set": {"--method": "dbscan_v6"},
+         "description": "DB에 있는 사람·물건을 밀도 기반(DBSCAN)으로 묶습니다. 직접 만든 클러스터러(yaml)는 '추가 작업 보기'의 클러스터링 플러그인 단계에서 씁니다."}
       ],
       "title": "4. Leiden 클러스터링 (crop 단위)",
       "script": "clustering/cluster_leiden_qdrant.py",
@@ -1351,6 +1356,7 @@
       "id": "image_results",
       "core": true,
       "core_title": "4. 결과창 — 리포트 만들고 열기",
+      "core_desc": "DB 리포트, 묶음 갤러리, 종합 인덱스를 한 번에 만들고 '결과 열기'로 브라우저에서 봅니다. 세부 리포트는 '추가 작업 보기'에 있습니다.",
       "title": "4c. 결과창 (DB 리포트 + 갤러리 + 인덱스 한 번에)",
       "script": "report/build_image_results.py",
       "description": "3·5·6·7 단계를 한 번에: DB HTML 리포트 → person/object 클러스터 갤러리(assignments 가 있는 쪽만) → 결과 인덱스 HTML. 끝나면 '결과 열기' 로 인덱스가 열린다. 개별 단계는 '추가 작업 보기' 에 있다.",

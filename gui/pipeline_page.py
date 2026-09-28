@@ -850,6 +850,7 @@ class StagePanel(QWidget):
         target = self.stages_by_id.get(str(tool.get("stage") or ""), core)
         eff = json.loads(json.dumps(target, ensure_ascii=False))
         eff["core_title"] = core.get("core_title") or core.get("title")
+        eff["core_desc"] = str(tool.get("description") or core.get("core_desc") or "")
         if tool.get("description"):
             eff["description"] = str(tool["description"])
         presets = dict(tool.get("set") or {})
@@ -880,12 +881,14 @@ class StagePanel(QWidget):
 
         core_title = stage.get("core_title")
         self.title.setText(str(core_title or stage.get("title", stage.get("id"))))
-        self.desc.setText(str(stage.get("description", "")))
+        # 핵심 단계: 파일명 없는 쉬운 설명(core_desc)을 보이고 스크립트 경로·기술 제목은 툴팁으로만 남긴다.
+        self.desc.setText(str((stage.get("core_desc") if core_title else None) or stage.get("description", "")))
         script = ROOT / str(stage["script"])
         exists = script.is_file()
-        self.script_label.setText(
-            f"{stage['script']}" + (f"   ·   {stage.get('title')}" if core_title else "") + ("" if exists else "   ← 파일 없음")
-        )
+        tech = f"{stage['script']}" + (f"   ·   {stage.get('title')}" if core_title else "") + ("" if exists else "   ← 파일 없음")
+        self.script_label.setText(tech)
+        self.script_label.setVisible(not core_title or not exists)
+        self.title.setToolTip(tech if core_title else "")
         self.run_btn.setEnabled(exists)
         self.preview_btn.setEnabled(exists)
         if not exists:

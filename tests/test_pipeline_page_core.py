@@ -72,7 +72,8 @@ class QtTests(unittest.TestCase):
 
     def _group(self):
         st = lambda i, core=False, args=None: {"id": f"s{i}", "title": f"{i}. 기술 제목 {i}", "script": "report/build_image_results.py",
-                                                 **({"core": True, "core_title": f"{i}. 쉬운 제목"} if core else {}), "args": args or []}
+                                                 "description": f"기술 설명 {i} (foo.json)",
+                                                 **({"core": True, "core_title": f"{i}. 쉬운 제목", "core_desc": f"쉬운 설명 {i}"} if core else {}), "args": args or []}
         args = [{"flag": "--in", "label": "입력", "type": "str", "default": "a", "basic": True},
                 {"flag": "--req", "label": "필수", "type": "str", "default": "r", "required": True},
                 {"flag": "--adv", "label": "고급", "type": "int", "default": 3},
@@ -90,7 +91,10 @@ class QtTests(unittest.TestCase):
         self.assertEqual(len(page.visible_titles()), 2)
         panel = page.panel                                          # 첫 단계(core, basic 필드 있음) 선택 상태
         self.assertEqual(panel.title.text(), "1. 쉬운 제목")
+        self.assertEqual(panel.desc.text(), "쉬운 설명 1")               # 파일명 든 기술 설명 대신
         self.assertIn("1. 기술 제목 1", panel.script_label.text())
+        self.assertTrue(panel.script_label.isHidden())                 # 핵심 단계: 파일명 줄은 숨기고 툴팁으로만
+        self.assertIn("build_image_results.py", panel.title.toolTip())
         self.assertTrue(panel.adv_check.isVisible() or not panel.adv_check.isHidden())
         adv = [f for f in panel.fields if getattr(f, "advanced", False)]
         self.assertEqual([f.flag for f in adv], ["--adv", "--adv2"])
@@ -100,6 +104,8 @@ class QtTests(unittest.TestCase):
         # basic 없는 단계 → 체크박스 숨김, 전부 표시
         panel.set_stage(self._group()["stages"][1])
         self.assertTrue(panel.adv_check.isHidden())
+        self.assertFalse(panel.script_label.isHidden())                # 일반(추가 작업) 단계는 스크립트 줄이 보인다
+        self.assertEqual(panel.title.toolTip(), "")
 
     def test_tools_switch_stage_and_presets(self):
         g = self._group()
@@ -118,6 +124,9 @@ class QtTests(unittest.TestCase):
         self.assertEqual(panel.stage["id"], "s4")                  # 실행 대상은 s4
         self.assertEqual(panel.title.text(), "3. 쉬운 제목")          # 제목은 핵심 단계 것
         self.assertEqual(panel.desc.text(), "설명 D")
+        panel.tool_combo.setCurrentIndex(0)
+        self.assertEqual(panel.desc.text(), "쉬운 설명 3")               # 도구 설명이 없으면 핵심 단계의 쉬운 설명
+        panel.tool_combo.setCurrentIndex(1)                              # 아래 검사는 다시 '다른 도구' 기준
         self.assertIn("build_image_db_html.py", " ".join(panel._build_cmd()))
         m = next(f for f in panel.fields if f.flag == "--m")
         self.assertEqual(m.value(), "dbscan")                       # set 프리셋이 기본값
@@ -157,7 +166,7 @@ class LiveRegistryTests(unittest.TestCase):
                 v = pp.resolve_default(a)
                 self.assertTrue(v or a.get("choices_dirs"), a["flag"])   # 값이 있거나 폴더 드롭다운
         cl = next(s for s in groups["image_pipeline"]["stages"] if s["id"] == "image_cluster")
-        self.assertGreaterEqual(len(cl["tools"]), 3)                  # Leiden / DBSCAN / 커스텀
+        self.assertEqual([x["label"] for x in cl["tools"]], ["Leiden (기본)", "DBSCAN v6"])   # 두 개만, 파일명 없이
         self.assertEqual({t["stage"] for t in cl["tools"]}, {"image_cluster", "image_cluster_plugin"})
         vc = next(s for s in groups["video_pipeline"]["stages"] if s["id"] == "video_cluster_person")
         self.assertEqual([t["stage"] for t in vc["tools"]], ["video_cluster_person", "video_cluster_object"])
