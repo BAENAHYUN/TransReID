@@ -72,6 +72,7 @@ def link_windows(windows, det_to_long_id: Dict[int, int], max_gap: int = 2, min_
 
     stats = {"boundaries": max(len(windows) - 1, 0), "candidates": 0, "linked": 0, "rejected_gap": 0, "rejected_iou": 0, "conflicts": 0,
              "max_gap": int(max_gap), "min_iou": float(min_iou)}
+    records = []
     for wi in range(len(windows) - 1):
         a = windows[wi][2].sort_values(["frame", "detection_id"])
         b = windows[wi + 1][2].sort_values(["frame", "detection_id"])
@@ -86,23 +87,32 @@ def link_windows(windows, det_to_long_id: Dict[int, int], max_gap: int = 2, min_
                 continue
             stats["candidates"] += 1
             gap = int(rb.frame) - int(ra.frame)
+            rec = {"boundary": wi, "track_id": tid, "frame_a": int(ra.frame), "frame_b": int(rb.frame), "gap": gap,
+                   "long_a": int(det_to_long_id[int(ra.detection_id)]), "long_b": int(det_to_long_id[int(rb.detection_id)]), "iou": None, "decision": None}
+            records.append(rec)
             if gap < 1 or gap > max_gap:
                 stats["rejected_gap"] += 1
+                rec["decision"] = "rejected_gap"
                 continue
             iou = box_iou((float(ra.bb_left), float(ra.bb_top), float(ra.bb_right), float(ra.bb_bot)),
                           (float(rb.bb_left), float(rb.bb_top), float(rb.bb_right), float(rb.bb_bot)))
+            rec["iou"] = round(iou, 4)
             if iou < min_iou:
                 stats["rejected_iou"] += 1
+                rec["decision"] = "rejected_iou"
                 continue
-            proposals.append((iou, int(det_to_long_id[int(ra.detection_id)]), int(det_to_long_id[int(rb.detection_id)])))
+            proposals.append((iou, int(det_to_long_id[int(ra.detection_id)]), int(det_to_long_id[int(rb.detection_id)]), rec))
         used_a, used_b = set(), set()
         used_a_pair, used_b_pair = {}, {}
-        for iou, la, lb in sorted(proposals, reverse=True):
+        for iou, la, lb, rec in sorted(proposals, key=lambda x: (-x[0], x[1], x[2])):
             if (la in used_a and used_a_pair.get(la) != lb) or (lb in used_b and used_b_pair.get(lb) != la):
                 stats["conflicts"] += 1
+                rec["decision"] = "conflict"
                 continue
             if la in used_a:
+                rec["decision"] = "duplicate"
                 continue                                                      # 같은 쌍을 다른 raw track 이 다시 제안
+            rec["decision"] = "linked"
             used_a.add(la)
             used_b.add(lb)
             used_a_pair[la] = lb
@@ -120,6 +130,8 @@ def link_windows(windows, det_to_long_id: Dict[int, int], max_gap: int = 2, min_
         remap[old] = root_to_new[root]
     stats["long_ids_before"] = len(remap)
     stats["long_ids_after"] = len(root_to_new)
+    stats["links"] = records                                                          # 연결 근거 (raw id · 양쪽 프레임 · IoU · 결정)
+    stats["remap"] = {int(k): int(v) for k, v in remap.items()}
     return remap, stats
 
 
@@ -480,6 +492,7 @@ def run_one_window(graph, tracker, config, window_index: int):
 def merge_results(original_tracks, person_df, det_to_long_id, method: str = "sushi_mot17private"):
     # key -> detection_id
     keyed = {}
+    loose = {}                                   # (frame, source_track_id) -> [(bbox, detection_id)]
     for _, r in person_df.iterrows():
         key = (
             int(r["frame"]),
@@ -490,6 +503,16 @@ def merge_results(original_tracks, person_df, det_to_long_id, method: str = "sus
             round(float(r["bb_bot"]), 4),
         )
         keyed[key] = int(r["detection_id"])
+        loose.setdefault((int(r["frame"]), int(r["source_track_id"])), []).append((key[2:], int(r["detection_id"])))
+
+    def loose_lookup(frame, tid, bbox, min_iou=0.85):
+        """정확한 키가 없을 때(어댑터의 화면 경계 클리핑·반올림 차이) 같은 (frame, track) 에서 IoU 가 가장 큰 검출 (min_iou 이상)."""
+        best = None
+        for cand_box, did in loose.get((frame, tid), []):
+            iou = box_iou(cand_box, bbox)
+            if iou >= min_iou and (best is None or iou > best[0]):
+                best = (iou, did)
+        return None if best is None else best[1]
 
     merged = []
     for row in original_tracks:
@@ -504,9 +527,11 @@ def merge_results(original_tracks, person_df, det_to_long_id, method: str = "sus
                 round(x2, 4),
                 round(y2, 4),
             )
-            if key not in keyed:
+            did = keyed.get(key)
+            if did is None:
+                did = loose_lookup(key[0], key[1], key[2:])
+            if did is None:
                 raise RuntimeError(f"cannot map person record: {key}")
-            did = keyed[key]
             out["short_track_id"] = int(row["track_id"])
             out["long_track_id"] = int(det_to_long_id[did])
             out["stitch_method"] = method

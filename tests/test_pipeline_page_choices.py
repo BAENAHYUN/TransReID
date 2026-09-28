@@ -74,7 +74,9 @@ class ChoiceValuesTests(unittest.TestCase):
         with self.assertRaises(pp.RegistryError):
             pp._check_stages("test", "g", [{"id": "s", "title": "t", "script": "x.py", "args": [{"flag": "--c", "type": "choice"}]}])
 
-    def test_live_registry_detector_dropdowns_show_one_item_per_detector(self):
+    def test_live_registry_detector_dropdowns(self):
+        """검출기 드롭다운: 검출기 블록이 통째로 같은 사본만 합친다(같은 class 라도 가중치가 다르면 별도 항목, 예 yolo26 / yolo26s).
+        영상 1단계는 pipeline_tracking*.yaml 을 파일마다 한 항목으로 보여 스티처 변형(sushi_link)도 고를 수 있다."""
         groups = {g["id"]: g for g in pp.load_registry()}
         for gid, stage_id, flag in (("video_pipeline", "video_preprocess", "--tracking-config"),
                                     ("image_pipeline", "image_detect", "--detector-config"),
@@ -83,12 +85,17 @@ class ChoiceValuesTests(unittest.TestCase):
             arg = next(a for a in stage["args"] if a["flag"] == flag)
             items = pp._choice_values(arg)
             with self.subTest(stage=stage_id):
-                self.assertEqual(len(items), 2, items)
                 labels = [label for _, label in items]
                 self.assertTrue(any(label.startswith("RFDETRDetector") for label in labels), labels)
-                self.assertTrue(any(label.startswith("YOLO26Detector") for label in labels), labels)
+                self.assertEqual(sum(1 for label in labels if label.startswith("YOLO26Detector")), 2, labels)   # yolo26 + yolo26s
                 self.assertIn("pipeline_tracking_yolo26.yaml", values(items))
+                self.assertIn("pipeline_tracking_yolo26s.yaml", values(items))
                 self.assertEqual(values(items)[0], arg["default"])
+                if stage_id == "video_preprocess":
+                    self.assertIn("pipeline_tracking_sushi_link.yaml", values(items))
+                    self.assertTrue(all(v == arg["default"] or v.startswith("pipeline_tracking") for v in values(items)), values(items))   # 기본(운영 pipeline.yaml) + tracking 변형들
+                else:
+                    self.assertNotIn("pipeline_tracking_sushi_link.yaml", values(items))       # 검출기 블록이 tracking.yaml 과 같아 합쳐짐
         build = next(s for s in groups["image_pipeline"]["stages"] if s["id"] == "image_build")
         cfg = next(a for a in build["args"] if a["flag"] == "--config")
         items = pp._choice_values(cfg)

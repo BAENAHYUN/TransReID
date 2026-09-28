@@ -329,22 +329,42 @@ def load_boxes(gt_video_dir: Path) -> Dict[str, Dict[str, Any]]:
     return segs
 
 
-def build_gt(segs: Dict[str, Dict[str, Any]], proposals: Dict[str, Any], labels: Dict[str, Dict[str, Any]]) -> Tuple[Dict[int, List[Tuple[str, List[float]]]], Dict[int, List[List[float]]], Dict[str, Any]]:
+def label_is_valid(lab: Dict[str, Any]) -> bool:
+    """검토된 라벨의 유효성: person 이면 gt_id 가 있어야 하고 status 는 person|ignore."""
+    status = str(lab.get("status") or "person").strip().lower()
+    if status not in ("person", "ignore"):
+        return False
+    return status == "ignore" or bool(str(lab.get("gt_id") or "").strip())
+
+
+def build_gt(segs: Dict[str, Dict[str, Any]], proposals: Dict[str, Any], labels: Dict[str, Dict[str, Any]],
+             promote_defaults: bool = True) -> Tuple[Dict[int, List[Tuple[str, List[float]]]], Dict[int, List[List[float]]], Dict[str, Any]]:
     """구간 박스 + 라벨 → (frame → [(gt_id, bbox)], frame → [ignore bbox], info).
-    검토(reviewed)된 항목만 라벨을 쓰고, 나머지는 제안값(pseudo). info.coverage = 검토 항목 / 전체."""
+    검토(reviewed)되고 유효한 라벨만 사람 정답. 나머지 항목은 promote_defaults=True(pseudo 모드) 면 제안값, False(정식 평가) 면 ignore —
+    정식 평가에 제안값이 정답으로 승격되지 않는다. info.coverage = 검토 항목 / 전체, gt_dup_examples = 같은 프레임·같은 gt_id 중복(라벨 오류)."""
     defaults = {str(t.get("segment_id") or t.get("track_id")): t for t in (proposals.get("short_tracks") or [])}
     gt: Dict[int, List[Tuple[str, List[float]]]] = defaultdict(list)
     ignore: Dict[int, List[List[float]]] = defaultdict(list)
-    n_person = n_ignore = n_split = n_reviewed = 0
+    n_person = n_ignore = n_split = n_reviewed = n_invalid = n_unreviewed_ignored = 0
     ids = set()
-    seen: Dict[Tuple[int, str], int] = {}
+    seen: Dict[Tuple[int, str], str] = {}
     dup = 0
+    dup_examples: List[Dict[str, Any]] = []
     for sid, t in segs.items():
         d = defaults.get(str(sid), {})
         lab = labels.get(str(sid)) or {}
         reviewed = S.is_reviewed(lab)
+        if reviewed and not label_is_valid(lab):
+            n_invalid += 1
+            reviewed = False
         if not reviewed:
             lab = {}
+            if not promote_defaults:                 # 정식 평가: 검토 안 된 구간은 정답도 오답도 아닌 ignore
+                n_unreviewed_ignored += 1
+                n_ignore += 1
+                for fi, b in zip(t["frames"], t["boxes"]):
+                    ignore[fi].append(b)
+                continue
         else:
             n_reviewed += 1
         status = str(lab.get("status") or d.get("default_status") or "person").strip().lower()
@@ -368,13 +388,16 @@ def build_gt(segs: Dict[str, Dict[str, Any]], proposals: Dict[str, Any], labels:
             ids.add(g)
             if (fi, g) in seen:                        # 같은 프레임에 같은 gt_id 두 박스 = 라벨 오류 (동시 존재하는 두 사람을 한 id 로)
                 dup += 1
+                if len(dup_examples) < 20:
+                    dup_examples.append({"frame": fi, "gt_id": g, "segments": [seen[(fi, g)], sid]})
                 continue
-            seen[(fi, g)] = 1
+            seen[(fi, g)] = sid
             gt[fi].append((g, b))
     total = len(segs)
     info = {"gt_segments": n_person, "ignored_segments": n_ignore, "splits_labeled": n_split, "gt_ids": len(ids),
-            "gt_boxes": sum(len(v) for v in gt.values()), "gt_dup_boxes": dup, "segments": total, "reviewed_segments": n_reviewed,
-            "coverage": round(n_reviewed / total, 4) if total else 0.0, "labeled": n_reviewed > 0}
+            "gt_boxes": sum(len(v) for v in gt.values()), "gt_dup_boxes": dup, "gt_dup_examples": dup_examples, "segments": total,
+            "reviewed_segments": n_reviewed, "invalid_labels": n_invalid, "unreviewed_ignored": n_unreviewed_ignored,
+            "coverage": (n_reviewed / total) if total else 0.0, "labeled": n_reviewed > 0}
     return gt, ignore, info
 
 
@@ -490,31 +513,39 @@ def build_frames(gt: Dict[Any, List[Tuple[str, List[float]]]], pred: Dict[Any, L
 
 
 def clear_metrics(frames: Sequence[Frame], thr: float = 0.5) -> Dict[str, Any]:
-    """CLEAR (TrackEval clear.py): 직전 프레임의 대응을 우선(점수 +1000)하는 Hungarian 매칭 → TP/FP/FN, MOTA,
-    IDSW = 마지막으로 대응했던 예측 id(프레임 무관)와 다른 id 로 매칭된 횟수, fragments = GT 별 매칭 run 수 − 1 (첫 획득 전 미검출은 제외).
+    """CLEAR (TrackEval clear.py 와 같은 절차): GT 나 예측이 비는 프레임은 FP/FN 만 세고 건너뛴다(이전 대응 유지).
+    그 외 프레임은 직전 처리 프레임의 대응(+1000 보너스) 을 우선하는 Hungarian 매칭(IoU < thr 는 0) → TP/FP/FN, MOTA.
+    IDSW = 마지막으로 대응했던 예측 id(프레임 무관)와 다른 id 로 매칭된 횟수. fragments = GT 별 (추적 안 됨 → 추적됨) 전환 수 − 1
+    (직전 처리 프레임에 그 GT 가 없었거나 매칭이 안 됐으면 '추적 안 됨'; TrackEval 과 같이 GT 가 잠시 사라졌다 돌아와도 전환으로 센다).
     보조 진단: splits = Σ_GT(대응 예측 id 수 − 1), over_merges = 둘 이상 GT 에 대응한 예측 id 수."""
     prev_tracker: Dict[str, str] = {}            # gt id → 마지막으로 매칭된 pred id (IDSW 판정)
-    prev_step: Dict[str, str] = {}               # gt id → 직전 프레임에 매칭된 pred id (매칭 우선권)
-    matched_runs: Dict[str, List[bool]] = defaultdict(list)
+    prev_step: Dict[str, str] = {}               # gt id → 직전 처리 프레임에 매칭된 pred id (매칭 우선권·fragment)
+    frag_count: Dict[str, int] = defaultdict(int)
     gt_to_preds: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
     pred_to_gts: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    seen_gt: set = set()
     tp = fp = fn = idsw = 0
     n_gt = n_pr = 0
     for f in frames:
         n_gt += len(f.gt_ids)
         n_pr += len(f.pr_ids)
-        matched: List[Tuple[int, int]] = []
-        if f.iou.size:
-            sim = np.where(f.iou >= thr - EPS, f.iou, 0.0)
-            bonus = np.zeros_like(sim)
-            for gi, g in enumerate(f.gt_ids):
-                p = prev_step.get(g)
-                if p is not None:
-                    for pj, q in enumerate(f.pr_ids):
-                        if q == p:
-                            bonus[gi, pj] = 1000.0
-            score = np.where(sim > 0, bonus + sim, 0.0)
-            matched = _assign_max(score)
+        seen_gt.update(f.gt_ids)
+        if not f.gt_ids:
+            fp += len(f.pr_ids)
+            continue
+        if not f.pr_ids:
+            fn += len(f.gt_ids)
+            continue
+        sim = np.where(f.iou >= thr - EPS, f.iou, 0.0)
+        bonus = np.zeros_like(sim)
+        for gi, g in enumerate(f.gt_ids):
+            p = prev_step.get(g)
+            if p is not None:
+                for pj, q in enumerate(f.pr_ids):
+                    if q == p:
+                        bonus[gi, pj] = 1000.0
+        score = np.where(sim > 0, bonus + sim, 0.0)
+        matched = _assign_max(score)
         tp += len(matched)
         fp += len(f.pr_ids) - len(matched)
         fn += len(f.gt_ids) - len(matched)
@@ -523,29 +554,21 @@ def clear_metrics(frames: Sequence[Frame], thr: float = 0.5) -> Dict[str, Any]:
             g, p = f.gt_ids[gi], f.pr_ids[pj]
             if g in prev_tracker and prev_tracker[g] != p:
                 idsw += 1
+            if g not in prev_step:
+                frag_count[g] += 1
             prev_tracker[g] = p
             cur[g] = p
             gt_to_preds[g][p] += 1
             pred_to_gts[p][g] += 1
-        for g in f.gt_ids:
-            matched_runs[g].append(g in cur)
         prev_step = cur
-    frag = 0
-    for g, flags in matched_runs.items():
-        runs = 0
-        prev = False
-        for m in flags:
-            if m and not prev:
-                runs += 1
-            prev = m
-        frag += max(runs - 1, 0)
+    frag = sum(max(c - 1, 0) for c in frag_count.values())
     splits = sum(len(v) - 1 for v in gt_to_preds.values() if len(v) > 1)
     split_ids = sum(1 for v in gt_to_preds.values() if len(v) > 1)
     over = sum(1 for v in pred_to_gts.values() if len(v) > 1)
     over_pairs = sum(len(v) - 1 for v in pred_to_gts.values() if len(v) > 1)
     mota = 1.0 - (fn + fp + idsw) / n_gt if n_gt else 0.0
     return {"tp": tp, "fp": fp, "fn": fn, "idsw": idsw, "fragments": frag, "splits": splits, "split_gt_ids": split_ids,
-            "over_merges": over, "over_merge_pairs": over_pairs, "mota": round(mota, 4), "gt_boxes": n_gt, "pred_boxes": n_pr, "gt_ids": len(matched_runs)}
+            "over_merges": over, "over_merge_pairs": over_pairs, "mota": round(mota, 4), "gt_boxes": n_gt, "pred_boxes": n_pr, "gt_ids": len(seen_gt)}
 
 
 def idf1_metrics(frames: Sequence[Frame], thr: float = 0.5) -> Dict[str, float]:
@@ -606,7 +629,7 @@ def hota_metrics(frames: Sequence[Frame], alphas: Sequence[float] = HOTA_ALPHAS)
         if f.iou.size:
             denom = f.iou.sum(0)[None, :] + f.iou.sum(1)[:, None] - f.iou
             with np.errstate(divide="ignore", invalid="ignore"):
-                sim = np.where(denom > 0, f.iou / denom, 0.0)
+                sim = np.where(denom > EPS, f.iou / denom, 0.0)
             gi_idx, pj_idx = np.nonzero(sim > 0)
             for gi, pj in zip(gi_idx, pj_idx):
                 pot[(f.gt_ids[gi], f.pr_ids[pj])] += float(sim[gi, pj])
@@ -687,17 +710,30 @@ def cmd_eval(args: argparse.Namespace) -> Dict[str, Any]:
         raise SystemExit("--pred-file 로 여러 영상을 평가하려면 행마다 video 필드가 있어야 합니다")
     after_is_raw = False
     dup_total = 0
+    min_cov = float(args.min_coverage)
+    # 1) 검토율 먼저 — 모든 영상이 기준 이상이어야 정식(labeled) 평가. 정식 평가에서는 검토 안 된 구간이 제안값으로 승격되지 않는다(ignore).
+    loaded: Dict[str, Any] = {}
     for video in videos:
         vdir = gt_dir / video
         segs = load_boxes(vdir)
         proposals = S.load_json(vdir / "proposals.json", {}) or {}
-        max_gap = args.max_gap if args.max_gap is not None else int(proposals.get("max_gap") or DEFAULT_MAX_GAP)
-        gaps[video] = max_gap
         labels, lmeta = S.read_labels_meta(vdir / "labels.json")
         if labels:
-            S.check_manifest(lmeta, proposals.get("manifest"), video, args.ignore_manifest)
-        gt, ig, info = build_gt(segs, proposals, labels)
-        coverages.append(info["coverage"])
+            S.check_manifest(lmeta, proposals.get("manifest"), video, args.ignore_manifest, kind=KIND)
+        n_rev = sum(1 for sid in segs if S.is_reviewed(labels.get(str(sid))) and label_is_valid(labels.get(str(sid)) or {}))
+        loaded[video] = (segs, proposals, labels, (n_rev / len(segs)) if segs else 0.0)
+    coverages = [c for _, _, _, c in loaded.values()]
+    labeled = bool(coverages) and all(c >= min_cov for c in coverages)
+    for video in videos:
+        vdir = gt_dir / video
+        segs, proposals, labels, _cov = loaded[video]
+        max_gap = args.max_gap if args.max_gap is not None else int(proposals.get("max_gap") or DEFAULT_MAX_GAP)
+        gaps[video] = max_gap
+        gt, ig, info = build_gt(segs, proposals, labels, promote_defaults=not labeled)
+        if labeled and info["gt_dup_boxes"]:
+            ex = "; ".join(f"frame {d['frame']} {d['gt_id']} ← 구간 {d['segments']}" for d in info["gt_dup_examples"][:5])
+            raise SystemExit(f"{video}: 같은 프레임에 같은 gt_id 박스가 {info['gt_dup_boxes']} 건 (라벨 충돌 — 동시에 존재하는 두 구간이 한 사람으로 라벨됨). 예: {ex}. "
+                             "라벨을 고친 뒤 다시 실행하세요 (pseudo 모드에서는 세기만 함).")
         for k, v in info.items():
             if isinstance(v, int) and k != "coverage":
                 gt_info_total[k] += v
@@ -714,7 +750,8 @@ def cmd_eval(args: argparse.Namespace) -> Dict[str, Any]:
             rows, src_name = load_routed(root, video)
             src = str(root / video / src_name)
         pred_sources.append(src)
-        pv: Dict[str, Any] = {"gt": info, "pred_source": src, "max_gap": max_gap}
+        methods = sorted({str(r.get("stitch_method")) for r in rows if r.get("stitch_method")})
+        pv: Dict[str, Any] = {"gt": info, "pred_source": src, "max_gap": max_gap, "stitch_methods": methods}
         for variant, key in VARIANTS:
             pr, dup = pred_from_rows(rows, key, max_gap)
             preds[variant].update(namespaced(video, pr, True))
@@ -730,8 +767,6 @@ def cmd_eval(args: argparse.Namespace) -> Dict[str, Any]:
               f"before IDF1 {pv['before']['idf1']:.3f} IDSW {pv['before']['idsw']} · after IDF1 {pv['after']['idf1']:.3f} IDSW {pv['after']['idsw']} 과병합 {pv['after']['over_merges']}"
               f"{' 동시중복 ' + str(pv['after']['pred_dup_boxes']) if pv['after']['pred_dup_boxes'] else ''}")
     coverage = round(float(np.mean(coverages)), 4) if coverages else 0.0
-    min_cov = float(args.min_coverage)
-    labeled = coverage >= min_cov and all(c >= min_cov for c in coverages)
     partial = (not labeled) and coverage > 0
     pseudo = not labeled
     overall = {variant: evaluate(all_gt, preds[variant], all_ig, args.iou) for variant, _ in VARIANTS}
@@ -751,7 +786,8 @@ def cmd_eval(args: argparse.Namespace) -> Dict[str, Any]:
     out = {"producer": PRODUCER, "generated_at": S.now_iso(), "name": name, "pseudo_gt": pseudo, "partial_gt": partial,
            "config": {"gt_dir": str(gt_dir), "processed_root": str(processed_root) if processed_root else None, "pred_file": args.pred_file,
                       "videos": videos, "iou": args.iou, "max_gap": gaps, "min_coverage": min_cov, "tracking_config": args.tracking_config,
-                      "tracking_config_sha256": None, "after_is_raw": after_is_raw},
+                      "tracking_config_sha256": None, "after_is_raw": after_is_raw,
+                      "stitch_methods": sorted({m for pv in per_video.values() for m in pv.get("stitch_methods", [])})},
            "gt": {"videos": len(videos), "labeled_videos": sum(1 for c in coverages if c >= min_cov), "coverage": coverage, **dict(gt_info_total),
                   "protocol": "semi-GT: 검출 박스 고정, 사람 라벨 = 구간(track_id 연속 구간)별 gt_id(검토 항목만); IoU≥0.5; raw=추적기 id, before=구간, after=긴 트랙; ignore 는 MOTChallenge 방식"},
            "inputs": inputs, "pred_sources": pred_sources, "metrics": metrics, "raw": raw, "before": before, "after": after, "per_video": per_video}

@@ -587,7 +587,7 @@ def entry_from_track_result(out: Dict[str, Any], report: Any = None, command: Op
     """track_gt_eval 의 결과 dict → 엔트리 (stage=track: 추적기 before / 스티처 after, metrics 는 after + *_before)."""
     cfg = out.get("config") or {}
     component = {"pipeline": "detect→track→stitch", "tracking_config": cfg.get("tracking_config"), "tracking_config_sha256": cfg.get("tracking_config_sha256"),
-                 "pred_file": cfg.get("pred_file"), "processed_root": cfg.get("processed_root")}
+                 "pred_file": cfg.get("pred_file"), "processed_root": cfg.get("processed_root"), "stitch_methods": cfg.get("stitch_methods")}
     params = {"videos": cfg.get("videos"), "iou": cfg.get("iou"), "max_gap": cfg.get("max_gap"), "min_coverage": cfg.get("min_coverage"),
               "gt_dir": cfg.get("gt_dir")}
     return _p6_entry("track", out, component, params, {"dataset": "semi-GT tracks"}, report, command, versions, env)

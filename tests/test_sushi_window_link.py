@@ -98,7 +98,8 @@ class LinkTests(unittest.TestCase):
         args = B.stitcher_link_args(ROOT / "pipeline_tracking_sushi_link.yaml")
         self.assertEqual(args[:1], ["--link-windows"])
         self.assertIn("--link-max-gap", args)
-        self.assertEqual(B.stitcher_link_args(ROOT / "no_such.yaml"), [])
+        with self.assertRaises(FileNotFoundError):                      # 설정 파일 문제는 조용히 "연결 없음" 이 되지 않는다
+            B.stitcher_link_args(ROOT / "no_such.yaml")
 
 
 if __name__ == "__main__":

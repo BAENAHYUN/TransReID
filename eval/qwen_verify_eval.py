@@ -207,6 +207,8 @@ def obtain_result(qid: str, inp: Path, qwen_dir: Path, args: argparse.Namespace)
     if reason and args.rescore:
         raise SystemExit(f"{qid}: --rescore 는 계약이 맞는 캐시가 있어야 합니다 — {reason}")
     if reason:
+        for old in qwen_dir.glob(f"{qid}.rescore_*"):          # 원본이 바뀌면 옛 재채점 결과는 무효
+            old.unlink()
         wall = _run(qwen_command(args.python or sys.executable, inp, out_json, args), qwen_dir / f"{qid}.log")
         payload = S.load_json(out_json, {}) or {}
         meta = {"cache_key": key, "alpha": args.alpha, "threshold": args.threshold, "model_id": args.model_id or payload.get("qwen_model"),
@@ -221,7 +223,8 @@ def obtain_result(qid: str, inp: Path, qwen_dir: Path, args: argparse.Namespace)
     if same_score and not args.rescore:
         payload["_cache"] = {"status": "cached", **meta}
         return payload
-    tag = hashlib.sha1(f"{args.alpha}:{args.threshold}".encode()).hexdigest()[:8]
+    # 재채점 파일은 원본 실행(계약 키 + 원본 결과 해시)에 결속 — 원본이 갱신되면 이름이 달라지고 옛 파일은 지워진다
+    tag = hashlib.sha1(f"{key}:{S.file_sha1(out_json)}:{args.alpha}:{args.threshold}".encode()).hexdigest()[:10]
     rescored = qwen_dir / f"{qid}.rescore_{tag}.json"
     if not rescored.is_file() or args.rerun:
         _run(rescore_command(args.python or sys.executable, out_json, rescored, args), qwen_dir / f"{qid}.rescore_{tag}.log")
@@ -304,7 +307,7 @@ def cmd_eval(args: argparse.Namespace) -> Dict[str, Any]:
         raise SystemExit(f"proposals.json 이 없거나 비었습니다: {gt_dir} (sheet 먼저)")
     labels, lmeta = S.read_labels_meta(gt_dir / "labels.json")
     if labels:
-        S.check_manifest(lmeta, proposals.get("manifest"), "qwen", args.ignore_manifest)
+        S.check_manifest(lmeta, proposals.get("manifest"), "qwen", args.ignore_manifest, kind=KIND)
     name = args.name or f"qwen_{args.verify_mode}{'_norerank' if args.no_reranker else ''}"
     out_dir = Path(args.output_dir).resolve() / name
     qwen_dir = Path(args.qwen_dir).resolve() if args.qwen_dir else out_dir / "qwen"
@@ -320,9 +323,13 @@ def cmd_eval(args: argparse.Namespace) -> Dict[str, Any]:
     for q in queries[: args.max_queries or None]:
         qid = q["query_id"]
         reviewed = sum(1 for c in q["candidates"] if S.is_reviewed(labels.get(f"{qid}:{c['rank']}")))
-        has_labels = reviewed > 0
-        if not has_labels and not args.allow_unlabeled:
-            continue
+        q_cov = reviewed / len(q["candidates"]) if q["candidates"] else 0.0
+        has_labels = q_cov >= float(args.min_coverage) and reviewed > 0     # 쿼리 단위 검토율 기준 (부분 라벨 쿼리는 정식 평가에 안 들어감)
+        if not has_labels:
+            if reviewed > 0:
+                print(f"[eval] {qid}: 검토 {reviewed}/{len(q['candidates'])} < 기준 {float(args.min_coverage):.0%} — 정식 평가에서 제외")
+            if not args.allow_unlabeled:
+                continue
         inp = gt_dir / "candidates" / f"{qid}.json"
         if not inp.is_file():
             print(f"[eval] {qid}: 후보 파일 없음 — 건너뜀")
@@ -337,7 +344,7 @@ def cmd_eval(args: argparse.Namespace) -> Dict[str, Any]:
         sc = score_query(q["candidates"], rows, labels, qid, args.verify_mode)
         sc.update({"query_id": qid, "text": q.get("text"), "qwen_elapsed_sec": cache.get("qwen_elapsed_sec"), "reranker_elapsed_sec": cache.get("reranker_elapsed_sec"),
                    "wall_sec": cache.get("wall_sec"), "cache": cache.get("status"), "qwen_error": crops[0].get("qwen_error"), "labeled": has_labels,
-                   "reviewed": reviewed, "coverage": round(reviewed / max(len(q["candidates"]), 1), 4)})
+                   "reviewed": reviewed, "coverage": round(q_cov, 4), "empty_after": sc["retained"] == 0})
         per.append(sc)
         total_qwen_sec += float(cache.get("qwen_elapsed_sec") or 0.0)
         total_wall += float(cache.get("wall_sec") or 0.0)
@@ -350,8 +357,9 @@ def cmd_eval(args: argparse.Namespace) -> Dict[str, Any]:
     if not per:
         raise SystemExit("평가할 쿼리가 없습니다 (labels.json 이 없으면 --allow-unlabeled)")
     labeled = [q for q in per if q["labeled"]]
-    coverage = round(sum(q["reviewed"] for q in labeled) / max(sum(len(q["candidates"]) for q in queries[: args.max_queries or None] if any(p["query_id"] == q["query_id"] for p in labeled)), 1), 4) if labeled else 0.0
+    coverage = round(sum(q["coverage"] for q in labeled) / len(labeled), 4) if labeled else 0.0
     metrics = aggregate(labeled) if labeled else aggregate(per)
+    metrics["queries_empty_after"] = sum(1 for q in (labeled or per) if q.get("empty_after"))
     metrics["sec_per_candidate"] = round(total_qwen_sec / total_scored, 2) if total_scored else None
     metrics["wall_sec_per_candidate"] = round(total_wall / total_scored, 2) if (total_scored and total_wall) else None
     metrics["coverage"] = coverage
@@ -429,6 +437,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--rerun", action="store_true", help="캐시된 Qwen 결과가 있어도 다시 실행")
     p.add_argument("--rescore", action="store_true", help="계약이 맞는 캐시로 alpha/threshold 만 재채점 (Qwen 호출 없음; 캐시가 없으면 오류)")
     p.add_argument("--allow-unlabeled", action="store_true", help="라벨 없는 쿼리도 실행 (시간·UNKNOWN 만)")
+    p.add_argument("--min-coverage", type=float, default=1.0, help="쿼리의 검토율이 이 미만이면 정식 평가에서 제외")
     p.add_argument("--ignore-manifest", action="store_true")
     p.add_argument("--name", default=None)
     p.add_argument("--output-dir", default=str(DEFAULT_OUT))

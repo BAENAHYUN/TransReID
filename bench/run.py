@@ -298,19 +298,49 @@ class Stage:
         name = a.get("name") or default_name("track", a)
         processed = a.get("processed_root")
         if a.get("tracking_config"):
-            # 같은 GT 영상을 이 yaml 로 다시 추적·스티칭한 뒤 평가 (검출기·추적기·스티처 교체 비교)
             proc_root = self.run_dir / "processed"
             videos = list(a.get("videos") or [])
             if not videos:
                 gt_dir = Path(a.get("gt_dir") or PROJECT_ROOT / "eval" / "gt" / "tracks")
                 videos = sorted(p.name for p in gt_dir.iterdir() if (p / "boxes.jsonl").is_file()) if gt_dir.is_dir() else []
-            for v in videos:
+            if a.get("restitch"):
+                # 스티처만 교체 비교: 기존 처리 결과의 tracks.jsonl + sushi_input(검출 pickle) 위에서 SUSHI(+yaml 의 link_windows 옵션)만 다시 돌린다.
+                # 검출·추적을 다시 하면 박스가 달라져 semi-GT(고정 박스)와 맞지 않는다 — 실측: 재추적 시 FP 6,850 (2026-09-28).
+                from video.batch_preprocess_videos_parallel import stitcher_link_args
+                src_root = Path(processed or PROJECT_ROOT / "outputs" / "processed_videos")
+                for v in videos:
+                    src = src_root / v
+                    out_dir = proc_root / v
+                    sushi_in = src / "sushi_input" / v
+                    if not (sushi_in / "processed_data").is_dir():
+                        # 옛 처리 결과에 SUSHI 입력(검출 pickle)이 없으면 어댑터로 다시 만든다 (영상 파일 필요)
+                        try:
+                            video_file = _video_file(src, v, a.get("videos_root"))
+                        except SystemExit:
+                            if not self.dry:
+                                raise
+                            video_file = Path(a.get("videos_root") or PROJECT_ROOT / "data" / "videos") / f"{v}.mp4"   # dry-run 은 경로만 보여준다
+                        sushi_in = out_dir / "sushi_input" / v
+                        self.run_cmd([PY, "video/sushi_adapter.py", "--video", str(video_file), "--tracks", str(src / "tracks.jsonl"),
+                                      "--sushi-root", str(a.get("sushi_root") or "./third_party/SUSHI"), "--output-root", str(out_dir / "sushi_input")])
+                    cmd = [PY, "video/sushi_inference.py", "--input-root", str(sushi_in), "--sushi-root", str(a.get("sushi_root") or "./third_party/SUSHI"),
+                           "--checkpoint", str(a.get("checkpoint") or "./third_party/SUSHI/pretrained_models/mot17private.pth"),
+                           "--tracks", str(src / "tracks.jsonl"), "--output", str(out_dir / "stitched_tracks.json")]
+                    cmd += stitcher_link_args(a["tracking_config"])
+                    self.run_cmd(cmd)
+                processed = str(proc_root)
+                videos_for_preprocess = []
+            else:
+                videos_for_preprocess = videos
+            for v in videos_for_preprocess:
+                # 같은 GT 영상을 이 yaml 로 다시 검출·추적·스티칭 (검출기·추적기 교체 비교 — 박스가 달라지므로 semi-GT 와는 부분적으로만 맞음)
                 cmd = [PY, "video/batch_preprocess_videos_parallel.py", "--processed-root", str(proc_root), "--work-root", str(self.run_dir / "work"),
                        "--tracking-config", str(a["tracking_config"]), "--pattern", f"{v}.", "--workers", "1"]   # "stem." 로 clip1 ≠ clip10
                 if a.get("videos_root"):
                     cmd += ["--videos-root", str(a["videos_root"])]
                 self.run_cmd(cmd)
-            processed = str(proc_root)
+            if videos_for_preprocess:
+                processed = str(proc_root)
         cmd = [PY, "eval/track_gt_eval.py", "eval", "--output-dir", str(self.run_dir), "--ledger", str(self.part_ledger), "--name", name, "--record-pseudo"]
         if a.get("gt_dir"):
             cmd += ["--gt-dir", str(a["gt_dir"])]
@@ -322,6 +352,9 @@ class Stage:
             cmd += ["--pred-file", str(a["pred_file"])]
         if a.get("tracking_config"):
             cmd += ["--tracking-config", str(a["tracking_config"])]
+        for k in ("iou", "max_gap", "min_coverage"):
+            if a.get(k) is not None:
+                cmd += [f"--{k.replace('_', '-')}", str(a[k])]
         self.run_cmd(cmd)
 
     def object(self) -> None:
@@ -329,7 +362,7 @@ class Stage:
         name = a.get("name") or default_name("object", a)
         cmd = [PY, "eval/object_pair_eval.py", "eval", "--output-dir", str(self.run_dir), "--ledger", str(self.part_ledger), "--name", name,
                "--vector", str(a.get("vector") or "dinov2"), "--record-pseudo"]
-        for k in ("gt_dir", "collection", "threshold", "assignments"):
+        for k in ("gt_dir", "collection", "threshold", "assignments", "min_coverage"):
             if not _empty(a.get(k)):
                 cmd += [f"--{k.replace('_', '-')}", str(a[k])]
         self.run_cmd(cmd)
@@ -340,11 +373,13 @@ class Stage:
         cmd = [PY, "eval/qwen_verify_eval.py", "eval", "--output-dir", str(self.run_dir), "--ledger", str(self.part_ledger), "--name", name, "--record-pseudo"]
         if a.get("allow_unlabeled"):
             cmd.append("--allow-unlabeled")
-        for k in ("gt_dir", "top_k", "alpha", "threshold", "verify_mode", "model_id", "max_queries", "qwen_dir"):
+        for k in ("gt_dir", "top_k", "alpha", "threshold", "verify_mode", "model_id", "max_queries", "qwen_dir", "reranker_model_id", "dtype", "max_pixels", "min_coverage"):
             if not _empty(a.get(k)):
                 cmd += [f"--{k.replace('_', '-')}", str(a[k])]
         if a.get("no_reranker"):
             cmd.append("--no-reranker")
+        if a.get("rescore"):
+            cmd.append("--rescore")
         self.run_cmd(cmd)
 
     def execute(self) -> List[Dict[str, Any]]:
@@ -428,14 +463,17 @@ def args_from_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
         out = {"name": entry["name"]}
         if stage == "track":
             out.update({"tracking_config": comp.get("tracking_config"), "processed_root": comp.get("processed_root"),
-                        "pred_file": comp.get("pred_file"), "videos": params.get("videos"), "gt_dir": params.get("gt_dir")})
+                        "pred_file": comp.get("pred_file"), "videos": params.get("videos"), "gt_dir": params.get("gt_dir"),
+                        "restitch": bool(params.get("restitch")), "iou": params.get("iou"), "min_coverage": params.get("min_coverage"),
+                        "max_gap": params.get("max_gap") if isinstance(params.get("max_gap"), int) else None})
         elif stage == "object":
             out.update({"vector": comp.get("vector"), "collection": comp.get("collection"), "threshold": params.get("threshold"),
-                        "assignments": params.get("assignments"), "gt_dir": params.get("gt_dir")})
+                        "assignments": params.get("assignments"), "gt_dir": params.get("gt_dir"), "min_coverage": params.get("min_coverage")})
         else:
             out.update({"model_id": comp.get("model_id"), "verify_mode": comp.get("verify_mode"), "top_k": params.get("top_k"),
                         "alpha": params.get("alpha"), "threshold": params.get("threshold"), "no_reranker": bool(params.get("no_reranker")),
-                        "gt_dir": params.get("gt_dir")})
+                        "gt_dir": params.get("gt_dir"), "reranker_model_id": comp.get("reranker_model_id"), "dtype": comp.get("dtype"),
+                        "max_pixels": comp.get("max_pixels"), "rescore": bool(params.get("rescore"))})
         return {k: v for k, v in out.items() if not _empty(v)}
     raise ValueError(f"알 수 없는 stage: {stage}")
 
@@ -569,6 +607,9 @@ def add_stage_options(p: argparse.ArgumentParser) -> None:
     g.add_argument("--videos-root", default=None, help="track: --tracking-config 재추적 시 원본 영상 폴더")
     g.add_argument("--tracking-config", default=None, help="track: 이 yaml 로 GT 영상을 다시 추적·스티칭한 뒤 평가 (pipeline_tracking*.yaml)")
     g.add_argument("--pred-file", default=None, help="track: 다른 추적기 출력 파일 (jsonl/json)")
+    g.add_argument("--restitch", action="store_true", help="track: --tracking-config 와 함께 — 검출·추적은 기존 출력을 쓰고 스티처(SUSHI + link_windows)만 다시 돌린다 (스티처 비교용, 빠름)")
+    g.add_argument("--sushi-root", default=None, help="track --restitch: SUSHI 루트 (기본 ./third_party/SUSHI)")
+    g.add_argument("--checkpoint", default=None, help="track --restitch: SUSHI 체크포인트 (기본 mot17private.pth)")
     g.add_argument("--collection", default=None, help="object: Qdrant 컬렉션 (기본 forensic_object)")
     g.add_argument("--threshold", type=float, default=None, help="object: 쌍 임계값(0.97) / qwen: 판정 임계값(0.5)")
     g.add_argument("--assignments", default=None, help="object: 트랙 클러스터 assignments.jsonl")
@@ -579,6 +620,13 @@ def add_stage_options(p: argparse.ArgumentParser) -> None:
     g.add_argument("--model-id", default=None, help="qwen: Instruct 모델 id")
     g.add_argument("--qwen-dir", default=None, help="qwen: Qwen 결과 캐시 폴더 (재사용)")
     g.add_argument("--allow-unlabeled", action="store_true", help="qwen: 라벨 없는 쿼리도 실행 (시간·UNKNOWN 만)")
+    g.add_argument("--iou", type=float, default=None, help="track: 매칭 IoU (0.5)")
+    g.add_argument("--max-gap", type=int, default=None, help="track: 구간 분할 프레임 간격 (proposals 값)")
+    g.add_argument("--min-coverage", type=float, default=None, help="track/object/qwen: 정식 평가 최소 검토율 (1.0)")
+    g.add_argument("--reranker-model-id", default=None, help="qwen: 재랭커 모델 id")
+    g.add_argument("--dtype", default=None, help="qwen: bfloat16 …")
+    g.add_argument("--max-pixels", type=int, default=None, help="qwen: 이미지 최대 픽셀")
+    g.add_argument("--rescore", action="store_true", help="qwen: 계약이 맞는 캐시로 alpha/threshold 만 재채점")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -614,10 +662,11 @@ STAGE_KEYS = {
     "cluster": {"config", "name", "module", "cls", "params", "method", "method_config", "target", "sources", "vector",
                 "max_points", "min_cluster_size", "vector_cache", "pid_split", "data_root"},
     "e2e": {"config", "name", "stage1", "rerank", "limit", "pool", "max_queries", "gallery", "pid_split", "data_root"},
-    "track": {"name", "gt_dir", "processed_root", "videos", "videos_root", "tracking_config", "pred_file", "data_root"},
-    "object": {"name", "gt_dir", "vector", "collection", "threshold", "assignments", "data_root"},
+    "track": {"name", "gt_dir", "processed_root", "videos", "videos_root", "tracking_config", "restitch", "sushi_root", "checkpoint", "pred_file",
+              "iou", "max_gap", "min_coverage", "data_root"},
+    "object": {"name", "gt_dir", "vector", "collection", "threshold", "assignments", "min_coverage", "data_root"},
     "qwen": {"name", "gt_dir", "top_k", "alpha", "threshold", "verify_mode", "no_reranker", "model_id", "max_queries", "qwen_dir", "allow_unlabeled",
-             "data_root"},
+             "reranker_model_id", "dtype", "max_pixels", "rescore", "min_coverage", "data_root"},
 }
 
 
@@ -662,6 +711,21 @@ def _empty(v: Any) -> bool:
     return v is None or v is False or (isinstance(v, (str, list, dict)) and len(v) == 0)
 
 
+def _video_file(src: Path, stem: str, videos_root: Any = None) -> Path:
+    """처리 결과 폴더의 status.json 에 적힌 영상 경로, 없으면 videos_root(기본 data/videos)/<stem>.*"""
+    try:
+        st = json.loads((src / "status.json").read_text(encoding="utf-8-sig"))
+        if st.get("video") and Path(st["video"]).is_file():
+            return Path(st["video"])
+    except Exception:  # noqa: BLE001
+        pass
+    root = Path(videos_root) if videos_root else PROJECT_ROOT / "data" / "videos"
+    hits = sorted(root.glob(f"{stem}.*")) if root.is_dir() else []
+    if not hits:
+        raise SystemExit(f"영상 파일을 찾지 못했습니다: {root / stem}.* (SUSHI 입력을 다시 만들려면 원본 영상이 필요)")
+    return hits[0]
+
+
 def default_name(stage: str, a: Dict[str, Any]) -> str:
     if a.get("name"):
         return slug(a["name"])
@@ -676,7 +740,7 @@ def default_name(stage: str, a: Dict[str, Any]) -> str:
     if stage == "e2e":
         return slug("+".join(a.get("stage1") or ["default"]) + "__" + str(a.get("rerank") or "default"))
     if stage == "track":
-        return slug(Path(a["tracking_config"]).stem if a.get("tracking_config") else "tracks")
+        return slug((Path(a["tracking_config"]).stem + ("_restitch" if a.get("restitch") else "")) if a.get("tracking_config") else "tracks")
     if stage == "object":
         return slug(a.get("vector") or "object")
     if stage == "qwen":

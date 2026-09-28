@@ -70,14 +70,10 @@
           "label": "검출기",
           "type": "choice",
           "default": "pipeline.yaml",
-          "choices_glob": "pipeline*.yaml",
+          "choices_glob": "pipeline_tracking*.yaml",
           "choices_yaml_key": "detector",
-          "choices_unique_by": [
-            "module",
-            "class"
-          ],
           "choices_label_key": "class",
-          "help": "detector 블록을 가진 yaml 을 검출기(module/class) 별로 하나씩 나열. RFDETRDetector = pipeline.yaml, YOLO26Detector = pipeline_tracking_yolo26.yaml. 새 검출기 = detector 블록을 가진 새 yaml 파일"
+          "help": "detector 블록을 가진 yaml 을 검출기(module/class) 별로 하나씩 나열. RFDETRDetector = pipeline.yaml, YOLO26Detector = pipeline_tracking_yolo26.yaml. 새 검출기 = detector 블록을 가진 새 yaml 파일 파일마다 한 항목(검출기·추적기·스티처 조합). 표시는 class (파일명)."
         },
         {
           "flag": "--sushi-root",
@@ -539,10 +535,7 @@
           "default": "pipeline.yaml",
           "choices_glob": "pipeline*.yaml",
           "choices_yaml_key": "detector",
-          "choices_unique_by": [
-            "module",
-            "class"
-          ],
+          "choices_unique_by": "*",
           "choices_label_key": "class",
           "help": "detector 블록을 가진 yaml 을 검출기(module/class) 별로 하나씩 나열. RFDETRDetector = pipeline.yaml (RF-DETR Medium), YOLO26Detector = pipeline_tracking_yolo26.yaml. 검출기를 바꾸면 새 출력 폴더를 쓸 것 (checkpoint 불일치). 임계값 '지정' 해제 시 이 yaml 의 conf_threshold"
         },
@@ -1811,10 +1804,7 @@
           "default": "pipeline_tracking.yaml",
           "choices_glob": "pipeline*.yaml",
           "choices_yaml_key": "detector",
-          "choices_unique_by": [
-            "module",
-            "class"
-          ],
+          "choices_unique_by": "*",
           "choices_label_key": "class",
           "help": "detector 블록을 가진 yaml 을 검출기(module/class) 별로 하나씩 나열. 아래 module/class 를 채우면 그것이 우선"
         },

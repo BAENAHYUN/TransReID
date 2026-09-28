@@ -59,14 +59,17 @@ class MetricTests(unittest.TestCase):
         self.assertEqual(m["over_merges"], 1)
         self.assertEqual(m["idsw"], 0)
         self.assertAlmostEqual(m["idf1"], 0.5)
-        pr2 = scene(seq("1", list(range(4)) + list(range(6, 10)), 0), seq("2", range(10, 20), 100))   # 중간 2 프레임 끊김 → 단절 1
-        m2 = T.evaluate(gt, pr2, {})
-        self.assertEqual(m2["fragments"], 1)
-        self.assertEqual(m2["fn"], 2)
-        self.assertEqual(m2["idsw"], 0)
-        pr3 = scene(seq("1", range(1, 10), 0), seq("2", range(10, 20), 100))                       # 첫 프레임만 놓침 → 단절 아님 (TrackEval)
-        m3 = T.evaluate(gt, pr3, {})
+        # 단절: B 는 내내 추적되는 장면에서 A 의 예측이 중간 2 프레임 끊김 → 단절 1 (TrackEval: 처리된 프레임에서 매칭이 끊겼다 다시 붙음)
+        gt2 = scene(seq("A", range(10), 0), seq("B", range(20), 100))
+        pr2 = scene(seq("1", list(range(4)) + list(range(6, 10)), 0), seq("2", range(20), 100))
+        m2 = T.evaluate(gt2, pr2, {})
+        self.assertEqual((m2["fragments"], m2["fn"], m2["idsw"]), (1, 2, 0))
+        pr3 = scene(seq("1", range(1, 10), 0), seq("2", range(20), 100))                            # 첫 프레임만 놓침 → 단절 아님
+        m3 = T.evaluate(gt2, pr3, {})
         self.assertEqual((m3["fragments"], m3["fn"]), (0, 1))
+        # TrackEval 과 같이 예측이 하나도 없는 프레임은 건너뛰므로(이전 대응 유지) 그 사이의 끊김은 단절로 세지 않는다
+        pr4 = scene(seq("1", list(range(4)) + list(range(6, 10)), 0), seq("2", range(10, 20), 100))
+        self.assertEqual(T.evaluate(gt, pr4, {})["fragments"], 0)
 
     def test_clear_prefers_previous_timestep_only(self):
         # 프레임 0~4: A↔1. 프레임 5~9: A 만 있고 예측 1 은 사라지고 예측 9 가 겹침 → 9 로 매칭(IDSW 1). 프레임 10: 1 과 9 가 둘 다 A 에 겹치면 직전(9) 우선.

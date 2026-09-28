@@ -31,6 +31,7 @@ STAGE_LABEL = {"detect": "검출", "embed": "임베딩(단독)", "search": "검�
                "track": "추적·스티칭", "object": "객체 재출현", "qwen": "Qwen 후처리"}
 STATUS_COLOR = {"pass": QColor("#e6f4ea"), "partial": QColor("#fff8e1"), "fail": QColor("#fdecea")}
 STATUS_MARK = {"pass": "✓", "partial": "△", "fail": "✗", "n/a": "—", "incomplete": "?"}
+ADOPTABLE_STAGES = ("detect", "cluster", "search", "e2e")     # criteria.adopt_yaml 이 yaml 을 만들 수 있는 단계
 
 
 class NumItem(QTableWidgetItem):
@@ -213,6 +214,8 @@ class BenchPage(QWidget):
         if e is None:
             return
         ad = e["_adopt"]
+        # 채택 → yaml 은 채택 기준을 통과(pass)했고 yaml 을 만들 수 있는 단계에서만 (incomplete/partial/fail 은 비활성)
+        self.adopt_btn.setEnabled(ad.get("status") == "pass" and str(e.get("stage")) in ADOPTABLE_STAGES)
         lines = [f"{criteria.STATUS_LABEL[ad['status']]}  ({ad['passed']}/{ad['applicable']})"]
         for c in ad["checks"]:
             lines.append(f"  {'ok ' if c['ok'] else ('NG ' if c['ok'] is not None else '-- ')}{c['label']}: {ledger.fmt(c['value'])}")
@@ -249,12 +252,14 @@ class BenchPage(QWidget):
         ax = fig.add_subplot(2 if curve else 1, 1, 1)
         pts = [(r["metrics"].get(xk), r["metrics"].get(yk), r) for r in self.rows
                if isinstance(r["metrics"].get(xk), (int, float)) and isinstance(r["metrics"].get(yk), (int, float))]
-        colors = {"pass": "#2e7d32", "partial": "#f9a825", "fail": "#c62828", "n/a": "#9aa5b1"}
+        colors = {"pass": "#2e7d32", "partial": "#f9a825", "fail": "#c62828", "n/a": "#9aa5b1", "incomplete": "#7e57c2"}
         for x, y, r in pts:
-            ax.scatter([x], [y], s=60 if r is selected else 28, c=colors[r["_adopt"]["status"]], edgecolors="#1f2933" if r is selected else "none", zorder=3)
+            ax.scatter([x], [y], s=60 if r is selected else 28, c=colors.get(r["_adopt"]["status"], "#9aa5b1"), edgecolors="#1f2933" if r is selected else "none", zorder=3)
             if r is selected or len(pts) <= 12:
                 ax.annotate(str(r.get("name", ""))[:22], (x, y), fontsize=7, xytext=(3, 3), textcoords="offset points")
         for metric, op, target, _ in criteria.ADOPTION_RULES.get(stage, []):
+            if not isinstance(target, (int, float)) or isinstance(target, bool):      # 기준값 미정(None)·상대 규칙(tuple) 은 선을 긋지 않는다
+                continue
             if metric == xk:
                 ax.axvline(target, color="#c3cad2", linestyle="--", linewidth=1)
             if metric == yk:
@@ -326,6 +331,10 @@ class BenchPage(QWidget):
     def _adopt(self) -> None:
         e = self.selected_entry()
         if e is None:
+            return
+        ad = criteria.evaluate(e)
+        if ad.get("status") != "pass" or str(e.get("stage")) not in ADOPTABLE_STAGES:
+            QMessageBox.warning(self, "채택", f"채택 기준을 통과한 행만 yaml 로 채택할 수 있습니다: {criteria.STATUS_LABEL.get(ad.get('status'), ad.get('status'))}")
             return
         try:
             res = criteria.adopt_yaml(e, root=self.adopt_root, overwrite=self.overwrite_check.isChecked(),

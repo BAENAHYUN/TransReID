@@ -44,12 +44,9 @@ VIDEO_EXTS = {
 
 def stitcher_link_args(tracking_config) -> list:
     """pipeline_tracking*.yaml 의 stitcher.params.link_windows 가 참이면 sushi_inference 에 창 연결 옵션을 넘긴다."""
-    try:
-        import yaml
-        with open(tracking_config, "r", encoding="utf-8-sig") as f:
-            cfg = yaml.safe_load(f) or {}
-    except Exception:
-        return []
+    import yaml
+    with open(tracking_config, "r", encoding="utf-8-sig") as f:      # 파일이 없거나 yaml 이 깨지면 예외 — 조용히 "연결 없음" 으로 바꾸지 않는다
+        cfg = yaml.safe_load(f) or {}
     params = ((cfg.get("stitcher") or {}).get("params") or {}) if isinstance(cfg, dict) else {}
     if not params.get("link_windows"):
         return []

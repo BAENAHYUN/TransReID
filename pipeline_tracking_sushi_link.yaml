@@ -1,32 +1,24 @@
-﻿# pipeline_tracking.yaml 과 같고 stitcher 에 창 경계 연결(link_windows) 만 켠 변형. 비교: bench/run.py track --tracking-config pipeline_tracking_sushi_link.yaml
+# pipeline_tracking_sushi_link.yaml — 운영 영상 설정(pipeline.yaml 의 detector/tracker/stitcher 블록, 검출 임계 0.5)과 같고
+# stitcher 에 창 경계 연결(link_windows)만 켠 변형. SUSHI 가 512 프레임 창을 독립 처리해 갈라 놓은 같은 사람을 raw track 연속성 + IoU 로 잇는다 (P6, 2026-09-28).
+# 비교: bench/run.py track --tracking-config pipeline_tracking_sushi_link.yaml --restitch   (기존 검출·추적 출력 위에서 스티처만 다시)
+
 detector:
   module: detect.detectors.rfdetr_detector
   class: RFDETRDetector
   params:
-    conf_threshold: 0.2
-    filter_forensic: true
-
+    conf_threshold: 0.5
 tracker:
   module: detect.trackers.botsort_tracker
   class: BoTSORTTracker
   params:
     device: cuda:0
     half: true
-
 stitcher:
   module: detect.stitchers.sushi_stitcher
   class: SUSHIStitcher
   params:
     sushi_root: ./third_party/SUSHI
     window_sec: 30
-    link_windows: true      # 512 프레임 창 경계에서 raw track 이 이어지면 long id 를 잇는다 (P6 발견: 창 독립 처리로 같은 사람이 갈라짐)
+    link_windows: true
     link_max_gap: 2
     link_min_iou: 0.3
-
-# 검출기 교체: detector: 의 module/class 만 바꾼다. YOLO26 판은 pipeline_tracking_yolo26.yaml 참고.
-#   module: detect.detectors.yolo26_detector
-#   class: YOLO26Detector
-#   params: {weights: yolo26m.pt, conf_threshold: 0.2, imgsz: 640}
-
-
-

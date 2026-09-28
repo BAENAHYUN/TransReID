@@ -135,9 +135,30 @@ def load_tracks(gt_dir: Path, vector: str, collection: Optional[str] = None) -> 
         problems.append(f"npz 행 {mat.shape[0]} ≠ keys {len(keys)}")
     if set(keys) != set(meta):
         problems.append("npz keys 와 meta tracks 가 다릅니다")
+    if len(set(keys)) != len(keys):
+        problems.append("npz keys 에 중복이 있습니다")
+    if mat.ndim != 2 or (head.get("dim") is not None and int(head["dim"]) != mat.shape[1]):
+        problems.append(f"npz 벡터 모양 {mat.shape} 이 meta dim {head.get('dim')} 과 다릅니다")
+    if mat.size and not np.isfinite(mat).all():
+        problems.append("npz 벡터에 NaN/Inf 가 있습니다")
     if problems:
         raise SystemExit("트랙 캐시 정합성 오류: " + "; ".join(problems) + f" — {npz} 를 --refresh 로 다시 만드세요")
     return keys, mat, meta, head
+
+
+def assignments_match_ratio(meta: Dict[str, Dict[str, Any]], assignments: Optional[Path]) -> Optional[float]:
+    """assignments.jsonl 의 point_id 가 캐시 트랙의 point 를 얼마나 덮는가 (다른 build 의 결과인지 진단). 파일 없으면 None."""
+    if not assignments or not Path(assignments).is_file():
+        return None
+    ids = set()
+    with Path(assignments).open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                ids.add(str(json.loads(line).get("point_id")))
+    total = sum(len(m.get("point_ids") or []) for m in meta.values())
+    hit = sum(1 for m in meta.values() for pid in (m.get("point_ids") or []) if pid in ids)
+    return (hit / total) if total else None
 
 
 def track_clusters(meta: Dict[str, Dict[str, Any]], assignments: Optional[Path]) -> Dict[str, Optional[str]]:
@@ -427,14 +448,9 @@ def cmd_eval(args: argparse.Namespace) -> Dict[str, Any]:
         raise SystemExit(f"proposals.json 이 없거나 비었습니다: {gt_dir} (sheet 먼저)")
     labels, lmeta = S.read_labels_meta(gt_dir / "labels.json")
     if labels:
-        S.check_manifest(lmeta, proposals.get("manifest"), "object_pairs", args.ignore_manifest)
+        S.check_manifest(lmeta, proposals.get("manifest"), "object_pairs", args.ignore_manifest, kind=KIND)
     idx = {k: i for i, k in enumerate(keys)}
     pairs_all = labeled_pairs(raw_pairs, labels)
-    reviewed = sum(1 for p in pairs_all if p["verdict"] is not None)
-    coverage = round(reviewed / len(pairs_all), 4) if pairs_all else 0.0
-    labeled = coverage >= float(args.min_coverage)
-    partial = (not labeled) and coverage > 0
-    pseudo = not labeled
     # 현재 벡터로 유사도를 다시 계산 — 캐시에 없는 트랙의 쌍은 제외 (다른 벡터의 유사도를 섞지 않는다)
     pairs, missing = [], 0
     for p in pairs_all:
@@ -446,12 +462,24 @@ def cmd_eval(args: argparse.Namespace) -> Dict[str, Any]:
             missing += 1
     if not pairs:
         raise SystemExit("현재 트랙 캐시에 있는 쌍이 없습니다 (벡터/컬렉션이 시트와 다른가?)")
+    reviewed = sum(1 for p in pairs if p["verdict"] is not None)                 # 검토율은 실제 평가되는 쌍(캐시에 있는 쌍) 기준
+    coverage = (reviewed / len(pairs)) if pairs else 0.0
+    labeled = coverage >= float(args.min_coverage) and reviewed > 0
+    partial = (not labeled) and coverage > 0
+    pseudo = not labeled
     if pseudo:
         for p in pairs:
             p["verdict"] = "same" if p["source"] == "cluster" else "different"
     assignments = Path(args.assignments) if args.assignments else (Path(proposals["assignments"]) if proposals.get("assignments") else None)
     clusters = track_clusters(meta, assignments)
+    assign_ratio = assignments_match_ratio(meta, assignments)
+    if assign_ratio is not None and assign_ratio < 0.5:
+        print(f"[warn] assignments 의 point_id 가 캐시 point 의 {assign_ratio:.0%} 만 덮습니다 — 다른 build 의 클러스터 결과일 수 있음 (클러스터 일치 지표 신뢰 불가)")
     groups, contradictions = identity_groups(pairs)
+    if labeled and contradictions and not args.allow_contradictions:
+        bad = [p["pair_id"] for p in pairs if p.get("verdict") == "different"][:10]
+        raise SystemExit(f"라벨 모순 {contradictions} 건: '다름' 으로 판정한 쌍이 '같음' 연쇄로 같은 그룹에 묶였습니다 (다름 쌍 후보: {bad}). "
+                         "라벨을 고치거나 --allow-contradictions 로 강행(모순 쌍은 보고만).")
     labeled_keys = sorted({k for p in pairs if p.get("verdict") in ("same", "different") for k in (p["a"], p["b"])})
     ret = retrieval_metrics(keys, mat, groups)
     ret_l = retrieval_metrics(keys, mat, groups, labeled_keys)
@@ -459,7 +487,8 @@ def cmd_eval(args: argparse.Namespace) -> Dict[str, Any]:
     ca = cluster_agreement(pairs, clusters)
     metrics: Dict[str, Any] = {"map": ret["map"], "rank1": ret["rank1"], "map_labeled": ret_l["map"], "rank1_labeled": ret_l["rank1"],
                                "queries": ret["queries"], "gallery": ret["gallery"], **pm, **ca, "identities": len(groups),
-                               "pairs_missing": missing, "label_contradictions": contradictions, "coverage": coverage,
+                               "pairs_missing": missing, "label_contradictions": contradictions, "coverage": round(coverage, 4),
+                               "assignments_match_ratio": round(assign_ratio, 4) if assign_ratio is not None else None,
                                "elapsed_sec": round(time.time() - started, 2)}
     base = args.name or f"{args.vector}_track"
     name = base + ("__pseudo" if pseudo else "")
@@ -527,6 +556,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--refresh", action="store_true", help="eval: 트랙 캐시를 Qdrant 에서 다시 만든다")
     p.add_argument("--min-coverage", type=float, default=1.0, help="eval: 이 검토율 미만이면 pseudo 로 취급")
     p.add_argument("--ignore-manifest", action="store_true")
+    p.add_argument("--allow-contradictions", action="store_true", help="eval: 라벨 모순(다름인데 같은 그룹)이 있어도 강행 (보고만)")
     p.add_argument("--name", default=None)
     p.add_argument("--output-dir", default=str(DEFAULT_OUT))
     p.add_argument("--ledger", default=None, help="실행 원장 JSONL (기본 bench/ledger.jsonl; '' 또는 none 이면 기록 안 함)")

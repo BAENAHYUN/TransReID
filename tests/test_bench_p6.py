@@ -72,6 +72,15 @@ class RunnerTests(unittest.TestCase):
         self.assertNotIn("batch_preprocess", out2)
         self.assertIn("--processed-root outputs/processed_videos", out2)
         self.assertIn("--name tracks", out2)
+        # --restitch: 검출·추적은 기존 출력, 스티처(SUSHI + link 옵션)만 다시 → sushi_inference 명령 (영상마다), 재추적 없음
+        out3 = dry(["track", "--videos", "v1", "--tracking-config", "pipeline_tracking_sushi_link.yaml", "--restitch"])
+        self.assertNotIn("batch_preprocess", out3)
+        self.assertEqual(out3.count("video/sushi_inference.py"), 1)
+        self.assertIn("--link-windows", out3)
+        self.assertIn("tracks.jsonl", out3)
+        self.assertIn("--name pipeline_tracking_sushi_link_restitch", out3)
+        toks = out3.split("eval/track_gt_eval.py")[1].split()
+        self.assertTrue(toks[toks.index("--processed-root") + 1].replace("\\", "/").endswith("/processed"))   # 평가는 run 폴더의 processed 를 읽음
 
     def test_object_and_qwen_dry_run(self):
         out = dry(["object", "--vector", "siglip2", "--threshold", "0.9"])

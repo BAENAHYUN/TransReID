@@ -50,7 +50,7 @@ GUI: 평가 탭 **11. 새 모델 등록**.
 
 ## 3. 그 다음
 
-- 검출기: 드롭다운(영상 1단계 / 이미지 1단계)은 module/class 로 중복을 없애므로, 같은 class 의 변형은 `--tracking-config` / `--detector-config` 경로로 지정한다.
+- 검출기: 드롭다운은 검출기 블록이 통째로 같은 사본만 합친다 — 같은 class 라도 가중치·임계값이 다르면(yolo26 / yolo26s) 별도 항목으로 보인다. 영상 1단계는 `pipeline_tracking*.yaml` 을 파일마다 한 항목으로 보여 스티처 변형도 고를 수 있다.
   전체 프레임 벤치는 `bench/run.py detect --config pipeline_tracking_<이름>.yaml --name <이름>`.
 - 임베더: 단독 Re-ID 평가(GT crop)까지 자동. 검색·클러스터링에 쓰려면 운영 DB 에 새 named vector 를 적재해야 한다
   (`ingest/build_db.py --config pipeline_<이름>.yaml`, README 6.1) — 시간이 걸리므로 수동. 통합 검색 단독 평가(`eval/prw_eval_unified.py`)의 MODELS 는 아직 3종 고정.

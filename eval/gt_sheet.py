@@ -337,20 +337,31 @@ def read_labels_meta(path: Any) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, An
     return {str(k): dict(v) for k, v in (labels or {}).items() if isinstance(v, dict)}, meta
 
 
+LEGACY_VALID = {"verdict": {"same", "different", "unsure"}, "relevant": {"yes", "no", "unsure"}}
+
+
 def is_reviewed(label: Optional[Dict[str, Any]]) -> bool:
-    """항목 라벨이 사람 검토를 거쳤는가. reviewed 플래그가 없는 옛 파일은 판정 필드가 실제로 들어 있으면 검토로 본다."""
-    if not label:
+    """항목 라벨이 사람 검토를 거쳤는가. reviewed 는 bool True 만 인정(문자열 "true"/"false" 는 검토 아님).
+    reviewed 키가 아예 없는 옛 파일은 판정 필드(verdict/relevant)에 유효한 값이 있을 때만 검토로 본다."""
+    if not isinstance(label, dict):
         return False
-    r = label.get("reviewed")
-    if r is not None:
-        return bool(r)
-    return any(label.get(f) not in (None, "", False) for f in ("verdict", "relevant"))
+    if "reviewed" in label:
+        return label.get("reviewed") is True
+    return any(str(label.get(f) or "").strip().lower() in ok for f, ok in LEGACY_VALID.items())
 
 
-def check_manifest(meta: Dict[str, Any], expected: Optional[str], what: str, ignore: bool = False) -> None:
+def check_manifest(meta: Dict[str, Any], expected: Optional[str], what: str, ignore: bool = False, kind: Optional[str] = None) -> None:
+    """정식 평가 전 labels.json 의 출처 검사: kind 일치, manifest 존재·일치. 어긋나면 중단(--ignore-manifest 로 경고만)."""
     got = meta.get("manifest")
-    if expected and got and got != expected:
-        msg = f"{what}: labels.json 의 manifest {got} ≠ 현재 시트 {expected} — 시트를 다시 만든 뒤의 라벨이 아닙니다 (항목이 달라졌을 수 있음)"
+    problems = []
+    if kind and meta.get("kind") and meta.get("kind") != kind:
+        problems.append(f"kind {meta.get('kind')} ≠ {kind} (다른 종류의 라벨 파일)")
+    if expected and not got:
+        problems.append("labels.json 에 manifest 가 없습니다 (옛 시트에서 내보낸 파일 — 현재 시트에서 다시 내보내세요)")
+    elif expected and got != expected:
+        problems.append(f"manifest {got} ≠ 현재 시트 {expected} — 시트를 다시 만든 뒤의 라벨이 아닙니다 (항목이 달라졌을 수 있음)")
+    if problems:
+        msg = f"{what}: " + "; ".join(problems)
         if not ignore:
             raise SystemExit(msg + ". --ignore-manifest 로 강행할 수 있습니다.")
         print("[warn] " + msg)
