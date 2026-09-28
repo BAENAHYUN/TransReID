@@ -85,7 +85,7 @@ ol li,ul li{margin:4px 0}
 <h2>알아둘 한계·발견</h2>
 <ul>
 <li><b>SUSHI 는 512 프레임 창을 독립 처리</b>해 같은 사람이 창마다 다른 긴 트랙 id 를 받는다 (048 영상의 정지 박스 하나가 L1·L8·L18·L28). 추적기 id 도 시간이 지나면 재사용된다(한 id 가 5 명). 그래서 추적 정답의 단위를 "구간"으로 잡았고, 라벨이 붙으면 이 단절이 splits/IDSW 로 정량화된다.</li>
-<li><b>Qwen 평가 데모 미완</b>: 이 작업 세션의 프로세스에서는 GPU 가 보이지 않았다(<code>torch.cuda.is_available()</code> False, <code>nvidia-smi</code> 권한 오류) → <code>qwen_stage.py</code> 가 CPU float32 로 모델을 올리다 죽었다. 시트·후보·평가 코드는 준비돼 있으니 GPU 가 잡히는 사용자 터미널에서 <code>eval/qwen_verify_eval.py eval --allow-unlabeled --max-queries 1 --top-k 5</code> 로 배관을 확인한 뒤 라벨링 후 본 실행을 하면 된다.</li>
+<li><b>Qwen 평가 데모 미완</b>: 이 PC 의 RTX 5090 이 장치 오류 상태였다(Win32_VideoController Status=Error → <code>torch.cuda.is_available()</code> False, <code>nvidia-smi</code> 실패) → <code>qwen_stage.py</code> 가 CPU float32 로 모델을 올리다 죽었다. 재부팅(또는 장치 관리자에서 GPU 비활성화→활성화) 뒤 GPU 가 돌아오면 확인. 시트·후보·평가 코드는 준비돼 있으니 GPU 가 잡히는 사용자 터미널에서 <code>eval/qwen_verify_eval.py eval --allow-unlabeled --max-queries 1 --top-k 5</code> 로 배관을 확인한 뒤 라벨링 후 본 실행을 하면 된다.</li>
 <li>임베더 교체는 단독 Re-ID 평가까지 자동, 운영 DB 적재(<code>ingest/build_db.py</code>)는 수동. 검출기 드롭다운은 class 로 중복을 없애므로 같은 class 변형은 경로 지정.</li>
 <li>객체 재출현 pseudo 실행에서 최적 쌍 임계값이 0.74 로 나와 운영 Leiden 0.97 과 차이가 크다 — 라벨 후 재확인 대상.</li>
 </ul>
