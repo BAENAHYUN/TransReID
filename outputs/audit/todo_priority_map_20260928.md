@@ -7,7 +7,7 @@
 | # | 일 | 누가 | 소요 | 내용 |
 |---|---|---|---|---|
 | ① | git push | 사람 | 5분 | P0~P7 커밋·병합 완료. P6 파일 60개(11 MB) 추가 커밋 후 `git push origin main`. `git add .` 금지(outputs/ 18만 파일) |
-| ② | GPU 복구 → Qwen 배관 확인 | 사람 | 재부팅 5분 + 10분 | RTX 5090 이 장치 오류 상태(Status=Error, CUDA 불가). 재부팅 또는 장치 관리자 비활성화→활성화 → `nvidia-smi` 확인 → `.\.venv\Scripts\python.exe eval\qwen_verify_eval.py eval --allow-unlabeled --max-queries 1 --top-k 5 --name demo --no-ledger` — 후보당 20~30 s 면 정상. 실패 시 `eval/results/qwen_verify/demo/qwen/q01.log` |
+| ② | GPU 복구 → Qwen 배관 확인 | — | **완료 (16:03)** | GPU 오류 상태 복구 뒤 1쿼리·5후보 데모 통과: CUDA 적재 15 s, 후보당 21.7 s, UNKNOWN 1/5. 재랭커(qwen-vl-utils)는 미설치라 건너뜀 |
 | ③ | 라벨링 — 추적 시트 3편 | 사람 | 1~2시간 | `eval/gt/tracks/{048,289,100}/sheet.html` → gt_id 확인 → labels.json 내려받기 → 같은 폴더. SUSHI 512 프레임 창 때문에 같은 사람이 여러 L 번호로 나뉜 것을 같은 gt_id 로 묶는 게 핵심 |
 | ③ | 라벨링 — 객체 쌍 75 | 사람 | 30분 | `eval/gt/object_pairs/sheet.html` · 같은 개체인지만 (같음/다름/모름) |
 | ③ | 라벨링 — Qwen 600 | 사람 | 2~3시간 | `eval/gt/qwen/sheet.html` · 쿼리 설명에 맞는 사람인지. 쿼리 문장은 `eval/gt/qwen_queries.json` 수정 후 시트 재생성 가능 |

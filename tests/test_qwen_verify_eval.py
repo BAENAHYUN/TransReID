@@ -59,6 +59,15 @@ class ScoreTests(unittest.TestCase):
         self.assertEqual(sc["fail"], 0)                                # 제거된 행은 결과에 없다
         self.assertEqual(Q.aggregate([sc, sc])["p10_after"], 80.0)
 
+    def test_unobserved_tail_rows_are_not_scored(self):
+        # top-k 5 만 관찰: 꼬리 행은 verified=None 만 붙고 attr_score 키가 없다 → UNKNOWN 에 세지 않는다
+        rows = [row(2, 1, True), row(9, 2, True), row(1, 3, False), row(3, 4, None), row(4, 5, True)]
+        rows += [{"pre_qwen_rank": r, "rank": i, "verified": None, "point_id": f"p{r}"} for i, r in enumerate((5, 6, 7, 8, 10), 6)]
+        sc = Q.score_query(CANDS, rows, LABELS, "q1")
+        self.assertEqual((sc["scored"], sc["unknown"], sc["fail"], sc["pass"]), (5, 1, 1, 3))
+        self.assertEqual(Q.aggregate([sc])["unknown_ratio"], 0.2)
+        self.assertEqual(Q.aggregate([sc])["candidates"], 5)
+
     def test_aggregate_empty_and_none(self):
         m = Q.aggregate([])
         self.assertIsNone(m["p10_before"])

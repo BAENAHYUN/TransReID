@@ -199,8 +199,10 @@ def score_query(cands: Sequence[Dict[str, Any]], qwen_rows: Sequence[Dict[str, A
     for k in ks:
         out[f"p{k}_before"] = precision_at(before, rel, k)
         out[f"p{k}_after"] = precision_at(after, rel, k)
-    scored = [r for r in qwen_rows if "verified" in r]
-    unknown = [r for r in scored if r.get("verified") is None]
+    # Qwen 이 실제로 관찰한 행만 채점 대상 (attr_score 키가 있음; 값 None = UNKNOWN). apply_verdict 는 관찰하지 않은
+    # 꼬리 행에도 verified=None 을 붙이므로 verified 키로 세면 UNKNOWN 이 부풀려진다.
+    scored = [r for r in qwen_rows if "attr_score" in r]
+    unknown = [r for r in scored if r.get("attr_score") is None]
     fails = [r for r in scored if r.get("verified") is False]
     rel_judged = [r for r in scored if r.get("verified") is not None and rel.get(int(r.get("pre_qwen_rank") or 0)) is True]
     false_drops = [r for r in fails if rel.get(int(r.get("pre_qwen_rank") or 0)) is True]
