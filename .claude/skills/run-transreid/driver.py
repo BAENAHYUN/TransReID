@@ -38,25 +38,33 @@ ROOT = Path(__file__).resolve().parents[3]          # <unit>/.claude/skills/run-
 VENV_PY = ROOT / ".venv" / "Scripts" / "python.exe"
 GUI_SCRIPT = "search_gui.py"
 TITLE_SUBSTR = "Forensic Visual Retrieval"
-DEFAULT_SIZE = (909, 939)                            # 이름 좌표(TABS/STEP_*)는 이 크기에서 검증됐다
+DEFAULT_SIZE = (960, 939)                            # 이름 좌표(TABS/STEP_*)는 이 크기에서 검증됐다 (셸 최소 폭 957)
 LOG_PATH = Path(os.environ.get("TEMP", str(ROOT))) / "transreid_gui_driver.log"
 
-# 창 좌표 (프레임 포함). 909x939 에서 캡처로 확인한 값.
-TABS = {
-    # 창 좌표 = PrintWindow 스크린샷 좌표. 2026-09-26 실측 탭 라벨 중심 (검색 탭 이름이 바뀌어 옛 값 58/141/243/369/480 은 어긋남)
-    "이미지 검색": (60, 43),
-    "영상 검색": (158, 43),
-    "영상 파이프라인": (272, 43),
-    "이미지 파이프라인": (410, 43),
-    "평가 / 비교": (535, 43),
-    "벤치마크": (640, 43),      # P5 탭 (2026-09-28 추가, 스크린샷으로 확인됨)
+# 창 좌표 (프레임 포함). 960x939 에서 캡처로 확인한 값.
+# 2026-09-28 Immich 식 셸: 상단 탭 대신 왼쪽 사이드바 (gui/shell.py). 항목은 세로로 놓이고 x 는 모두 100.
+# 옛 탭 이름도 같은 항목을 가리키게 남겨 둔다.
+_NAV = {
+    "사진에서 찾기": (100, 155),
+    "영상에서 찾기": (100, 196),
+    "영상 처리": (100, 270),
+    "사진 처리": (100, 311),
+    "평가 / 비교": (100, 384),
+    "벤치마크": (100, 425),
 }
-STEP_X = 125
-STEP_Y0 = 132          # 1단계 (탭 설명이 2줄일 때)
-STEP_DY = 31           # 단계 간 간격
-# 탭 상단 설명(gui_pipelines.json _groups.<tab>.description)이 3줄로 길어지면 목록이 아래로 밀린다.
-# 2026-09-18 이미지 파이프라인 설명이 3줄이 되어 1단계가 y=160 에서 시작한다 (캡처로 확인).
-STEP_Y0_BY_TAB = {"이미지 파이프라인": 160, "평가 / 비교": 160}   # 탭 설명이 3줄인 탭은 목록이 아래로 밀린다
+TABS = dict(_NAV)
+TABS.update({
+    "이미지 검색": _NAV["사진에서 찾기"],
+    "영상 검색": _NAV["영상에서 찾기"],
+    "영상 파이프라인": _NAV["영상 처리"],
+    "이미지 파이프라인": _NAV["사진 처리"],
+})
+STEP_X = 340           # 파이프라인 단계 목록 (사이드바 208px 오른쪽)
+STEP_Y0 = 140          # 1단계 (그룹 설명이 3~4줄로 접힌 뒤 목록 시작; 핵심 4단계만 보임)
+STEP_DY = 32           # 단계 간 간격
+# 그룹 설명 줄 수가 다르면 목록 시작 y 가 달라진다. 2026-09-28 캡처: 사진 처리 140. 다른 탭은 같은 값으로 두고 어긋나면 ss 로 확인.
+STEP_Y0_BY_TAB = {}
+# 검색 페이지: 검색창 (530,152) 클릭 → type → key enter. 결과 격자 첫 칸 (330,340) 근처.
 
 user32 = ctypes.windll.user32
 gdi32 = ctypes.windll.gdi32
@@ -339,7 +347,7 @@ def main() -> None:
     s.add_argument("--repeat", type=int, default=1); s.add_argument("--ss", default=None); s.set_defaults(fn=cmd_key)
     s = sub.add_parser("type", help="포커스 위젯에 문자열 입력 (WM_CHAR)"); s.add_argument("text")
     s.add_argument("--ss", default=None); s.set_defaults(fn=cmd_type)
-    s = sub.add_parser("tab", help="상단 탭 전환"); s.add_argument("name"); s.add_argument("--ss", default=None); s.set_defaults(fn=cmd_tab)
+    s = sub.add_parser("tab", help="사이드바 페이지 전환 (옛 탭 이름도 허용)"); s.add_argument("name"); s.add_argument("--ss", default=None); s.set_defaults(fn=cmd_tab)
     s = sub.add_parser("step", help="파이프라인 단계 목록 n 번째 선택"); s.add_argument("n", type=int)
     s.add_argument("--tab", default=None, help="먼저 이 탭으로 전환 (예: '이미지 파이프라인')")
     s.add_argument("--ss", default=None); s.set_defaults(fn=cmd_step)

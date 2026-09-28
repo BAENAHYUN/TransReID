@@ -168,6 +168,45 @@ QLabel#pipelineLabel {
 QFrame#resultCard { border: 1px solid %(line)s; border-radius: 8px; background: %(surface)s; }
 QFrame#resultCard:hover { border-color: %(accent)s; }
 QLabel#resultTitle { font-weight: 700; }
+
+/* ---- 셸 (사이드바) ---- */
+QFrame#sidebar { background: %(surface)s; border-right: 1px solid %(line)s; }
+QLabel#brandTitle { font-size: 14pt; font-weight: 700; color: %(text)s; padding: 2px 8px 0 8px; }
+QLabel#brandSub { color: %(muted)s; padding: 0 8px 8px 8px; }
+QLabel#navSection { color: %(muted)s; font-size: 8pt; font-weight: 700; padding: 12px 8px 4px 8px; }
+QToolButton#navButton {
+    text-align: left; padding: 8px 10px; border-radius: 8px; border: none;
+    background: transparent; color: %(text)s; font-size: 10.5pt;
+}
+QToolButton#navButton:hover { background: %(surface2)s; }
+QToolButton#navButton:checked { background: %(accent_soft)s; color: %(accent)s; font-weight: 700; }
+QLabel#navFooter { color: %(muted)s; font-size: 8pt; padding: 8px; }
+
+/* ---- 검색 헤더 카드 ---- */
+QFrame#searchHeader { background: %(surface)s; border: 1px solid %(line)s; border-radius: 12px; }
+QLineEdit#searchBox {
+    min-height: 40px; font-size: 12pt; padding: 2px 16px; border-radius: 21px;
+    border: 1px solid %(line_strong)s; background: %(surface)s;
+}
+QLineEdit#searchBox:focus { border: 2px solid %(accent)s; }
+QToolButton#modeButton {
+    padding: 6px 14px; border: 1px solid %(line)s; border-radius: 16px; background: %(surface)s; color: %(muted)s;
+}
+QToolButton#modeButton:hover { border-color: %(accent)s; color: %(text)s; }
+QToolButton#modeButton:checked { background: %(accent)s; color: %(surface)s; border-color: %(accent)s; font-weight: 700; }
+QToolButton#advButton { padding: 6px 12px; border: 1px solid %(line)s; border-radius: 6px; background: %(surface)s; color: %(muted)s; }
+QToolButton#advButton:checked { background: %(accent_soft)s; color: %(accent)s; border-color: %(accent)s; }
+QPushButton#qwenButton { border-color: %(accent)s; color: %(accent)s; font-weight: 600; }
+QFrame#advPanel { background: %(surface2)s; border-radius: 8px; }
+QLabel#advLabel { color: %(muted)s; }
+
+/* ---- 결과 격자 / 상세 ---- */
+QLabel#resultsTitle, QLabel#detailTitle { font-weight: 700; font-size: 11pt; padding: 2px 0 4px 0; }
+QListWidget#resultGrid { background: %(bg)s; border: none; }
+QListWidget#resultGrid::item { border-radius: 8px; padding: 4px; color: %(text)s; }
+QListWidget#resultGrid::item:hover { background: %(surface2)s; }
+QListWidget#resultGrid::item:selected { background: %(accent_soft)s; color: %(accent)s; }
+QTextEdit#detailText { border: 1px solid %(line)s; border-radius: 8px; background: %(surface)s; }
 """
 
 

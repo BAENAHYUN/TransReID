@@ -11,10 +11,14 @@ import traceback
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
-from PySide6.QtCore import QSettings, Qt, QThread, Signal, QUrl
-from PySide6.QtGui import QDesktopServices, QPixmap
+import html as _html
 
-from gui.gui_theme import apply_theme
+from PySide6.QtCore import QSettings, QSize, Qt, QThread, Signal, QUrl
+from PySide6.QtGui import QColor, QDesktopServices, QIcon, QPainter, QPixmap
+
+from gui.gui_theme import T, apply_theme
+from gui.search_ui import build_search_header, link_scope_combos, set_search_mode
+from gui.shell import AppShell
 
 try:
     from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
@@ -24,6 +28,7 @@ except Exception:
     QMediaPlayer = None
     QVideoWidget = None
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
     QComboBox,
     QFileDialog,
@@ -33,6 +38,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListView,
     QListWidget,
     QListWidgetItem,
     QMainWindow,
@@ -68,6 +74,11 @@ VIDEO_GROUP_SIZE_DEFAULT = 3
 VIDEO_TEXT_CANDIDATE_K_DEFAULT = 100
 VIDEO_PERSON_VECTOR_DEFAULT = "solider"
 VIDEO_OBJECT_VECTOR_DEFAULT = "dinov2"
+
+# 결과 격자 썸네일 한 변 (px)
+THUMB = 150
+# 사이드바에 보일 파이프라인 그룹 이름 (gui_pipelines.json 의 title 대신)
+PIPELINE_NAV_LABELS = {"video_pipeline": "영상 처리", "image_pipeline": "사진 처리", "evaluation": "평가 / 비교"}
 
 # GUI 시작 시 검색 backend를 import하지 않는다.
 # 모델/Router/SearchEngine 관련 import는 사용자가 검색 버튼을 누른 뒤
@@ -524,6 +535,78 @@ def set_preview(label: QLabel, path_value: Any, *, fallback: str = "미리보기
     )
 
 
+def _score_of(row: Dict[str, Any]) -> Tuple[Any, str]:
+    """카드/격자에 보일 대표 점수와 그 이름 (final > RRF > score)."""
+    if row.get("final_score") is not None:
+        return row.get("final_score"), "final"
+    if row.get("rrf_score") is not None:
+        return row.get("rrf_score"), "RRF"
+    return row.get("score"), "score"
+
+
+def _ai_mark(row: Dict[str, Any]) -> str:
+    v = row.get("verified")
+    if v is True:
+        return "✓ AI"
+    if v is False:
+        return "✕ AI"
+    if row.get("attr_score") is not None or row.get("attr_skipped"):
+        return "? AI"
+    return ""
+
+
+def thumb_pixmap(path_value: Any, size: int = THUMB) -> Optional[QPixmap]:
+    """정사각 썸네일: 비율 유지로 줄이고 가운데 놓는다 (사람 crop 은 세로로 길다). 못 읽으면 None."""
+    path = safe_path(path_value)
+    if path is None:
+        return None
+    pix = QPixmap(str(path))
+    if pix.isNull():
+        return None
+    scaled = pix.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    canvas = QPixmap(size, size)
+    canvas.fill(QColor(T["surface2"]))
+    painter = QPainter(canvas)
+    painter.drawPixmap((size - scaled.width()) // 2, (size - scaled.height()) // 2, scaled)
+    painter.end()
+    return canvas
+
+
+def result_caption(row: Dict[str, Any], *, video: bool) -> str:
+    """격자 아래 두 줄: '#순위 · 점수/시각  AI표시' + 파일/영상 이름."""
+    rank = row.get("rank", "-")
+    mark = _ai_mark(row)
+    mark = f"   {mark}" if mark else ""
+    if video:
+        name = Path(str(row.get("video") or row.get("video_path") or "")).name or "-"
+        return f"#{rank} · {fmt_time(row.get('timestamp_sec'))}{mark}\n{name}"
+    score, _ = _score_of(row)
+    name = Path(str(row.get("image_id") or "")).name or str(row.get("label") or "")
+    try:
+        score_text = f"{float(score):.2f}"          # 격자에는 소수 둘째 자리까지 (자세한 값은 상세)
+    except (TypeError, ValueError):
+        score_text = compact_score(score)
+    return f"#{rank} · {score_text}{mark}\n{name}"
+
+
+def result_tooltip(row: Dict[str, Any], *, video: bool) -> str:
+    score, score_name = _score_of(row)
+    lines = [f"순위 #{row.get('rank', '-')} · {score_name} {compact_score(score)}"]
+    if video:
+        gs = row.get("group_summary") or {}
+        lines.append(f"영상 {row.get('video') or row.get('video_path') or ''}")
+        lines.append(f"대표 {fmt_time(row.get('timestamp_sec'))} · 구간 {fmt_time(gs.get('start_sec'))} ~ {fmt_time(gs.get('end_sec'))}")
+        lines.append(f"track {row.get('track_key') or row.get('group_id') or ''}")
+    else:
+        lines.append(f"image_id {row.get('image_id', '')}")
+        lines.append(f"종류 {row.get('label') or ('person' if row.get('is_person') else 'object')}")
+    if row.get("cluster_id") is not None:
+        lines.append(f"클러스터 {row.get('cluster_id')}")
+    if row.get("attr_summary"):
+        lines.append(f"AI: {row.get('attr_summary')}")
+    return "\n".join(lines)
+
+
 def compact_score(value: Any) -> str:
     try:
         return f"{float(value):.6f}"
@@ -629,6 +712,8 @@ class ResultCard(QFrame):
 
 
 class ResultsPanel(QWidget):
+    useAsQuery = Signal(str)     # 상세의 '이 결과로 다시 찾기' → crop 경로
+
     def __init__(
         self,
         *,
@@ -655,10 +740,24 @@ class ResultsPanel(QWidget):
         list_box = QWidget()
         list_layout = QVBoxLayout(list_box)
         list_layout.setContentsMargins(0, 0, 0, 0)
-        list_layout.addWidget(QLabel("검색 결과"))
+        self.count_label = QLabel("검색 결과")
+        self.count_label.setObjectName("resultsTitle")
+        list_layout.addWidget(self.count_label)
 
+        # Immich 식 썸네일 격자: 아이콘 = crop 썸네일, 글자 = 순위·점수·AI 판정 (자세한 건 오른쪽 상세)
         self.list = QListWidget()
+        self.list.setObjectName("resultGrid")
+        self.list.setViewMode(QListView.IconMode)
+        self.list.setIconSize(QSize(THUMB, THUMB))
+        self.list.setGridSize(QSize(THUMB + 20, THUMB + 50))
+        self.list.setResizeMode(QListView.Adjust)
+        self.list.setMovement(QListView.Static)
+        self.list.setFlow(QListView.LeftToRight)
+        self.list.setWrapping(True)
         self.list.setSpacing(4)
+        self.list.setUniformItemSizes(True)
+        self.list.setWordWrap(True)
+        self.list.setSelectionMode(QAbstractItemView.SingleSelection)
         self.list.currentRowChanged.connect(self._show_detail)
         list_layout.addWidget(self.list, 1)
         splitter.addWidget(list_box)
@@ -667,7 +766,9 @@ class ResultsPanel(QWidget):
         detail_box = QWidget()
         detail_layout = QVBoxLayout(detail_box)
         detail_layout.setContentsMargins(8, 0, 0, 0)
-        detail_layout.addWidget(QLabel("선택 결과 상세"))
+        detail_title = QLabel("선택 결과 상세")
+        detail_title.setObjectName("detailTitle")
+        detail_layout.addWidget(detail_title)
 
         self.preview = QLabel("결과를 선택하세요")
         self.preview.setObjectName("detailPreview")
@@ -702,8 +803,19 @@ class ResultsPanel(QWidget):
             detail_layout.addWidget(self.preview)
 
         self.detail = QTextEdit()
+        self.detail.setObjectName("detailText")
         self.detail.setReadOnly(True)
+        self._detail_html = ""
         detail_layout.addWidget(self.detail, 1)
+
+        actions = QHBoxLayout()
+        self.reuse_btn = QPushButton("이 결과로 다시 찾기")
+        self.reuse_btn.setToolTip("이 crop 을 사진 검색의 query 로 넣습니다")
+        self.reuse_btn.setEnabled(False)
+        self.reuse_btn.clicked.connect(self._emit_use_as_query)
+        actions.addWidget(self.reuse_btn)
+        actions.addStretch(1)
+        detail_layout.addLayout(actions)
 
         if self.video:
             btns = QHBoxLayout()
@@ -720,12 +832,15 @@ class ResultsPanel(QWidget):
             detail_layout.addLayout(btns)
 
         splitter.addWidget(detail_box)
-        splitter.setSizes([620, 500])
+        splitter.setSizes([740, 400])
 
     def clear(self) -> None:
         self.rows = []
         self.list.clear()
         self.detail.clear()
+        self._detail_html = ""
+        self.count_label.setText("검색 결과")
+        self.reuse_btn.setEnabled(False)
         set_preview(self.preview, None, fallback="결과를 선택하세요")
         if self.player is not None:
             self.player.stop()
@@ -739,10 +854,13 @@ class ResultsPanel(QWidget):
         for row in rows:
             item = QListWidgetItem()
             item.setData(Qt.UserRole, row)
-            card = ResultCard(row, video=self.video, resolver=self.resolver)
-            item.setSizeHint(card.sizeHint())
+            pix = thumb_pixmap(self.resolver.resolve_crop(row) if self.resolver is not None else row.get("crop_path"))
+            item.setIcon(QIcon(pix) if pix is not None else QIcon())
+            item.setText(result_caption(row, video=self.video))
+            item.setToolTip(result_tooltip(row, video=self.video))
+            item.setTextAlignment(Qt.AlignHCenter | Qt.AlignTop)
             self.list.addItem(item)
-            self.list.setItemWidget(item, card)
+        self.count_label.setText(f"검색 결과  {len(rows)}건" if rows else "검색 결과")
 
         if rows:
             self.list.setCurrentRow(0)
@@ -866,7 +984,8 @@ class ResultsPanel(QWidget):
                     f"skipped: {row.get('attr_skipped') or ''}",
                 ])
 
-        self.detail.setPlainText("\n".join(lines))
+        self._render_detail(row, lines)
+        self.reuse_btn.setEnabled(resolved_crop is not None)
 
     # Qt(FFmpeg 백엔드)는 재생 중에도 LoadedMedia / BufferingMedia / BufferedMedia 상태를 반복해서 보낸다.
     # 예전 코드는 상태가 바뀔 때마다 seek + pause 를 다시 해서 재생 위치가 같은 시점으로 계속 되돌아갔고,
@@ -932,10 +1051,62 @@ class ResultsPanel(QWidget):
         self._append_detail_note(f"재생 오류: {message or error}")
 
     def _append_detail_note(self, note: str) -> None:
-        current = self.detail.toPlainText()
-        if note in current:
+        if note in self._detail_html:
             return
-        self.detail.setPlainText((current + "\n" if current else "") + note)
+        self._detail_html += f'<p style="color:{T["danger"]}">{_html.escape(note)}</p>'
+        self.detail.setHtml(self._detail_html)
+
+    # ---- 상세 (사람이 읽는 표 + 원본 필드) ----
+    def _friendly_rows(self, row: Dict[str, Any]) -> List[Tuple[str, str]]:
+        score, score_name = _score_of(row)
+        out: List[Tuple[str, str]] = [("순위", f"#{row.get('rank', '-')}"), ("점수", f"{compact_score(score)}  ({score_name})")]
+        if self.video:
+            gs = row.get("group_summary") or {}
+            out.append(("영상", str(row.get("video") or row.get("video_path") or "-")))
+            out.append(("시각", f"{fmt_time(self._timestamp_sec(row))}  (구간 {fmt_time(gs.get('start_sec'))} ~ {fmt_time(gs.get('end_sec'))})"))
+            out.append(("track", str(row.get("track_key") or row.get("group_id") or "-")))
+            hidden = int(row.get("same_video_hidden") or 0)
+            if hidden > 0:
+                out.append(("같은 영상", f"{hidden}건 더 있음 (영상당 상한으로 접힘)"))
+        else:
+            out.append(("이미지", str(row.get("image_id") or "-")))
+            out.append(("종류", str(row.get("label") or ("person" if row.get("is_person") else "object"))))
+        if row.get("cluster_id") is not None:
+            out.append(("클러스터", str(row.get("cluster_id"))))
+        v = row.get("verified")
+        if v is True:
+            out.append(("AI 판정", "✓ 조건에 맞음" + (f" — {row.get('attr_summary')}" if row.get("attr_summary") else "")))
+        elif v is False:
+            failed = row.get("failed_required") or []
+            out.append(("AI 판정", "✕ 조건에 안 맞음" + (f" — 필수 조건 실패: {', '.join(map(str, failed))}" if failed else "") + (f" — {row.get('attr_summary')}" if row.get("attr_summary") else "")))
+        elif row.get("attr_skipped") or row.get("attr_score") is not None:
+            out.append(("AI 판정", f"? 판정 못 함 — {row.get('attr_skipped') or row.get('attr_summary') or ''}"))
+        return out
+
+    def _render_detail(self, row: Dict[str, Any], raw_lines: List[str]) -> None:
+        muted, text = T["muted"], T["text"]
+        cells = "".join(
+            f'<tr><td style="color:{muted};padding:2px 12px 2px 0;white-space:nowrap;vertical-align:top">{_html.escape(k)}</td>'
+            f'<td style="color:{text};padding:2px 0">{_html.escape(v)}</td></tr>'
+            for k, v in self._friendly_rows(row)
+        )
+        raw = _html.escape("\n".join(raw_lines))
+        self._detail_html = (
+            f'<table style="border-collapse:collapse">{cells}</table>'
+            f'<p style="color:{muted};font-size:8pt;margin:12px 0 2px 0">원본 필드</p>'
+            f'<pre style="color:{muted};font-size:8pt;margin:0">{raw}</pre>'
+        )
+        self.detail.setHtml(self._detail_html)
+
+    def _emit_use_as_query(self) -> None:
+        row = self._current_row()
+        if not row:
+            return
+        path = self.resolver.resolve_crop(row)
+        if path is None:
+            QMessageBox.information(self, "crop 없음", "이 결과의 crop 파일을 찾을 수 없습니다.")
+            return
+        self.useAsQuery.emit(str(path))
 
     def _play_current_video(self) -> None:
         if not self.video:
@@ -995,10 +1166,7 @@ class ImageSearchPage(QWidget):
 
         # 검색 결과는 crop/text를 분리해서 보관한다.
         self.last_search_result: Optional[Dict[str, Any]] = None
-        self.last_search_results: Dict[str, Optional[Dict[str, Any]]] = {
-            "crop": None,
-            "text": None,
-        }
+        self.last_search_results: Dict[str, Optional[Dict[str, Any]]] = {"crop": None, "text": None}
         self.last_qwen_result: Optional[Dict[str, Any]] = None
         self._last_qwen_source: str = "text"
         self._last_qwen_top_k: int = 0
@@ -1006,197 +1174,39 @@ class ImageSearchPage(QWidget):
         self.model_options = load_search_model_options(config_path)
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(10, 8, 10, 10)
-        root.setSpacing(8)
+        root.setContentsMargins(16, 12, 16, 12)
+        root.setSpacing(10)
 
-        # ------------------------------------------------------------------
-        # 검색 방식은 한 콤보박스에 섞지 않고 단계별 탭으로 분리한다.
-        # ------------------------------------------------------------------
-        self.search_tabs = QTabWidget()
-        self.search_tabs.setObjectName("searchStageTabs")
+        # 상단 카드: 자연어/사진 모드 · 대상 · 큰 검색창 · AI 재확인 · 고급 설정 (gui/search_ui.py — 위젯 이름은 아래 로직 그대로)
+        self.header = build_search_header(self, video=False)
+        self.search_tabs = self.header       # 예전 이름 호환
+        root.addWidget(self.header)
 
-        # ====================== 1. 이미지 기반 검색 ======================
-        image_page = QWidget()
-        image_root = QVBoxLayout(image_page)
-        image_root.setContentsMargins(8, 10, 8, 8)
-        image_root.setSpacing(8)
-
-        image_box = QGroupBox("1. Crop 기반 검색")
-        image_grid = QGridLayout(image_box)
-        image_grid.setHorizontalSpacing(12)
-        image_grid.setVerticalSpacing(10)
-
-        self.image_scope = QComboBox()
-        self.image_scope.addItem("사람", "person")
-        self.image_scope.addItem("객체", "object")
         self.image_scope.currentIndexChanged.connect(self._refill_image_models)
-        image_grid.addWidget(QLabel("검색 대상"), 0, 0)
-        image_grid.addWidget(self.image_scope, 0, 1)
-
-        self.image_limit = QSpinBox()
-        self.image_limit.setRange(1, 500)
-        self.image_limit.setValue(20)
+        self.text_scope.currentIndexChanged.connect(self._refill_text_models)
+        link_scope_combos(self.image_scope, self.text_scope)
         self.image_limit.editingFinished.connect(lambda: self._sync_top_k_results("crop"))
         self.image_limit.valueChanged.connect(self._sync_qwen_top_k_limit)
-        image_grid.addWidget(QLabel("Top-K"), 0, 2)
-        image_grid.addWidget(self.image_limit, 0, 3)
-
-        self.query_preview = QLabel("Crop을 선택하세요")
-        self.query_preview.setObjectName("queryPreview")
-        self.query_preview.setFixedSize(180, 150)
-        self.query_preview.setAlignment(Qt.AlignCenter)
-        image_grid.addWidget(self.query_preview, 1, 0, 2, 1)
-
-        choose = QPushButton("Crop 선택")
-        choose.setFixedHeight(68)
-        choose.clicked.connect(self._choose_image)
-        image_grid.addWidget(choose, 1, 1)
-
-        self.image_pipeline = QLabel()
-        self.image_pipeline.setObjectName("pipelineLabel")
-        self.image_pipeline.setWordWrap(True)
-        # Query preview(150px)와 같은 두 행을 공유하므로, 버튼은 키우고
-        # 파이프라인 캡션은 글자가 잘리지 않는 선에서 낮게 고정한다.
-        self.image_pipeline.setFixedHeight(62)
-        image_grid.addWidget(self.image_pipeline, 2, 1, 1, 3)
-
-        # 검색 모델 선택: 1차 후보 retriever(단일/RRF 조합) + 2차 재정렬 retriever. 후보는 pipeline.yaml.
-        self.image_stage1 = QComboBox()
-        self.image_stage1.setToolTip("1차 후보를 뽑는 임베더. pipeline.yaml 의 retrievers 중 선택 (여러 개면 RRF 조합)")
-        self.image_stage1.currentIndexChanged.connect(self._sync_image_pipeline)
-        self.image_rerank = QComboBox()
-        self.image_rerank.setToolTip("1차 후보를 다시 정렬할 임베더. '없음' 이면 1차 순위 그대로")
-        self.image_rerank.currentIndexChanged.connect(self._sync_image_pipeline)
-        image_grid.addWidget(QLabel("1차 검색 모델"), 3, 0)
-        image_grid.addWidget(self.image_stage1, 3, 1)
-        image_grid.addWidget(QLabel("2차 재정렬"), 3, 2)
-        image_grid.addWidget(self.image_rerank, 3, 3)
-
-        self.image_search_btn = QPushButton("이미지 검색 실행")
-        self.image_search_btn.setObjectName("primaryButton")
-        self.image_search_btn.clicked.connect(self._search_image)
-        image_grid.addWidget(self.image_search_btn, 4, 0, 1, 4)
-
-        image_root.addWidget(image_box)
-        image_root.addStretch(1)
-        self.search_tabs.addTab(image_page, "1  Crop 기반 검색")
-
-        # ====================== 2. 자연어 검색 ==========================
-        text_page = QWidget()
-        text_root = QVBoxLayout(text_page)
-        text_root.setContentsMargins(8, 10, 8, 8)
-        text_root.setSpacing(8)
-
-        text_box = QGroupBox("2. 자연어 검색")
-        text_grid = QGridLayout(text_box)
-        text_grid.setHorizontalSpacing(12)
-        text_grid.setVerticalSpacing(10)
-
-        self.text_scope = QComboBox()
-        self.text_scope.addItem("사람", "person")
-        self.text_scope.addItem("객체", "object")
-        self.text_scope.currentIndexChanged.connect(self._refill_text_models)
-        text_grid.addWidget(QLabel("검색 대상"), 0, 0)
-        text_grid.addWidget(self.text_scope, 0, 1)
-
-        self.text_limit = QSpinBox()
-        self.text_limit.setRange(1, 500)
-        self.text_limit.setValue(20)
         self.text_limit.editingFinished.connect(lambda: self._sync_top_k_results("text"))
         self.text_limit.valueChanged.connect(self._sync_qwen_top_k_limit)
-        text_grid.addWidget(QLabel("Top-K"), 0, 2)
-        text_grid.addWidget(self.text_limit, 0, 3)
-
-        self.text = QLineEdit()
-        self.text.setPlaceholderText("예: 검은 상의를 입은 사람 / 검은 가방")
-        text_grid.addWidget(QLabel("자연어 Query"), 1, 0)
-        text_grid.addWidget(self.text, 1, 1, 1, 3)
-
-        self.text_pipeline = QLabel()
-        self.text_pipeline.setObjectName("pipelineLabel")
-        self.text_pipeline.setWordWrap(True)
-        text_grid.addWidget(self.text_pipeline, 2, 0, 1, 4)
-
-        # 자연어 검색 모델: supports_text 인 retriever 단일 또는 RRF 조합.
-        self.text_vectors = QComboBox()
-        self.text_vectors.setToolTip("자연어를 임베딩할 모델 (pipeline.yaml 에서 supports_text=true 인 것). 여러 개면 RRF 조합")
+        self.image_stage1.currentIndexChanged.connect(self._sync_image_pipeline)
+        self.image_rerank.currentIndexChanged.connect(self._sync_image_pipeline)
         self.text_vectors.currentIndexChanged.connect(self._sync_text_pipeline)
-        text_grid.addWidget(QLabel("검색 모델"), 3, 0)
-        text_grid.addWidget(self.text_vectors, 3, 1, 1, 3)
-
-        self.text_search_btn = QPushButton("자연어 검색 실행")
-        self.text_search_btn.setObjectName("primaryButton")
-        self.text_search_btn.clicked.connect(self._search_text)
-        text_grid.addWidget(self.text_search_btn, 4, 0, 1, 4)
-
-        text_root.addWidget(text_box)
-        text_root.addStretch(1)
-        self.search_tabs.addTab(text_page, "2  자연어 검색")
-
-        # ====================== 3. Qwen 검증 ============================
-        qwen_page = QWidget()
-        qwen_root = QVBoxLayout(qwen_page)
-        qwen_root.setContentsMargins(8, 10, 8, 8)
-        qwen_root.setSpacing(8)
-
-        qwen_box = QGroupBox("3. Qwen 검증  ·  Crop/자연어 검색 결과 후처리")
-        qwen_grid = QGridLayout(qwen_box)
-        qwen_grid.setHorizontalSpacing(12)
-        qwen_grid.setVerticalSpacing(8)
-
-        qwen_note = QLabel(
-            "1. Crop 기반 검색 결과 또는 2. 자연어 검색 결과가 나온 뒤 선택적으로 실행합니다. "
-            "Crop 기반 결과는 qwen_crop_stage.py, 자연어 결과는 qwen_stage.py를 사용하며, "
-            "버튼을 눌렀을 때만 별도 프로세스로 실행됩니다."
-        )
-        qwen_note.setWordWrap(True)
-        qwen_note.setObjectName("subtleLabel")
-        qwen_grid.addWidget(qwen_note, 0, 0, 1, 4)
-
-        self.qwen_source = QComboBox()
-        self.qwen_source.addItem("Crop 기반 검색 결과", "crop")
-        self.qwen_source.addItem("자연어 검색 결과", "text")
         self.qwen_source.currentIndexChanged.connect(self._sync_qwen_top_k_limit)
-        qwen_grid.addWidget(QLabel("검증 대상"), 1, 0)
-        qwen_grid.addWidget(self.qwen_source, 1, 1)
-
-        self.qwen_top_k = QSpinBox()
-        self.qwen_top_k.setRange(1, 200)
-        self.qwen_top_k.setValue(20)
-        qwen_grid.addWidget(QLabel("검증 후보 Top-K"), 1, 2)
-        qwen_grid.addWidget(self.qwen_top_k, 1, 3)
-
-        self.qwen_btn = QPushButton("Qwen 검증 실행")
+        self.choose_btn.clicked.connect(self._choose_image)
+        self.image_search_btn.clicked.connect(self._search_image)
+        self.text_search_btn.clicked.connect(self._search_text)
+        self.text.returnPressed.connect(self._search_text)
         self.qwen_btn.clicked.connect(self._run_qwen)
-        self.qwen_btn.setEnabled(True)
-        qwen_grid.addWidget(self.qwen_btn, 2, 0, 1, 4)
-
-        qwen_root.addWidget(qwen_box)
-        qwen_root.addStretch(1)
-        self.search_tabs.addTab(qwen_page, "3  Qwen 검증")
-
-        root.addWidget(self.search_tabs)
-
-        status_row = QHBoxLayout()
-        self.status = QLabel("준비됨")
-        self.status.setObjectName("statusLabel")
-        status_row.addWidget(self.status, 1)
-        # 검색 worker 가 돌 때만 보이는 진행 표시. 범위 (0,0) = 진행 중(indeterminate).
-        self.progress = QProgressBar()
-        self.progress.setObjectName("busyBar")
-        self.progress.setRange(0, 0)
-        self.progress.setTextVisible(False)
-        self.progress.setFixedWidth(160)
-        self.progress.setVisible(False)
-        status_row.addWidget(self.progress)
-        root.addLayout(status_row)
 
         self.results = ResultsPanel(video=False, resolver=self.resolver)
+        self.results.useAsQuery.connect(self._use_result_as_query)
         root.addWidget(self.results, 1)
 
         self._sync_qwen_top_k_limit()
         self._refill_image_models()
         self._refill_text_models()
+        set_search_mode(self, "text")
 
     # ------------------------------------------------------------------
     # UI helpers
@@ -1288,6 +1298,15 @@ class ImageSearchPage(QWidget):
         visible = rows_for_top_k(rows, top_k)
         self.results.set_rows(visible)
         self.status.setText(f"Top-K 동기화 · {len(visible)}건 표시")
+
+    def _use_result_as_query(self, path: str) -> None:
+        """결과 상세의 '이 결과로 다시 찾기': 그 crop 을 사진 검색 query 로 넣고 사진 모드로 바꾼다."""
+        if not path:
+            return
+        self.query_image = path
+        set_preview(self.query_preview, path)
+        set_search_mode(self, "crop")
+        self.status.setText("선택한 결과를 query 로 넣었습니다 · '검색' 을 누르세요")
 
     def _choose_image(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
@@ -1618,229 +1637,49 @@ class VideoSearchPage(QWidget):
         self.query_image: Optional[str] = None
         self.worker: Optional[SearchWorker] = None
 
-        self.last_search_result: Dict[str, Optional[Dict[str, Any]]] = {
-            "image-video": None,
-            "text-video": None,
-        }
-            # 영상 Qwen 후처리 결과는 기본 검색 결과와 별도 보관한다.
+        self.last_search_result: Dict[str, Optional[Dict[str, Any]]] = {"image-video": None, "text-video": None}
+        # 영상 Qwen 후처리 결과는 기본 검색 결과와 별도 보관한다.
         self.last_qwen_result: Optional[Dict[str, Any]] = None
         self._last_qwen_source: str = "text-video"
         self._last_qwen_top_k: int = 0
-
-        self._last_backend_top_k: Dict[str, int] = {
-            "image-video": 0,
-            "text-video": 0,
-        }
+        self._last_backend_top_k: Dict[str, int] = {"image-video": 0, "text-video": 0}
         self.model_options = load_search_model_options(config_path)
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(10, 8, 10, 10)
-        root.setSpacing(8)
+        root.setContentsMargins(16, 12, 16, 12)
+        root.setSpacing(10)
 
-        self.search_tabs = QTabWidget()
-        self.search_tabs.setObjectName("searchStageTabs")
+        # 상단 카드 (gui/search_ui.py) — 위젯 이름은 아래 로직 그대로
+        self.header = build_search_header(self, video=True)
+        self.search_tabs = self.header       # 예전 이름 호환
+        root.addWidget(self.header)
 
-        # ====================== 1. Crop 기반 영상 검색 ======================
-        image_page = QWidget()
-        image_root = QVBoxLayout(image_page)
-        image_root.setContentsMargins(8, 10, 8, 8)
-        image_root.setSpacing(8)
-
-        image_box = QGroupBox("1. Crop 기반 검색")
-        image_grid = QGridLayout(image_box)
-        image_grid.setHorizontalSpacing(12)
-        image_grid.setVerticalSpacing(10)
-
-        self.image_scope = QComboBox()
-        self.image_scope.addItem("사람", "person")
-        self.image_scope.addItem("객체", "object")
         self.image_scope.currentIndexChanged.connect(self._refill_image_models)
-        image_grid.addWidget(QLabel("검색 대상"), 0, 0)
-        image_grid.addWidget(self.image_scope, 0, 1)
-
-        self.image_top_k = QSpinBox()
-        self.image_top_k.setRange(1, 200)
-        self.image_top_k.setValue(20)
+        self.text_scope.currentIndexChanged.connect(self._refill_text_models)
+        link_scope_combos(self.image_scope, self.text_scope)
         self.image_top_k.editingFinished.connect(lambda: self._sync_top_k_results("image-video"))
         self.image_top_k.valueChanged.connect(self._sync_video_qwen_top_k_limit)
-        image_grid.addWidget(QLabel("Top-K"), 0, 2)
-        image_grid.addWidget(self.image_top_k, 0, 3)
-
-        # 영상당 표시 상한. 같은 영상의 여러 track 은 대개 서로 다른 사람이므로 합치지 않고 개수만 제한한다.
-        self.image_per_video = QSpinBox()
-        self.image_per_video.setRange(0, 50)
-        self.image_per_video.setValue(0)
-        self.image_per_video.setSpecialValueText("제한 없음")
-        self.image_per_video.setToolTip(
-            "같은 영상에서 최대 몇 개의 Track 까지 보일지. 0 = 제한 없음. "
-            "접힌 결과는 지워지는 것이 아니라 카드에 '같은 영상 N건 더 있음' 으로 표시됩니다."
-        )
         self.image_per_video.valueChanged.connect(lambda: self._note_per_video_change("image-video"))
-        image_grid.addWidget(QLabel("영상당 최대"), 0, 4)
-        image_grid.addWidget(self.image_per_video, 0, 5)
-
-        self.query_preview = QLabel("Crop을 선택하세요")
-        self.query_preview.setObjectName("queryPreview")
-        self.query_preview.setFixedSize(180, 150)
-        self.query_preview.setAlignment(Qt.AlignCenter)
-        image_grid.addWidget(self.query_preview, 1, 0, 2, 1)
-
-        choose = QPushButton("Crop 선택")
-        choose.setFixedHeight(68)
-        choose.clicked.connect(self._choose_image)
-        image_grid.addWidget(choose, 1, 1)
-
-        self.image_pipeline = QLabel()
-        self.image_pipeline.setObjectName("pipelineLabel")
-        self.image_pipeline.setWordWrap(True)
-        # Query preview(150px)와 같은 두 행을 공유하므로, 버튼은 키우고
-        # 파이프라인 캡션은 글자가 잘리지 않는 선에서 낮게 고정한다.
-        self.image_pipeline.setFixedHeight(62)
-        image_grid.addWidget(self.image_pipeline, 2, 1, 1, 5)
-
-        # 영상 identity 검색에 쓸 named vector (pipeline.yaml 의 해당 scope retriever 중 선택)
-        self.image_vector = QComboBox()
-        self.image_vector.setToolTip("Crop 을 임베딩해 track 을 찾을 모델. 기본 사람 SOLIDER / 객체 DINOv2")
-        self.image_vector.currentIndexChanged.connect(self._sync_image_pipeline)
-        image_grid.addWidget(QLabel("검색 모델"), 3, 0)
-        image_grid.addWidget(self.image_vector, 3, 1)
-
-        self.image_search_btn = QPushButton("영상 검색 실행")
-        self.image_search_btn.setObjectName("primaryButton")
-        self.image_search_btn.clicked.connect(self._search_image_video)
-        image_grid.addWidget(self.image_search_btn, 4, 0, 1, 6)
-
-        image_root.addWidget(image_box)
-        image_root.addStretch(1)
-        self.search_tabs.addTab(image_page, "1  Crop 기반 검색")
-
-        # ====================== 2. 자연어 영상 검색 ==========================
-        text_page = QWidget()
-        text_root = QVBoxLayout(text_page)
-        text_root.setContentsMargins(8, 10, 8, 8)
-        text_root.setSpacing(8)
-
-        text_box = QGroupBox("2. 자연어 검색")
-        text_grid = QGridLayout(text_box)
-        text_grid.setHorizontalSpacing(12)
-        text_grid.setVerticalSpacing(10)
-
-        self.text_scope = QComboBox()
-        self.text_scope.addItem("사람", "person")
-        self.text_scope.addItem("객체", "object")
-        self.text_scope.currentIndexChanged.connect(self._refill_text_models)
-        text_grid.addWidget(QLabel("검색 대상"), 0, 0)
-        text_grid.addWidget(self.text_scope, 0, 1)
-
-        self.text_top_k = QSpinBox()
-        self.text_top_k.setRange(1, 200)
-        self.text_top_k.setValue(20)
         self.text_top_k.editingFinished.connect(lambda: self._sync_top_k_results("text-video"))
         self.text_top_k.valueChanged.connect(self._sync_video_qwen_top_k_limit)
-        text_grid.addWidget(QLabel("Top-K"), 0, 2)
-        text_grid.addWidget(self.text_top_k, 0, 3)
-
-        self.text_per_video = QSpinBox()
-        self.text_per_video.setRange(0, 50)
-        self.text_per_video.setValue(0)
-        self.text_per_video.setSpecialValueText("제한 없음")
-        self.text_per_video.setToolTip(
-            "같은 영상에서 최대 몇 개의 Track 까지 보일지. 0 = 제한 없음. "
-            "접힌 결과는 지워지는 것이 아니라 카드에 '같은 영상 N건 더 있음' 으로 표시됩니다."
-        )
         self.text_per_video.valueChanged.connect(lambda: self._note_per_video_change("text-video"))
-        text_grid.addWidget(QLabel("영상당 최대"), 0, 4)
-        text_grid.addWidget(self.text_per_video, 0, 5)
-
-        self.text = QLineEdit()
-        self.text.setPlaceholderText("예: 검은 상의를 입은 사람 / 검은 가방")
-        text_grid.addWidget(QLabel("자연어 Query"), 1, 0)
-        text_grid.addWidget(self.text, 1, 1, 1, 5)
-
-        self.text_pipeline = QLabel()
-        self.text_pipeline.setObjectName("pipelineLabel")
-        self.text_pipeline.setWordWrap(True)
-        text_grid.addWidget(self.text_pipeline, 2, 0, 1, 6)
-
-        self.text_vectors = QComboBox()
-        self.text_vectors.setToolTip("자연어를 임베딩할 모델 (supports_text). 여러 개면 track 그룹별 RRF 조합")
+        self.image_vector.currentIndexChanged.connect(self._sync_image_pipeline)
         self.text_vectors.currentIndexChanged.connect(self._sync_text_pipeline)
-        text_grid.addWidget(QLabel("검색 모델"), 3, 0)
-        text_grid.addWidget(self.text_vectors, 3, 1, 1, 3)
-
-        self.text_search_btn = QPushButton("자연어 영상 검색 실행")
-        self.text_search_btn.setObjectName("primaryButton")
-        self.text_search_btn.clicked.connect(self._search_text_video)
-        text_grid.addWidget(self.text_search_btn, 4, 0, 1, 6)
-
-        text_root.addWidget(text_box)
-        text_root.addStretch(1)
-        self.search_tabs.addTab(text_page, "2  자연어 검색")
-
-        # ====================== 3. Qwen 검증 ============================
-        video_qwen_page = QWidget()
-        video_qwen_root = QVBoxLayout(video_qwen_page)
-        video_qwen_root.setContentsMargins(8, 10, 8, 8)
-        video_qwen_root.setSpacing(8)
-
-        video_qwen_box = QGroupBox("3. Qwen 검증  ·  Crop/자연어 영상 검색 결과 후처리")
-        video_qwen_grid = QGridLayout(video_qwen_box)
-        video_qwen_grid.setHorizontalSpacing(12)
-        video_qwen_grid.setVerticalSpacing(8)
-
-        video_qwen_note = QLabel(
-            "1. Crop 기반 검색 결과 또는 2. 자연어 검색 결과가 나온 뒤 선택적으로 실행합니다. "
-            "각 Track의 대표 Crop을 기준으로 검증하며, "
-            "Crop 기반 결과는 qwen_crop_stage.py, 자연어 결과는 qwen_stage.py를 사용합니다."
-        )
-        video_qwen_note.setWordWrap(True)
-        video_qwen_note.setObjectName("subtleLabel")
-        video_qwen_grid.addWidget(video_qwen_note, 0, 0, 1, 4)
-
-        self.video_qwen_source = QComboBox()
-        self.video_qwen_source.addItem("Crop 기반 검색 결과", "image-video")
-        self.video_qwen_source.addItem("자연어 검색 결과", "text-video")
         self.video_qwen_source.currentIndexChanged.connect(self._sync_video_qwen_top_k_limit)
-        video_qwen_grid.addWidget(QLabel("검증 대상"), 1, 0)
-        video_qwen_grid.addWidget(self.video_qwen_source, 1, 1)
-
-        self.video_qwen_top_k = QSpinBox()
-        self.video_qwen_top_k.setRange(1, 200)
-        self.video_qwen_top_k.setValue(10)
-        video_qwen_grid.addWidget(QLabel("검증 후보 Top-K"), 1, 2)
-        video_qwen_grid.addWidget(self.video_qwen_top_k, 1, 3)
-
-        self.video_qwen_btn = QPushButton("Qwen 검증 실행")
+        self.choose_btn.clicked.connect(self._choose_image)
+        self.image_search_btn.clicked.connect(self._search_image_video)
+        self.text_search_btn.clicked.connect(self._search_text_video)
+        self.text.returnPressed.connect(self._search_text_video)
         self.video_qwen_btn.clicked.connect(self._run_video_qwen)
-        self.video_qwen_btn.setEnabled(True)
-        video_qwen_grid.addWidget(self.video_qwen_btn, 2, 0, 1, 4)
-
-        video_qwen_root.addWidget(video_qwen_box)
-        video_qwen_root.addStretch(1)
-        self.search_tabs.addTab(video_qwen_page, "3  Qwen 검증")
-
-        root.addWidget(self.search_tabs)
-
-        status_row = QHBoxLayout()
-        self.status = QLabel("준비됨")
-        self.status.setObjectName("statusLabel")
-        status_row.addWidget(self.status, 1)
-        # 검색 worker 가 돌 때만 보이는 진행 표시. 범위 (0,0) = 진행 중(indeterminate).
-        self.progress = QProgressBar()
-        self.progress.setObjectName("busyBar")
-        self.progress.setRange(0, 0)
-        self.progress.setTextVisible(False)
-        self.progress.setFixedWidth(160)
-        self.progress.setVisible(False)
-        status_row.addWidget(self.progress)
-        root.addLayout(status_row)
 
         self.results = ResultsPanel(video=True, resolver=self.resolver)
+        self.results.useAsQuery.connect(self._use_result_as_query)
         root.addWidget(self.results, 1)
 
         self._refill_image_models()
         self._refill_text_models()
         self._sync_video_qwen_top_k_limit()
+        set_search_mode(self, "text")
 
     # ------------------------------------------------------------------
     # UI helpers
@@ -1940,6 +1779,15 @@ class VideoSearchPage(QWidget):
             + (f" / 요청 {top_k}" if len(visible) != top_k else "")
         )
 
+    def _use_result_as_query(self, path: str) -> None:
+        """결과 상세의 '이 결과로 다시 찾기': 그 crop 을 사진 검색 query 로 넣고 사진 모드로 바꾼다."""
+        if not path:
+            return
+        self.query_image = path
+        set_preview(self.query_preview, path)
+        set_search_mode(self, "crop")
+        self.status.setText("선택한 결과를 query 로 넣었습니다 · '검색' 을 누르세요")
+
     def _choose_image(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
             self,
@@ -1963,7 +1811,8 @@ class VideoSearchPage(QWidget):
         self.text_top_k.setEnabled(not busy)
         self.video_qwen_top_k.setEnabled(not busy)
         self.video_qwen_btn.setEnabled(not busy)
-        self.search_tabs.setEnabled(not busy)
+        self.mode_text_btn.setEnabled(not busy)
+        self.mode_crop_btn.setEnabled(not busy)
         self.status.setText(
             "검색 버튼 실행됨 · 모델 로드/임베딩/Qdrant 그룹 검색을 수행합니다."
             if busy
@@ -2304,19 +2153,16 @@ class MainWindow(QMainWindow):
         elif self.data_root != (ROOT / "data").resolve():
             self.setWindowTitle(self.windowTitle() + f"  [data: {self.data_root}]")
 
-        tabs = QTabWidget()
-
-        # 전체 페이지는 2개만 둔다.
-        # 각 페이지 내부에 1. Crop 기반 검색 / 2. 자연어 검색 / 3. Qwen 검증
-        # 세부 탭을 동일하게 구성한다.
+        # Immich 식 셸: 왼쪽 사이드바(검색 / 자료 만들기 / 평가) + 페이지 스택 (gui/shell.py). 페이지는 그대로, 배치만 바뀐다.
+        shell = AppShell(title="포렌식 검색", subtitle=self.config_path.name)
+        shell.add_section("검색")
         image_page = ImageSearchPage(str(self.config_path), self.path_resolver)
         video_page = VideoSearchPage(str(self.config_path), self.path_resolver)
-
-        tabs.addTab(image_page, "이미지 검색")
-        tabs.addTab(video_page, "영상 검색")
+        shell.add_page("image_search", "사진에서 찾기", "search", image_page)
+        shell.add_page("video_search", "영상에서 찾기", "video", video_page)
 
         # ------------------------------------------------------------------
-        # DB 구축 / 클러스터링 / 평가 탭.
+        # DB 구축 / 클러스터링 / 평가 페이지.
         #
         # 단계 정의는 gui_pipelines.json 에 있고 pipeline_page.py 가 폼을
         # 자동 생성한다. 단계를 바꾸려면 JSON 만 고치면 된다.
@@ -2325,30 +2171,44 @@ class MainWindow(QMainWindow):
         # import 실패를 삼키고 상태바로만 알린다.
         # ------------------------------------------------------------------
         pipeline_note = ""
+        eval_groups: List[Dict[str, str]] = []
         try:
             from gui.pipeline_page import PipelinePage, available_groups
 
             groups = available_groups()
             if groups:
+                shell.add_section("자료 만들기")
                 for g in groups:
-                    tabs.addTab(PipelinePage(g["id"]), g["title"])
+                    if g["id"] == "evaluation":
+                        eval_groups.append(g)
+                        continue
+                    shell.add_page(g["id"], PIPELINE_NAV_LABELS.get(g["id"], g["title"]),
+                                   "film" if "video" in g["id"] else "photo", PipelinePage(g["id"]))
             else:
-                pipeline_note = (
-                    "  ·  gui_pipelines.json 을 읽지 못해 파이프라인 탭이 없습니다"
-                )
+                pipeline_note = "  ·  gui_pipelines.json 을 읽지 못해 파이프라인 탭이 없습니다"
         except Exception as exc:  # noqa: BLE001
             pipeline_note = f"  ·  파이프라인 탭 로드 실패: {exc}"
 
-        # 벤치마크 탭 (P5): 원장 리더보드 · 채택 기준 색 · verify · 채택→yaml · 그래프.
-        # 마찬가지로 실패해도 검색 GUI 는 떠야 한다.
+        shell.add_section("평가")
+        for g in eval_groups:
+            try:
+                from gui.pipeline_page import PipelinePage
+
+                shell.add_page(g["id"], PIPELINE_NAV_LABELS.get(g["id"], g["title"]), "chart", PipelinePage(g["id"]))
+            except Exception as exc:  # noqa: BLE001
+                pipeline_note += f"  ·  평가 탭 로드 실패: {exc}"
+
+        # 벤치마크 (P5): 원장 리더보드 · 채택 기준 색 · verify · 채택→yaml · 그래프. 실패해도 검색 GUI 는 떠야 한다.
         try:
             from gui.bench_page import BenchPage
 
-            tabs.addTab(BenchPage(), "벤치마크")
+            shell.add_page("bench", "벤치마크", "bench", BenchPage())
         except Exception as exc:  # noqa: BLE001
             pipeline_note += f"  ·  벤치마크 탭 로드 실패: {exc}"
 
-        self.setCentralWidget(tabs)
+        shell.footer.setText("검색 → 결과 클릭 → 오른쪽 상세 → '이 결과로 다시 찾기'\n자료 만들기: 검출 → 임베딩 → 클러스터 → 결과창")
+        self.shell = shell
+        self.setCentralWidget(shell)
 
         self.statusBar().showMessage(
             "검색(이미지/영상) · 구축 · 클러스터링 · 평가"

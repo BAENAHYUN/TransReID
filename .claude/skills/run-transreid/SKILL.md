@@ -10,6 +10,11 @@ TransReID 는 RF-DETR → SigLIP2/IRRA/SOLIDER/DINOv2 → Qdrant 포렌식 검�
 `PrintWindow`, 클릭은 창 핸들로 `WM_LBUTTONDOWN/UP` 메시지. 아래 명령은 전부
 2026-09-18 이 머신(Windows 11)에서 실행해 동작을 확인한 것이다.
 
+**2026-09-28 화면 구조(Immich 식 셸, `gui/shell.py`)**: 상단 탭이 없고 왼쪽 사이드바에 `검색`(사진에서 찾기 / 영상에서 찾기) ·
+`자료 만들기`(영상 처리 / 사진 처리) · `평가`(평가 / 비교 / 벤치마크) 항목이 세로로 있다. 검색 페이지는 상단 카드(자연어/사진 모드 ·
+대상 · 큰 검색창 · AI 재확인 · 고급 설정) + 아래 썸네일 격자 + 오른쪽 상세. 파이프라인 페이지는 핵심 4단계(검출/임베딩/클러스터/결과창)만
+보이고 '추가 작업 보기' 로 나머지를 편다. `tab` 은 옛 탭 이름(`이미지 검색` 등)도 새 항목으로 매핑한다.
+
 모든 경로는 프로젝트 루트 `TransReID/` 기준. **Windows 전용** — Linux/xvfb 경로는
 시도하지 않았고 드라이버가 user32/gdi32 를 직접 호출한다.
 
@@ -31,25 +36,29 @@ PySide6 · Pillow 포함), Qdrant 서버 `http://localhost:6333` (검색/파이�
 
 ```bash
 D=.claude/skills/run-transreid/driver.py
-.venv/Scripts/python.exe $D launch --ss outputs/gui_shots/main.png          # 기동 (떠 있으면 재사용) + 909x939 로 정규화 + 캡처
+.venv/Scripts/python.exe $D launch --ss outputs/gui_shots/main.png          # 기동 (떠 있으면 재사용) + 960x939 로 정규화 + 캡처
 .venv/Scripts/python.exe $D status                              # pid / hwnd / rect
 .venv/Scripts/python.exe $D tab "이미지 파이프라인" --ss outputs/gui_shots/img_pipe.png
 .venv/Scripts/python.exe $D step 4 --tab "이미지 파이프라인" --ss outputs/gui_shots/step4.png
+# 자연어 검색 실행 (Qdrant + 모델 필요, 첫 검색 60~90초): 검색창 클릭 → 입력 → Enter → 대기 → 캡처 (2026-09-28 실측)
+.venv/Scripts/python.exe $D tab "사진에서 찾기" && .venv/Scripts/python.exe $D click 530 152 && .venv/Scripts/python.exe $D type "검은 상의를 입은 남성" && .venv/Scripts/python.exe $D key enter
+.venv/Scripts/python.exe $D ss outputs/gui_shots/search_live.png            # 75초쯤 뒤
 .venv/Scripts/python.exe $D quit
 ```
 
 | command | 동작 |
 |---|---|
-| `launch [--wait 90] [--ss PNG]` | 창이 없으면 `search_gui.py` 를 분리 프로세스로 기동하고 제목에 `Forensic Visual Retrieval` 가 나타날 때까지 대기(실측 3초). 있으면 재사용. 창 크기를 909×939 로 맞춘다. |
+| `launch [--wait 90] [--ss PNG]` | 창이 없으면 `search_gui.py` 를 분리 프로세스로 기동하고 제목에 `Forensic Visual Retrieval` 가 나타날 때까지 대기(실측 6초). 있으면 재사용. 창 크기를 960×939 로 맞춘다 (셸 최소 폭 957). |
 | `status` | 창 목록: pid, hwnd, rect, 제목. 없으면 `not running`. |
 | `ss OUT.png` | `PrintWindow` 캡처. 다른 창에 가려져 있어도 GUI 내용이 찍힌다. |
-| `tab NAME [--ss]` | 상단 탭 전환. NAME ∈ `이미지 검색` `영상 검색` `영상 파이프라인` `이미지 파이프라인` `평가 / 비교`. |
-| `step N [--tab NAME] [--ss]` | 파이프라인 탭 왼쪽 단계 목록의 N 번째 **보이는** 항목 선택 (기본은 핵심 4단계만 보임 — 검출/임베딩/클러스터/결과창; '추가 작업 보기' 를 켜면 영상 6, 이미지 12). `--tab` 으로 먼저 탭 전환 — 이미지 파이프라인은 탭 설명이 3줄이라 목록 시작 y 가 다르므로(`STEP_Y0_BY_TAB`) `--tab` 을 꼭 준다. |
+| `tab NAME [--ss]` | 사이드바 페이지 전환. NAME ∈ `사진에서 찾기` `영상에서 찾기` `영상 처리` `사진 처리` `평가 / 비교` `벤치마크` (옛 이름 `이미지 검색` `영상 검색` `영상 파이프라인` `이미지 파이프라인` 도 같은 항목). |
+| `step N [--tab NAME] [--ss]` | 파이프라인 탭 왼쪽 단계 목록의 N 번째 **보이는** 항목 선택 (기본은 핵심 4단계만 보임 — 검출/임베딩/클러스터/결과창; '추가 작업 보기' 를 켜면 영상 6, 이미지 12). `--tab` 으로 먼저 페이지 전환. 목록은 x=340, 1단계 y=140, 간격 32 (960×939 캡처 실측; 그룹 설명 줄 수가 바뀌면 `ss` 로 다시 잰다). |
 | `click X Y [--ss]` | 임의 **창 좌표**(프레임 포함, 캡처 PNG 의 픽셀 좌표와 동일) 클릭. |
+| `type TEXT` / `key NAME` | 포커스 위젯에 문자열(WM_CHAR) / 키(enter, tab, down …). 검색창은 `click 530 152` 로 먼저 포커스. |
 | `quit [--wait 10]` | `WM_CLOSE` 로 정상 종료(실측 0.3초). 무응답이면 `taskkill /F`. |
 
 캡처 → `--ss` 로 준 경로 (부모 폴더 자동 생성). 기동 로그 → `%TEMP%\transreid_gui_driver.log`.
-**캡처를 실제로 열어 확인한다.** 첫 화면은 "이미지 검색 › 1 Crop 기반 검색" 폼이어야 한다.
+**캡처를 실제로 열어 확인한다.** 첫 화면은 사이드바 `사진에서 찾기` 가 선택된 검색 카드(자연어로 찾기 · 검색창) 여야 한다.
 
 이름 좌표(탭·단계)는 909×939 창에서 검증됐고 `launch/tab/step` 이 그 크기를 강제한다.
 다른 크기에서 `click` 을 쓰려면 먼저 `ss` 로 찍어 좌표를 읽는다.
