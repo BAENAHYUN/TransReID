@@ -67,7 +67,7 @@
         },
         {
           "flag": "--tracking-config",
-          "label": "검출기",
+          "label": "추적 설정 yaml (검출기·추적기·스티처)",
           "type": "choice",
           "default": "pipeline.yaml",
           "choices_glob": "pipeline_tracking*.yaml",
