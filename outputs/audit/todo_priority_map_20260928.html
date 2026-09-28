@@ -69,6 +69,13 @@ pre{background:var(--code);border:1px solid var(--line);border-radius:8px;paddin
 </svg>
 </div>
 
+<h2>0. 2026-09-28 저녁 진행 (자동 진행분)</h2>
+<table><thead><tr><th>일</th><th>상태</th><th>내용</th></tr></thead><tbody>
+<tr><td>GUI Immich 식 셸</td><td>완료 (e009ed1)</td><td>사이드바 · 검색 헤더 카드 · 썸네일 격자 · 상세 · '이 결과로 다시 찾기'. 실제 검색(사진·영상) 캡처 확인</td></tr>
+<tr><td>파이프라인 4단계 + 빈 칸 채우기 + 도구 선택</td><td>완료 (858d8f1, baf9cb7)</td><td>검출/임베딩/클러스터/결과창, basic/고급 옵션, 폴더·값 드롭다운·플레이스홀더, 클러스터 Leiden / DBSCAN v6 / 커스텀 yaml, 영상 사람/물건</td></tr>
+<tr><td>Qwen 캐시 선채우기</td><td>배치 10 완료 · 단건 진행 중</td><td><code>eval/results/qwen_verify/qwen_flag_norerank_b10/</code> 완료(37 분), <code>…/qwen_flag_norerank/</code> 단건 ≈ 3.7 h. 끝나면 <code>eval/qwen_compare_runs.py</code> 로 두 실행의 판정 일치율 비교</td></tr>
+<tr><td>라벨 후</td><td>대기</td><td>두 캐시로 <code>qwen_verify_eval.py eval</code>(이름 그대로 → 캐시 적중) → 원장 stage=qwen 두 행(단건 vs _b10) → 채택</td></tr>
+</tbody></table>
 <h2>우선순위별 카드</h2>
 <div class="lanes">
 <div class="lane l1"><h3><span class="badge b1">1순위</span> 오늘 (도구는 끝났고 손만 대면 됨)</h3>

@@ -26,7 +26,7 @@
 | **P7** 등록기 | 어댑터 스켈레톤 → 계약 검사(정적 + 실제 생성) → yaml 등록(원본 불변) → 단계 벤치 → 원장 순위 | YOLO26-small 을 코드 수정 없이 등록: AP@0.5 0.874, 원장 5/10 |
 | **P6** 사람 정답 | 정답 시트 3종(HTML, 썸네일 내장, 자동 저장 → labels.json) + 평가 3종 + 원장/러너/GUI 연결 | 시트 준비: 추적 3편(구간 116) · 객체 쌍 75 · Qwen 30×20. **라벨링 대기** (§3) |
 
-테스트: 350개 통과 (`python -m unittest discover -s tests`).
+테스트: 401개 통과 (`python -m unittest discover -s tests`).
 
 ## 2. 도구 구조 (한 장)
 
@@ -60,6 +60,16 @@
 - **외부 검토 2회 반영(09-28 16:09 / 16:41)**: 추적 지표를 TrackEval 정의로 재구현하고(HOTA·CLEAR·MOT ignore), 라벨 유효성(검토 체크·manifest·검토율·중복/모순 차단)과 Qwen 평가의 후보 연결·filter 재현·캐시 계약, 채택 판정의 `incomplete`(확인 불가)를 넣었다. **Astra 2차(16:41) 반영**: 정식 평가에서 검토 안 된 구간은 ignore(제안값 승격 없음), reviewed 는 bool true 만, manifest·kind 필수, 같은 프레임 같은 gt_id 중복·객체 라벨 모순은 중단, CLEAR 를 TrackEval 의 빈 프레임 건너뛰기·직전 프레임 대응 규칙으로, Qwen 은 쿼리 단위 검토율과 재채점 캐시의 원본 결속, 객체는 assignments 대응률·캐시 검증 강화, 창 연결 근거 기록(`links`), 러너 `track --restitch`(스티처만 재실행, SUSHI 입력 없으면 어댑터 재생성), 벤치마크 탭 그래프의 incomplete·미정 기준선 처리와 채택 버튼은 pass 에서만.
 - **SUSHI 창 경계 연결**: `pipeline_tracking_sushi_link.yaml`(stitcher link_windows) + `bench/run.py track --restitch` 로 같은 검출 위에서 비교. 창 경계 연결(restitch, 같은 검출·추적 출력, 3편 pseudo GT = 추적기 연속성 기준): 원 스티처 after IDF1 0.619 / IDSW 41 / 갈라짐 32 / 과병합 8 → 연결 후 IDF1 0.937 / IDSW 19 / 갈라짐 10 / 과병합 7 (048 긴 트랙 34→16, 289 26→18, 100 16→12; 거절된 후보는 간격 6·15·31 프레임). 사람 라벨이 붙어야 '같은 사람' 여부가 확정된다.
 - **임베더 표본 적재 자동화(17:10)**: `bench/register.py embedder … --ingest-frames N` — 사본 yaml 의 collection_prefix 를 `bench_<이름>` 으로 바꿔 PRW test 프레임 N 개의 crop 을 별도 컬렉션에 적재하고, 같은 표본에서 e2e 검색을 새 임베더 단독 vs 운영 조합으로 원장에 남긴다(운영 컬렉션 불변, 표본 목록 고정으로 임베더 간 비교 가능). 데모(17:08~17:25, SOLIDER 가중치를 `solider_copy` 로 재등록): 계약 검사 OK → `pipeline_solider_copy.yaml` → 단독 Re-ID mAP 89.06(원장 2/4, solider 와 동률) → PRW test 300 프레임 crop 3,283 개를 `bench_solider_copy_person/_object` 에 적재(약 8분) → 같은 표본에서 e2e: `solider_copy__sample300` mAP(db) 89.15 / R1 63.5 / 0.18 s·q vs `prod__sample300`(siglip2+irra→solider) mAP(db) 87.35 / R1 63.0 / 0.56 s·q. 표본 갤러리는 GT 양성의 4 %(검출 상한 0.041)만 담으므로 GT 분모 mAP(3.5)는 무의미하고 map_db 로 비교한다 — 벤치마크 탭은 이런 행을 '표본 갤러리 — 확인 불가' 로 표시한다.
+
+## 4b. 2026-09-28 저녁 — GUI 개편(Immich 식) · 단계별 도구 선택 · Qwen 배치
+
+사용자 요청: "Immich 처럼 알아보기 쉽게", "빈 칸을 채우고 1~9 단계는 검출/임베딩/클러스터/결과창만", "단계마다 도구를 고르게(클러스터가 Leiden 고정)".
+
+- **셸** (`gui/shell.py`): 상단 탭 → 왼쪽 사이드바 `검색`(사진에서 찾기 · 영상에서 찾기) / `자료 만들기`(영상 처리 · 사진 처리) / `평가`(평가·비교 · 벤치마크). 아이콘은 QPainter 로 그려 외부 파일 없음.
+- **검색 화면** (`gui/search_ui.py`, `search_gui.ResultsPanel`): 자연어/사진(crop) 모드 토글 · 대상 · 큰 검색창(Enter 로 검색) · `AI 재확인 (Qwen)` · 접힌 `고급 설정`(모델·결과 수·영상당 최대·AI 대상/후보 수/배치). 결과는 150 px 썸네일 격자(순위·점수·AI 표시), 오른쪽 상세는 사람이 읽는 표 + 원본 필드, `이 결과로 다시 찾기` 로 그 crop 이 사진 검색 query 가 된다. 실제 검색 2건(사진 "검은 상의를 입은 남성", 영상 "검은 옷을 입은 사람")으로 캡처 확인.
+- **파이프라인 화면** (`gui/pipeline_page.py`, `gui_pipelines.json`): 핵심 4단계(`core`)만 먼저 — 검출 / 임베딩 / 클러스터 / 결과창; 나머지 8단계는 '추가 작업 보기'. 폼은 `basic` 필드만 보이고 '고급 옵션 보기' 로 편다. 검출 단계 빈 칸 4개는 기본값·폴더 드롭다운(`choices_dirs`, crops 폴더는 훑지 않음)·값 드롭다운으로 채웠고, 빈 문자열 필드 29개에 플레이스홀더. **도구** 드롭다운(`tools`): 클러스터 = Leiden(기본) / Leiden 플러그인 러너 / DBSCAN v6 / 커스텀 yaml(clusterer: 블록); 영상 클러스터·갤러리 = 사람 / 물건. 새 단계 `결과창` = `report/build_image_results.py`(DB 리포트 + 갤러리 + 인덱스 한 번에, 플러그인 러너의 `<target>_<method>_assignments.jsonl` 도 인식).
+- **Qwen 배치 관찰** (`verifiers/qwen_stage.py --batch-size`): 단건은 GPU 사용률 15 %·15 tok/s 로 후보당 22 s(파이썬 오버헤드 병목). left padding 배치 10 → 2~4 s/후보. 그러나 4건 중 1건의 판정이 달라져(뒷모습 성별 male→unknown) "같은 결과를 빠르게" 가 아닌 **별개 변형**으로 취급: 캐시 계약·이름(`_bN`)·원장 component 에 기록, GUI 기본 1. 캐시 선채우기: 배치 10 은 30 쿼리 × 20 후보 37 분에 완료, 단건은 진행 중(약 3.7 시간). `eval/qwen_compare_runs.py` 로 두 실행의 판정 일치율·뒤집힘·순위 상관을 라벨 없이 비교(데모 5 후보: 전부 일치, 47 s vs 4.6 s). 어느 쪽이 맞는지는 라벨 후 `qwen_verify_eval.py eval` 이 정한다.
+- 테스트 401 · 커밋 858d8f1 → baf9cb7 → e009ed1 → (polish) · 드라이버 좌표 갱신(사이드바, type/key 로 검색 실행).
 
 ## 5. 문서·산출물
 

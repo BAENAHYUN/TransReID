@@ -444,6 +444,8 @@ GPU 메모리가 부족하면 `--workers 1` 로 낮추세요.
 .\.venv\Scripts\python.exe eval\object_pair_eval.py eval --vector dinov2                      # 객체 임베더 mAP·쌍 AUC·클러스터 일치 → stage=object
 .\.venv\Scripts\python.exe eval\qwen_verify_eval.py sheet                                     # 자연어 30 쿼리 × 20 후보 판정 시트
 .\.venv\Scripts\python.exe eval\qwen_verify_eval.py eval --max-queries 5                      # Qwen 후처리 P@K 전·후·오탈락률 (캐시, --rescore) → stage=qwen
+.\.venv\Scripts\python.exe eval\qwen_verify_eval.py eval --batch-size 10 --allow-unlabeled     # 관찰 배치(2B: 22 s → 2~4 s/후보; 판정 일부 달라져 이름 _b10·캐시 계약 별도)
+.\.venv\Scripts\python.exe eval\qwen_compare_runs.py --a eval\results\qwen_verify\qwen_flag_norerank\qwen --b eval\results\qwen_verify\qwen_flag_norerank_b10\qwen   # 두 실행의 판정 일치율·뒤집힘·순위 상관 (라벨 불필요)
 .\.venv\Scripts\python.exe bench\run.py track --tracking-config pipeline_tracking_sushi_link.yaml --restitch   # 같은 검출·추적 출력 위에서 스티처(창 경계 연결)만 바꿔 비교
 .\.venv\Scripts\python.exe bench\register.py embedder --name myemb --module ... --class ... --dim 768 --ingest-frames 300   # 임베더 등록 + PRW 표본을 bench_myemb_* 컬렉션에 적재 + e2e 비교
 ```
