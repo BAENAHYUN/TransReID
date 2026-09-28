@@ -6,10 +6,12 @@
 
 **세 가지 규칙 (2026-09-28 외부 검토 반영)**
 1. **검토 체크가 정답의 조건이다.** 항목마다 "검토" 체크가 있고, 필드를 고치면 자동으로 체크된다. 제안값(기본값)을 그대로 두고 확인만 했다면 체크를 눌러야 한다.
-   검토되지 않은 항목은 사람 정답으로 쓰지 않으며, 검토율(coverage)이 `--min-coverage`(기본 100 %) 미만이면 평가는 **pseudo**(제안값 = 정답 가정)로 취급되어
-   원장에 기록되지 않고 결과 이름에 `__pseudo` 가 붙는다. 부분 라벨로라도 보려면 `--min-coverage 0.5` 처럼 낮춘다(그래도 원장에는 안 들어감).
+   검토되지 않은 항목은 사람 정답으로 쓰지 않는다. 검토율(coverage)이 `--min-coverage`(기본 100 %) 미만이면 평가는 **pseudo**(제안값 = 정답 가정)로 취급되어
+   원장에 기록되지 않고 결과 이름에 `__pseudo` 가 붙는다. `--min-coverage` 를 낮춰 정식 평가를 하면 검토 안 된 항목은 **ignore**(정답도 오답도 아님)로 빠진다 —
+   제안값이 정답으로 승격되는 일은 없다. 검토 체크는 bool true 만 인정하고, person 인데 gt_id 가 비어 있으면 무효 라벨로 센다.
+   정식 평가는 라벨 충돌이 있으면 중단한다: 추적은 같은 프레임에 같은 gt_id 박스 두 개(동시에 존재하는 두 구간을 한 사람으로 라벨), 객체는 '다름' 쌍이 '같음' 연쇄로 같은 그룹에 묶인 모순.
 2. **manifest 가 맞아야 한다.** 시트를 만들 때 항목 집합의 해시(manifest)가 proposals.json 과 시트에 박힌다. labels.json 은 그 manifest 를 품고 나오며,
-   시트를 다시 만들어 항목이 달라지면 옛 labels.json 은 평가가 거부한다(`--ignore-manifest` 로 강행 가능). 브라우저 자동 저장도 manifest 별로 분리된다.
+   시트를 다시 만들어 항목이 달라지면 옛 labels.json 은 평가가 거부한다(`--ignore-manifest` 로 강행 가능). manifest 가 없는 옛 파일이나 kind 가 다른 파일도 거부된다. 브라우저 자동 저장도 manifest 별로 분리된다.
 3. **채택 판정은 기준 지표가 다 있고 기준값이 정해졌을 때만 통과한다.** 지표가 빠지거나 기준값(기존 IDF1/HOTA, 객체 mAP)이 아직 없으면 벤치마크 탭에 `? 확인 불가` 로 나온다.
    첫 라벨 측정이 끝나면 그 값을 "기존" 으로 `bench/criteria.py` 에 넣어야 `✓/✗` 가 나온다.
 
@@ -33,7 +35,8 @@ GT 에 없어 새 검출이 FP 로 잡힌다(검출기 비교는 `eval/detect_ev
 - 할 일: ① 다른 카드인데 같은 사람 → 같은 gt_id ② 한 카드 안에 다른 사람 → 그 행의 gt_id 를 바꿈 ③ 사람 아님/판단 불가 → ignore ④ 한 행 안에서 사람이 바뀌면 바뀌는 프레임 + 그 뒤 gt_id ⑤ 행마다 검토 체크.
 - **알아둘 것**: SUSHI 는 512 프레임 창을 독립으로 처리한다(`video/sushi_inference.py FRAMES_PER_GRAPH`). 같은 사람이 창마다 다른 긴 트랙 id 를 받는 일이 흔하다
   (예: 048 영상의 정지 박스 하나가 L1·L8·L18·L28). 같은 사람이면 같은 gt_id 를 주면 된다 — 평가가 그 단절을 after 의 `splits`/`IDSW` 로 센다.
-  창 경계 연결 후처리(`pipeline_tracking_sushi_link.yaml`, stitcher `link_windows`)를 `bench/run.py track --tracking-config` 로 같은 정답에 비교할 수 있다.
+  창 경계 연결 후처리(`pipeline_tracking_sushi_link.yaml`, stitcher `link_windows`)는 `bench/run.py track --tracking-config pipeline_tracking_sushi_link.yaml --restitch` 로
+  같은 검출·추적 출력 위에서 스티처만 다시 돌려 같은 정답에 비교한다(`--restitch` 없이 재추적하면 검출이 달라져 semi-GT 와 맞지 않음 — 실측 FP 6,850). 연결 근거는 `stitched_tracks.link.json` 의 `links` 에 남는다.
 - 평가 출력: `raw`(추적기 id 그대로, 재사용 포함) · `before`(구간 = 추적기 tracklet) · `after`(긴 트랙 = 스티처 출력) 각각
   IDF1/IDP/IDR(Identity), HOTA/DetA/AssA, MOTA·IDSW·단절(fragments) — 모두 TrackEval 정의를 따른다 — 와 보조 진단 갈라짐(splits)·과병합(over_merges)·동시 중복 박스(pred_dup_boxes: 한 프레임에 같은 예측 id 두 개).
   ignore 박스는 MOTChallenge 방식(정상+ignore GT 를 함께 일대일 매칭한 뒤 ignore 에 붙은 예측만 제거). 원장 metrics 는 after 이고 `*_before`, `*_raw`, `idsw_ratio`, `coverage` 를 함께 남긴다.
@@ -63,7 +66,7 @@ GT 에 없어 새 검출이 FP 로 잡힌다(검출기 비교는 `eval/detect_ev
 저장된 관찰로 재채점한다(Qwen 호출 없음). 후보당 초는 언제나 원래 관찰 실행의 값이다.
 지표: P@5/10/20 검증 전(검색 순위) vs 후(Qwen 순위) — 같은 쿼리에서 둘 다 정의된 경우만 짝지어 평균, "모름" 은 분자·분모 제외 · `false_drop_rate` = FAIL 판정 중 실제 정답 비율(기준표 정의, ≤ 10 %) ·
 `lost_relevant_rate` = Qwen 이 PASS/FAIL 로 판정한 정답 중 FAIL 비율 · `unknown_ratio` = 관찰한 후보 중 UNKNOWN(판정 불능 + 처리 실패) · `sec_per_candidate`(2B ≤ 30 s, 4B ≤ 60 s).
-600 후보는 2B 기준 약 3.6 시간(후보당 21.7 s 실측)이므로 `--max-queries` 로 나눠 돌린다(캐시 재사용).
+쿼리 단위 검토율이 `--min-coverage`(기본 100 %) 미만인 쿼리는 정식 평가에서 빠진다(후보 20개 중 일부만 판정한 쿼리는 세지 않음). 600 후보는 2B 기준 약 3.6 시간(후보당 21.7 s 실측)이므로 `--max-queries` 로 나눠 돌린다(캐시 재사용).
 
 ## 4. 파일 형식
 
