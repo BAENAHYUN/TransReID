@@ -66,6 +66,7 @@ from PySide6.QtWidgets import (
 )
 
 from gui.html_view import HtmlView
+from gui import tool_choice as _tool_choice
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = ROOT / "gui_pipelines.json"
@@ -835,7 +836,12 @@ class StagePanel(QWidget):
             self.tool_combo.clear()
             for t in tools:
                 self.tool_combo.addItem(str(t.get("label") or t.get("stage")), t)
-            idx = min(self._tool_choice.get(str(stage.get("id")), 0), len(tools) - 1)
+            idx = self._tool_choice.get(str(stage.get("id")))
+            if idx is None:
+                # 처음 열 때: '도구' 페이지의 선택(없으면 ★ 최고)과 이름이 같은 항목
+                want = _tool_choice.tool_label(str(stage.get("id")))
+                idx = next((i for i, t in enumerate(tools) if want and str(t.get("label")) == want), 0)
+            idx = min(idx, len(tools) - 1)
             self.tool_combo.setCurrentIndex(idx)
             self.tool_combo.blockSignals(False)
             self._build_form(self.resolve_tool(stage, tools[idx]))
@@ -906,7 +912,8 @@ class StagePanel(QWidget):
             )
 
         saved = self._saved_values.get(str(stage.get("id")), {})
-        specs = list(stage.get("args", []))
+        # '도구' 페이지에서 고른(또는 ★ 최고) 도구가 이 단계 폼의 기본값이 된다 (예: 검출 단계의 검출기 yaml)
+        specs = [_tool_choice.apply_spec(str(stage.get("id")), s) for s in stage.get("args", [])]
         has_basic = any(s.get("basic") for s in specs)
         n_adv = 0
         for spec in specs:
@@ -1195,6 +1202,18 @@ class PipelineGroupPage(QWidget):
         if not on and cur is not None and cur.isHidden() and self.listw.count():
             self.listw.setCurrentRow(0)
 
+    def select_stage(self, stage_id: str) -> bool:
+        """단계 id 로 목록 선택 ('도구' 페이지의 '단계로 이동'). 추가 작업에 숨어 있으면 펼친다."""
+        for i in range(self.listw.count()):
+            item = self.listw.item(i)
+            st = item.data(Qt.UserRole) or {}
+            if str(st.get("id")) == stage_id:
+                if item.isHidden() and self.more_check is not None:
+                    self.more_check.setChecked(True)
+                self.listw.setCurrentItem(item)
+                return True
+        return False
+
     def visible_titles(self) -> List[str]:
         return [self.listw.item(i).text() for i in range(self.listw.count()) if not self.listw.item(i).isHidden()]
 
@@ -1229,7 +1248,12 @@ class PipelinePage(QWidget):
             layout.addStretch(1)
             return
 
-        layout.addWidget(PipelineGroupPage(group, self))
+        self.group_page = PipelineGroupPage(group, self)
+        layout.addWidget(self.group_page)
+
+    def select_stage(self, stage_id: str) -> bool:
+        page = getattr(self, "group_page", None)
+        return bool(page is not None and page.select_stage(stage_id))
 
 
 def available_groups() -> List[Dict[str, str]]:

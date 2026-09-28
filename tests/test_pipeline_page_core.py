@@ -189,6 +189,9 @@ class LiveRegistryTests(unittest.TestCase):
         cl = next(s for s in groups["image_pipeline"]["stages"] if s["id"] == "image_cluster")
         self.assertEqual([x["label"] for x in cl["tools"]], ["Leiden (기본)", "DBSCAN v6"])   # 두 개만, 파일명 없이
         self.assertEqual({t["stage"] for t in cl["tools"]}, {"image_cluster", "image_cluster_plugin"})
+        vp = next(s for s in groups["video_pipeline"]["stages"] if s["id"] == "video_preprocess")
+        self.assertGreaterEqual(len(vp["tools"]), 4)                                           # 영상도 검출기·스티처 조합을 도구로 고른다
+        self.assertTrue(all(t["stage"] == "video_preprocess" and (ROOT / t["set"]["--tracking-config"]).is_file() for t in vp["tools"]))
         vc = next(s for s in groups["video_pipeline"]["stages"] if s["id"] == "video_cluster_person")
         self.assertEqual([t["stage"] for t in vc["tools"]], ["video_cluster_person", "video_cluster_object"])
         res = next(s for s in groups["image_pipeline"]["stages"] if s["id"] == "image_results")

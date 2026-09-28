@@ -45,6 +45,15 @@
       "id": "video_preprocess",
       "core": true,
       "core_title": "1. 검출·추적 — 영상 → track",
+      "tools": [
+        {"label": "RF-DETR + BoT-SORT + SUSHI (기본)", "stage": "video_preprocess", "set": {"--tracking-config": "pipeline.yaml"}},
+        {"label": "YOLO26m + BoT-SORT + SUSHI", "stage": "video_preprocess", "set": {"--tracking-config": "pipeline_tracking_yolo26.yaml"},
+         "description": "검출기를 YOLO26m 으로 바꾼 조합. RF-DETR 과 정확도는 비슷하고(AP@0.5 0.871 vs 0.876) 속도가 빠르다. 추적·스티처는 같다."},
+        {"label": "YOLO26s + BoT-SORT + SUSHI (가장 빠름)", "stage": "video_preprocess", "set": {"--tracking-config": "pipeline_tracking_yolo26s.yaml"},
+         "description": "가장 작은 검출기. 작은 사람을 놓치기 쉬워 정확도는 조금 낮다 (AP@0.5 0.874, 재현율 기준 미달)."},
+        {"label": "RF-DETR + BoT-SORT + SUSHI 창 연결 (실험)", "stage": "video_preprocess", "set": {"--tracking-config": "pipeline_tracking_sushi_link.yaml"},
+         "description": "SUSHI 가 512 프레임 창마다 따로 붙이던 track 을 창 경계에서 이어 준다. 같은 검출에서 갈라짐 32 → 10 (가짜 정답 기준; 사람 라벨로 확정 전)."}
+      ],
       "core_desc": "영상 폴더의 영상에서 사람·물건을 찾고 움직임을 따라가(track) 처리 결과 폴더에 저장합니다. 가장 오래 걸리는 단계이며 중간에 멈춰도 이어서 할 수 있습니다.",
       "title": "1. 전처리 + 트래킹",
       "script": "video/batch_preprocess_videos_parallel.py",
@@ -52,12 +61,14 @@
       "args": [
         {
           "flag": "--videos-root",
+          "basic": true,
           "label": "영상 폴더",
           "type": "dir",
           "default": "./data/videos"
         },
         {
           "flag": "--processed-root",
+          "basic": true,
           "label": "처리 결과 폴더",
           "type": "dir",
           "default": "./outputs/processed_videos"
@@ -70,6 +81,7 @@
         },
         {
           "flag": "--tracking-config",
+          "basic": true,
           "label": "추적 설정 yaml (검출기·추적기·스티처)",
           "type": "choice",
           "default": "pipeline.yaml",
@@ -86,6 +98,7 @@
         },
         {
           "flag": "--workers",
+          "basic": true,
           "label": "동시 워커",
           "type": "int",
           "default": 2,
@@ -109,6 +122,7 @@
         },
         {
           "flag": "--resume",
+          "basic": true,
           "label": "이어서 처리",
           "type": "bool",
           "default": true

@@ -19,6 +19,7 @@ from PySide6.QtGui import QColor, QDesktopServices, QIcon, QPainter, QPixmap
 from gui.gui_theme import T, apply_theme
 from gui.search_ui import build_search_header, link_scope_combos, set_search_mode
 from gui.shell import AppShell
+from gui import tool_choice as _tool_choice
 
 try:
     from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
@@ -1203,6 +1204,7 @@ class ImageSearchPage(QWidget):
         self.results.useAsQuery.connect(self._use_result_as_query)
         root.addWidget(self.results, 1)
 
+        self.qwen_batch.setValue(_tool_choice.qwen_batch_default())
         self._sync_qwen_top_k_limit()
         self._refill_image_models()
         self._refill_text_models()
@@ -1216,9 +1218,11 @@ class ImageSearchPage(QWidget):
         scope = str(self.image_scope.currentData() or "person")
         names = list(self.model_options.get(f"{scope}_image") or FALLBACK_MODEL_OPTIONS[f"{scope}_image"])
         choices = stage1_choices(scope, names)
-        preset = [n for n in DEFAULT_STAGE1.get(scope, []) if n in names]
+        # '도구' 페이지의 검색 조합(고른 것 또는 ★ 최고)이 기본값. 없으면 코드 기본값.
+        chosen = _tool_choice.search_defaults(str(scope)) or {}
+        preset = [n for n in (chosen.get("stage1") or DEFAULT_STAGE1.get(scope, [])) if n in names]
         fill_combo(self.image_stage1, [(combo_label(c), c) for c in choices], preset if preset in choices else choices[-1])
-        rerank_default = DEFAULT_RERANK.get(scope)
+        rerank_default = chosen.get("rerank") if chosen else DEFAULT_RERANK.get(scope)
         fill_combo(self.image_rerank, [("없음", None)] + [(model_label(n), n) for n in names],
                    rerank_default if rerank_default in names else None)
         self._sync_image_pipeline()
@@ -1352,7 +1356,8 @@ class ImageSearchPage(QWidget):
 
         scope = self.image_scope.currentData()
         limit = int(self.image_limit.value())
-        solider_pool = max(SOLIDER_POOL_DEFAULT, limit)
+        pool_default = int((_tool_choice.search_defaults(str(scope)) or {}).get("pool") or SOLIDER_POOL_DEFAULT)
+        solider_pool = max(pool_default, limit)
         stage1, rerank = self.image_model_selection()
         # 백엔드에서 None 은 "운영 기본" 이므로, 사용자가 고른 '없음' 은 명시적으로 "none" 으로 보낸다.
         rerank_arg = rerank if rerank else "none"
@@ -1678,6 +1683,7 @@ class VideoSearchPage(QWidget):
         self.results.useAsQuery.connect(self._use_result_as_query)
         root.addWidget(self.results, 1)
 
+        self.qwen_batch.setValue(_tool_choice.qwen_batch_default())
         self._refill_image_models()
         self._refill_text_models()
         self._sync_video_qwen_top_k_limit()
@@ -1689,7 +1695,7 @@ class VideoSearchPage(QWidget):
     def _refill_image_models(self, *_args: Any) -> None:
         scope = str(self.image_scope.currentData() or "person")
         names = list(self.model_options.get(f"{scope}_image") or FALLBACK_MODEL_OPTIONS[f"{scope}_image"])
-        default = VIDEO_PERSON_VECTOR_DEFAULT if scope == "person" else VIDEO_OBJECT_VECTOR_DEFAULT
+        default = (_tool_choice.embedder_default("person") or VIDEO_PERSON_VECTOR_DEFAULT) if scope == "person" else VIDEO_OBJECT_VECTOR_DEFAULT
         fill_combo(self.image_vector, [(model_label(n), n) for n in names], default if default in names else names[0])
         self._sync_image_pipeline()
 
@@ -2204,6 +2210,35 @@ class MainWindow(QMainWindow):
                 pipeline_note = "  ·  gui_pipelines.json 을 읽지 못해 파이프라인 탭이 없습니다"
         except Exception as exc:  # noqa: BLE001
             pipeline_note = f"  ·  파이프라인 탭 로드 실패: {exc}"
+
+        # 도구: 단계별 도구 후보 + 원장 성적 + ★ 기본. 고르면 파이프라인 폼·검색 기본값이 바뀐다.
+        pipeline_pages: Dict[str, Any] = {k: shell.stack.widget(i) for i, k in enumerate(shell.keys())}
+        try:
+            from gui.tools_page import ToolsPage
+
+            tools_page = ToolsPage()
+
+            def _open_step(group_id: str, stage_id: str) -> None:
+                if group_id in shell.keys():
+                    shell.select(group_id)
+                    page = shell.stack.widget(shell.keys().index(group_id))
+                    if hasattr(page, "select_stage"):
+                        page.select_stage(stage_id)
+
+            def _choice_changed(step: str, _key: str) -> None:
+                if step == "search":
+                    image_page._refill_image_models()
+                elif step == "embedder":
+                    video_page._refill_image_models()
+                elif step == "qwen":
+                    image_page.qwen_batch.setValue(_tool_choice.qwen_batch_default())
+                    video_page.qwen_batch.setValue(_tool_choice.qwen_batch_default())
+
+            tools_page.openStep.connect(_open_step)
+            tools_page.choiceChanged.connect(_choice_changed)
+            shell.add_page("tools", "도구", "gear", tools_page)
+        except Exception as exc:  # noqa: BLE001
+            pipeline_note += f"  ·  도구 페이지 로드 실패: {exc}"
 
         # 결과 보기: 라벨링 시트(사람이 할 일) + 생성된 리포트 HTML 을 한 곳에서 연다
         try:
