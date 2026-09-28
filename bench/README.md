@@ -15,6 +15,7 @@
 | `combos.py` | 조합 탐색 — 임베더×재정렬×후보 수 / 벡터×클러스터러 격자 → 리더보드(운영 조합 순위) → 상위 미세조정 → `pipeline_best.yaml` | P4 |
 | `criteria.py` | 채택 기준(기준표 운영값)과 채택→yaml 생성기 — GUI 벤치마크 탭(`gui/bench_page.py`)이 쓴다 | P5 |
 | `register.py` | 새 모델 등록기 — 어댑터 스켈레톤(template) · 계약 검사 · yaml 등록 · 단계 벤치 · 원장 순위. 가이드 `REGISTER_GUIDE.md` | P7 |
+| `run.py track \| object \| qwen` | 사람 정답 3종 평가를 러너로 (스크립트는 `eval/track_gt_eval.py`, `eval/object_pair_eval.py`, `eval/qwen_verify_eval.py`; 정답·가이드 `eval/gt/`) | P6 |
 | `runs/`, `studies/`, `combos/` | 러너 실행 · 스터디 · 조합 격자 폴더 (산출물·로그·원장 조각; git 제외) | — |
 
 ## 1. 설계 원칙 (외부 검토에서 받은 보완점 4개)
@@ -142,6 +143,18 @@
 ## 6c. GUI 벤치마크 탭 (P5)
 
 `gui/bench_page.py` — 원장 리더보드. 채택 기준은 `bench/criteria.py:ADOPTION_RULES` (기준표 §1~§5 운영값: 검출 AP@0.5 ≥ 0.866·최대 재현율 ≥ 0.90·75–119 px ≥ 0.660·120–199 px ≥ 0.844·fps ≥ 10 / 임베딩 mAP ≥ 89.06 / 검색 mAP ≥ 88.07·pool_recall ≥ 90 / 클러스터 쌍 정밀도 ≥ 0.90·B³F1 ≥ 0.851·혼합 ≤ 138 / e2e mAP ≥ 58.3·검출 상한 ≥ 0.90). 판정 pass/partial/fail/n/a 가 행 색(초록/노랑/빨강/없음). `criteria.adopt_yaml(entry)` 가 행을 실행 가능한 yaml 로 바꾼다(원본 pipeline.yaml / pipeline_tracking.yaml 불변). 기준값을 바꾸려면 ADOPTION_RULES 만 고친다.
+
+## 6d. 사람 정답 평가 3종 (P6)
+
+원장 stage `track` / `object` / `qwen`. 시트(HTML) → 사람 라벨 → `labels.json` → eval. 라벨이 없으면 pseudo 모드(파이프라인 출력 = 정답 가정)로 배관만 확인하고 원장에는 쓰지 않는다. 자세한 절차는 `eval/gt/README.md`.
+
+| stage | 정답 단위 | 예측 | 지표 (METRIC_KEYS) | 채택 기준 (criteria) |
+|---|---|---|---|---|
+| track | 구간(추적기 id 연속 구간)별 gt_id / ignore | raw(추적기 id) · before(구간) · after(긴 트랙) | idf1 hota deta assa mota idsw fragments splits over_merges + `_before`/`_raw`, idsw_ratio | 과병합 0, IDSW after/before ≤ 0.5 (IDF1/HOTA 절대값은 첫 라벨 측정 뒤) |
+| object | 객체 트랙 쌍 같음/다름 → identity 그룹 | 트랙 중심 벡터(`--vector`) 코사인 | map rank1 map_labeled pair_auc pair_f1 pair_threshold pair_acc_at_threshold cluster_pair_precision/recall | 쌍 AUC ≥ 0.90(잠정), 클러스터 쌍 정밀도 ≥ 0.90 |
+| qwen | (쿼리, 후보) 맞다/아니다/모름 | qwen_stage 별도 프로세스 (캐시, `--rescore`) | p5/p10/p20 before·after, p10_gain_pp, false_drop_rate, unknown_ratio, sec_per_candidate | P@10 ≥ +10 %p, 오탈락률 ≤ 10 %, ≤ 30 s/후보 |
+
+러너: `bench/run.py track [--tracking-config yaml] [--videos …]` — yaml 을 주면 GT 영상만 `video/batch_preprocess_videos_parallel.py` 로 다시 추적·스티칭한 뒤 같은 정답으로 평가한다(검출기·추적기·스티처 교체 비교). `bench/run.py object --vector siglip2`, `bench/run.py qwen --verify-mode filter --max-queries 5`. verify 는 다른 단계와 같다 (Qwen 은 생성이 비결정적이라 허용 오차가 느슨함).
 
 ## 7. 외부 검토(Astra) 반영 (2026-09-28)
 

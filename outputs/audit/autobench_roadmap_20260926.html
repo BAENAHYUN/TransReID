@@ -1,0 +1,295 @@
+<title>TransReID 자동 벤치마크 로드맵</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f6f7f5; --panel:#ffffff; --ink:#1b2420; --muted:#5b6862; --rule:#d7ddd9; --rule-soft:#e8ece9;
+  --accent:#0f6e56; --accent-soft:#e2f1ec; --warn:#a85a0c; --warn-soft:#f8ecdc; --crit:#a33b2f; --crit-soft:#f7e3df;
+  --good:#1f7a4d; --good-soft:#dff2e6; --code:#eef1ef; --now:#1d4f8f; --now-soft:#e3ecf8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0f1613; --panel:#161f1b; --ink:#e4eae6; --muted:#9aa8a1; --rule:#2d3934; --rule-soft:#232d29;
+    --accent:#5fd0a8; --accent-soft:#173129; --warn:#e0a25a; --warn-soft:#33270f; --crit:#e2857a; --crit-soft:#3a1d19;
+    --good:#7bd39e; --good-soft:#163425; --code:#1e2a25; --now:#8ab4ee; --now-soft:#172538;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0f1613; --panel:#161f1b; --ink:#e4eae6; --muted:#9aa8a1; --rule:#2d3934; --rule-soft:#232d29;
+  --accent:#5fd0a8; --accent-soft:#173129; --warn:#e0a25a; --warn-soft:#33270f; --crit:#e2857a; --crit-soft:#3a1d19;
+  --good:#7bd39e; --good-soft:#163425; --code:#1e2a25; --now:#8ab4ee; --now-soft:#172538;
+}
+body{background:var(--ground);color:var(--ink);font-family:"IBM Plex Sans KR","Malgun Gothic",system-ui,sans-serif;font-size:15px;line-height:1.6;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1120px;margin:0 auto}
+header{padding-block:40px 20px;border-bottom:2px solid var(--accent)}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+h1{font-size:30px;line-height:1.2;margin:6px 0 10px;text-wrap:balance;font-weight:700}
+.lede{color:var(--muted);max-width:70ch;margin:0}
+nav{display:flex;flex-wrap:wrap;gap:8px;padding-block:14px;border-bottom:1px solid var(--rule)}
+nav a{font-size:13px;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--rule);padding:4px 10px;border-radius:999px}
+nav a:hover,nav a:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+h2{font-size:21px;margin:40px 0 6px;font-weight:700;text-wrap:balance}
+h2 .num{color:var(--accent);font-family:"IBM Plex Mono",monospace;font-weight:500;margin-right:8px}
+h3{font-size:16px;margin:22px 0 6px;font-weight:600}
+p{margin:6px 0}
+.note{color:var(--muted);font-size:14px;max-width:80ch}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:1px 9px;border-radius:999px;white-space:nowrap;line-height:1.6}
+.pill.done{background:var(--good-soft);color:var(--good)}
+.pill.part{background:var(--warn-soft);color:var(--warn)}
+.pill.todo{background:var(--crit-soft);color:var(--crit)}
+.pill.now{background:var(--now-soft);color:var(--now)}
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--rule);border-radius:6px;margin:10px 0 4px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--rule-soft);vertical-align:top;text-align:left}
+th{background:var(--accent-soft);color:var(--ink);font-weight:600;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.n{text-align:right;white-space:nowrap}
+code{font-family:"IBM Plex Mono",Consolas,monospace;font-size:12.5px;background:var(--code);padding:1px 5px;border-radius:4px}
+.diagram{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:12px;overflow-x:auto;margin:10px 0}
+pre.mermaid{margin:0;font-family:"IBM Plex Mono",monospace}
+.phase{display:grid;grid-template-columns:120px 1fr;gap:14px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:14px 16px;margin:10px 0}
+.phase .id{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--accent);font-size:14px}
+.phase .id small{display:block;color:var(--muted);font-weight:400;font-size:12px;margin-top:4px}
+.phase h3{margin:0 0 4px}
+.phase dl{display:grid;grid-template-columns:88px 1fr;gap:4px 10px;margin:8px 0 0;font-size:13.5px}
+.phase dt{color:var(--muted)}
+.phase dd{margin:0}
+.phase.now{border-color:var(--now);box-shadow:inset 3px 0 0 var(--now)}
+.timeline{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;font-size:13.5px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:14px 16px;margin:10px 0}
+.timeline .bar{height:18px;border-radius:3px;background:var(--accent-soft);position:relative}
+.timeline .bar span{position:absolute;top:0;bottom:0;border-radius:3px;background:var(--accent)}
+.timeline .bar.human span{background:var(--warn)}
+.timeline .lbl{white-space:nowrap}
+.scale{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;font-size:12px;color:var(--muted)}
+.scale .ticks{display:flex;justify-content:space-between}
+ul{margin:6px 0 6px 20px;padding:0}
+li{margin:3px 0}
+.rule{border:none;border-top:1px solid var(--rule);margin:28px 0 0}
+footer{color:var(--muted);font-size:12.5px;margin-top:36px}
+@media (max-width:640px){h1{font-size:24px}.phase{grid-template-columns:1fr}.phase dl{grid-template-columns:1fr}.timeline,.scale{grid-template-columns:1fr}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Forensic Visual Retrieval · 모델 탈부착 · 자동 벤치마크 · 조합 최적화</div>
+  <h1>TransReID 자동 벤치마크 로드맵</h1>
+  <p class="lede">"어떤 모델이 더 좋은지 정량으로, 자유롭게 갈아끼우고, 하이퍼파라미터는 손으로 안 돌리고, 남이 돌려도 같은 숫자가 나오고, 새 AI를 넣으면 최적 조합이 나오는 GUI·도구" — 여기까지 가는 길을 <strong>의존 관계 순서</strong>로 그린 지도. 2026-09-26 기준 현재 위치와 남은 단계.</p>
+</header>
+
+<nav>
+  <a href="#q">질문 → 답</a><a href="#goal">목표 시스템</a><a href="#map">단계 지도</a><a href="#phases">단계 상세</a><a href="#time">일정</a><a href="#decide">결정 필요</a><a href="#next">오늘 할 일</a>
+</nav>
+
+<section id="q">
+<h2><span class="num">Q</span>다섯 가지 질문에 대한 현재 답</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>질문</th><th>지금 상태</th><th>부족한 것</th><th>맵에서 채우는 단계</th></tr></thead>
+<tbody>
+<tr><td>정량 테스트로 어떤 게 더 좋은지 알 수 있나</td><td><span class="pill done">가능</span> 검출·임베딩·검색·클러스터링 4단계에 GT 평가 스크립트와 기준표가 있음</td><td>결과가 스크립트마다 다른 파일에 흩어져 있어 한 표에서 비교하려면 사람이 모아야 함. 추적·객체·Qwen 은 정답 없음</td><td>P1 원장, P6 정답 확보</td></tr>
+<tr><td>자유롭게 탈부착 되나</td><td><span class="pill done">가능</span> 검출기(RF-DETR/YOLO26)·임베더·클러스터링(Leiden/DBSCAN)·검색 조합이 yaml 또는 GUI 드롭다운으로 교체됨</td><td>Qwen 검증기와 벡터 DB(Qdrant)는 하드코딩. 새 모델은 어댑터 클래스 1개를 손으로 써야 함</td><td>P7 등록기 (Qdrant 추상화는 권고 안 함)</td></tr>
+<tr><td>하이퍼파라미터를 수기 없이 평가할 수 있나</td><td><span class="pill part">설계만</span> 목적함수는 기준표에 정의됨(B³F1+혼합 제약, mAP+pool recall, AP+fps). 스윕은 지금도 수동 실행</td><td>탐색기(Optuna) 와 그것이 호출할 단일 러너가 없음. 과적합 방지용 인물 분할(train/val) 미구현</td><td>P2 러너, P3 탐색기</td></tr>
+<tr><td>다른 사람도 내 지표를 따라갈 수 있나</td><td><span class="pill done">가능</span> <code>bench/run.py verify run_id</code> 가 같은 설정으로 재실행해 허용 오차 판정 (검출·클러스터 PASS, Δ 0). 원장에 git·yaml·가중치 sha·하드웨어</td><td>"같은 명령 → 같은 숫자" 를 자동으로 확인해 주는 검증 모드와, 데이터·코드·설정 해시가 붙은 실행 매니페스트가 없음</td><td>P1 매니페스트, P2 <code>--verify</code></td></tr>
+<tr><td>새 AI 를 넣으면 최적 조합을 만들어 주나</td><td><span class="pill todo">없음</span> 단계별 최선은 사람이 표를 보고 고름. 단계 간 조합(임베더×클러스터×검색)은 한 번 수동 실험(ablation)</td><td>조합 탐색기, 리더보드 GUI, "채택 → yaml 생성" 연결</td><td>P4 조합 탐색, P5 GUI, P7 등록기</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="goal">
+<h2><span class="num">G</span>목표 시스템 — 완성됐을 때의 데이터 흐름</h2>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+  A["구성 요소 yaml<br/>detector · retrievers · clusterer<br/>(새 AI = yaml 블록 + 어댑터 1개)"] --> R["bench/run.py<br/>단일 러너<br/>단계별 GT 평가 호출"]
+  GT["고정 정답<br/>PRW GT 캐시 · 트랙 준정답 · 객체 identity 세트"] --> R
+  R --> L["bench/ledger.jsonl<br/>실행 원장<br/>지표 + 설정 + 데이터 해시 + 버전 + seed"]
+  L --> O["bench/optimize.py<br/>Optuna 하이퍼파라미터 탐색<br/>+ 조합 탐색 (Pareto)"]
+  O --> R
+  L --> G["GUI 벤치마크 탭<br/>리더보드 · PR/Pareto 그래프<br/>'이 조합 채택'"]
+  G --> Y["pipeline_&lt;이름&gt;.yaml 생성"]
+  Y --> D["파이프라인·검색 탭 드롭다운에<br/>자동으로 나타남 (지금 동작)"]
+  L --> V["bench/run.py --verify<br/>같은 명령 재실행 → 원장과 대조<br/>(재현성 증명)"]
+</pre></div>
+<p class="note">회색 상자 중 지금 이미 있는 것: 구성 요소 yaml 교체(검출기·임베더·클러스터링), 단계별 GT 평가 스크립트 4종, PRW GT 캐시, 드롭다운 자동 반영. 없는 것: 원장 · 단일 러너 · 탐색기 · 리더보드 · 검증 모드 · 등록기.</p>
+</section>
+
+<section id="map">
+<h2><span class="num">M</span>단계 지도 — 무엇이 무엇을 기다리나</h2>
+<div class="diagram"><pre class="mermaid">
+flowchart TD
+  P0["P0 검출 전체 프레임 재측정<br/>(기준표 첫 공백 메우기)"]
+  P1["P1 실행 원장 + 매니페스트<br/>모든 평가가 한 JSONL 에 기록"]
+  P2["P2 단일 러너 bench/run.py<br/>4단계 평가를 한 CLI 로 · --verify"]
+  P3["P3 하이퍼파라미터 자동 탐색<br/>Optuna · 인물 분할 · Pareto"]
+  P4["P4 조합 탐색<br/>임베더 × 클러스터 × 검색"]
+  P5a["P5a GUI 벤치마크 탭<br/>실행 + 리더보드 표"]
+  P5b["P5b GUI 그래프 + 채택 → yaml"]
+  P6["P6 정답 데이터 확보 (사람)<br/>추적 준정답 · 객체 identity · Qwen 판정"]
+  P7["P7 새 AI 등록기<br/>yaml + 어댑터 → 계약 검사 → 자동 벤치"]
+  P0 --> P1 --> P2 --> P3 --> P4 --> P5b
+  P2 --> P5a --> P5b
+  P2 --> P7
+  P6 -.추적·객체·Qwen 단계가 벤치에 들어오려면.-> P2
+  P4 --> P7
+</pre></div>
+<p class="note">굵은 흐름 P0 → P1 → P2 가 기반이다. P2 가 끝나면 P3·P5a·P7 을 어느 순서로도 시작할 수 있고, P6 은 사람 손이 필요해 처음부터 병렬로 돌린다.</p>
+</section>
+
+<section id="astra">
+<h2><span class="num">A</span>Astra(GPT) 서브 에이전트 검토 → 반영 (2026-09-28)</h2>
+<p class="note">P1·P2 산출물을 <code>codex-astra</code>(읽기 전용)로 단계별 검토시켰다 (<code>codex_out/astra/20260928_112138_7172d548e2/result.md</code>). 높음 지적은 전부 코드와 대조해 실제 결함으로 확인된 것을 고쳤고, 테스트 299 통과 · verify 재실행 PASS(검출·클러스터 Δ 0)로 닫았다.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>지적</th><th>판정</th><th>반영</th></tr></thead>
+<tbody>
+<tr><td>e2e <code>--rerank none</code> 이 재정렬을 못 끔 (검색기가 None 을 운영 기본으로 해석)</td><td><span class="pill done">결함 확인</span></td><td>"none" 문자열로 전달, SOLIDER 단독 500쿼리 재측정</td></tr>
+<tr><td>중복 검출이 GT 기준 AP·recall·검출 상한을 부풀림</td><td><span class="pill done">결함 확인</span></td><td>프레임별 GT 수만큼만 TP(나머지 비관련), <code>map_db</code> 는 DB 양성 있는 쿼리만</td></tr>
+<tr><td>매칭 캐시를 검증 없이 재사용</td><td><span class="pill done">결함 확인</span></td><td>헤더 iou/sources/collection 대조, 다르면 재생성</td></tr>
+<tr><td>verify 가 공통 지표 0개여도 PASS · 검색 variant 전부에 verify 표시</td><td><span class="pill done">결함 확인</span></td><td>PASS / FAIL / UNVERIFIED 3상태, 원본 지표 누락 = FAIL, 비교한 행에만 기록</td></tr>
+<tr><td>클러스터 직접 실행 행 복원이 생성자와 불일치</td><td><span class="pill done">결함 확인</span></td><td>component.params 만 사용, pid_split 보존, 생성자 호출 테스트</td></tr>
+<tr><td>숫자 0 소실 · GUI list 인자 <code>--param a b</code></td><td><span class="pill done">결함 확인</span></td><td><code>_empty()</code>, <code>action=extend nargs=+</code></td></tr>
+<tr><td>병렬 trial 폴더 충돌 · 원장 잠금 없음</td><td><span class="pill part">위험 확인</span></td><td>폴더 uuid 접미사, 원장 append 파일 잠금</td></tr>
+<tr><td>단독 임베딩 평가가 yaml module/class 를 안 씀</td><td><span class="pill done">결함 확인</span></td><td>CLI override 없으면 registry(yaml) 로 생성, 원장 <code>params.loader</code></td></tr>
+<tr><td>check.py missing→OK · base 메서드 미재정의 통과</td><td><span class="pill done">결함 확인</span></td><td>missing = FAIL, base 메서드 그대로면 FAIL</td></tr>
+<tr><td>임베딩 캐시 fallback · split 무결성 · fingerprint 에 fps 포함</td><td><span class="pill done">확인</span></td><td>지문 실패 시 재사용 안 함, split 겹침·digest 검사, fingerprint 에서 시간 계열 제외</td></tr>
+</tbody></table></div>
+<p class="note">미반영(한계로 문서화): 클러스터 벡터 캐시의 DB 빌드 id 추적, gallery=test 혼합 프로토콜(전체 DB 검색 뒤 test 프레임만 채점), 클러스터 분할의 전이적 평가.</p>
+</section>
+
+<section id="phases">
+<h2><span class="num">P</span>단계 상세</h2>
+
+<div class="phase">
+  <div class="id">P0 <span class="pill done">완료 09-26</span><small>0.5일</small></div>
+  <div>
+    <h3>검출 평가를 test 전체 6,112 프레임으로 재측정</h3>
+    <p class="note"><strong>결과:</strong> 6,112 프레임에서 AP@0.5 는 YOLO26m 0.876 = RF-DETR-M 0.876 동률 (300 프레임의 우위는 표본 효과). 같은 임계값 0.5 에서 YOLO26m 은 정밀도 +0.07 이지만 75–119 px 재현율 −0.10, 120–199 px −0.05 → <strong>미채택</strong> (운영 RF-DETR 유지). 속도 2.5× (39 vs 16 fps) 는 영상 경로 대안. 검출기별 운영 임계값 (YOLO 0.4 ≈ RF-DETR 0.5) 은 P3 탐색 대상. 기준표 §1 갱신, 원장 첫 행 기록.</p>
+    <dl><dt>산출물</dt><dd><code>eval/results/detect_prw/</code> YOLO26m · RF-DETR-M · 운영 DB 전체 프레임 표, 운영 임계값 0.5 동작점 비교 포함</dd>
+    <dt>완료 조건</dt><dd>기준표 §1 이 6,112 프레임 값으로 갱신되고 채택 여부가 적힘</dd>
+    <dt>의존</dt><dd>없음 (YOLO26 약 3분, RF-DETR 약 9분, DB 가져오기 1분)</dd></dl>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="id">P1 <span class="pill done">완료 09-26</span><small>1일</small></div>
+  <div>
+    <h3>실행 원장(ledger) + 실행 매니페스트</h3>
+    <p class="note">"어떤 게 더 좋은지" 는 결국 한 표에서 비교하는 문제다. 지금은 스크립트 4개가 각자 다른 파일에 쓴다. 모든 평가 실행을 append-only JSONL 한 곳에 같은 스키마로 남기면 비교·탐색·리더보드·재현성 검증이 전부 이 위에 선다.</p>
+    <dl><dt>산출물</dt><dd><code>bench/ledger.py</code> — 행 스키마: run_id, stage, component(module/class/params), dataset·GT 해시, seed, 지표 dict, timing, versions(torch/rfdetr/ultralytics), git sha, yaml sha, 명령줄. 기존 평가 스크립트 4개에 <code>--ledger</code> 기록 추가</dd>
+    <dt>완료 조건</dt><dd>✓ <code>python bench/ledger.py table --stage detect --latest</code> 가 기준표 §1 표를, <code>--stage embed / search / cluster</code> 가 §3·§4·§5 를 출력. 원장 39행 (기존 산출물 33 이관 + P0 6). 스크립트 4개 자동 기록(<code>--no-ledger</code> 로 끔), GUI 평가 4단계 "실행 원장", <code>bench/README.md</code>, 테스트 19개 (전체 259 통과)</dd>
+    <dt>의존</dt><dd>P0 결과를 첫 행으로 넣는다</dd></dl>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="id">P2 <span class="pill done">완료 09-28</span><small>1.5일</small></div>
+  <div>
+    <h3>단일 러너 <code>bench/run.py</code> + 재현성 검증 모드</h3>
+    <p class="note"><strong>결과:</strong> <code>bench/run.py detect|embed|search|cluster|e2e …</code> 한 줄로 실행하고 원장에 인자·명령·하드웨어·가중치 sha256 을 붙여 기록. <code>verify run_id</code> 가 같은 설정으로 재실행해 허용 오차(F1·AP 0.005, mAP 0.1 %p, Rank 0.2 %p)로 PASS/FAIL — 검출 YOLO26m 300f 와 Leiden 3,000점 모두 <strong>PASS (전 지표 Δ 0)</strong>. 외부 검토 보완점 4개를 같이 반영: ① 계약 검사 <code>bench/check.py</code> (62건 OK) ② 단독/전체 분리 — 전체 파이프라인 <code>e2e</code> 평가 추가 (50쿼리 스모크 mAP 58.5 / mAP(db) 61.3 / 검출 상한 0.926 / distractor 0.37; 단독 88.1 과의 차이가 후보 200·distractor·검출 손실) ③ 임베더 지문으로 캐시 검증·DB 매니페스트 대조 (<code>check.py --db</code>: same) ④ 원장에 hardware/weights/env + 인물 분할 tune 135명 / holdout 315명 (<code>--pid-split</code>).</p>
+    <dl><dt>산출물</dt><dd><code>bench/run.py</code> (5단계 + verify/show-cmd), <code>bench/check.py</code>, <code>bench/splits.py</code> + <code>bench/splits/prw_pids_seed42.json</code>, <code>eval/prw_e2e_search_eval.py</code>, GUI 평가 5~8단계 (러너 · verify · 전체 파이프라인 · 계약 검사), <code>bench/README.md</code>, 테스트 46개 (전체 287 통과)</dd>
+    <dt>완료 조건</dt><dd>✓ 5단계 한 줄 실행 실측 · verify PASS 2건 · 계약 검사 62 OK · DB 지문 same. 남은 것: 다른 PC(github_upload 사본)에서 verify — 재동기화 뒤</dd>
+    <dt>의존</dt><dd>P1 스키마</dd></dl>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="id">P3 <span class="pill done">완료 09-28</span><small>2일</small></div>
+  <div>
+    <h3>하이퍼파라미터 자동 탐색 (Optuna)</h3>
+    <p class="note">기준표의 목적함수를 코드로 옮긴다. 단계별로: 클러스터링 — B³F1 최대화, 제약 혼합 클러스터 ≤ 기준·쌍 P ≥ 0.90 (탐색 변수 knn·threshold·resolution·mutual·max_cluster_size; DBSCAN 은 eps·min_faces·knn); 검색 — mAP 최대화, 제약 pool recall ≥ 0.90 (후보 수·RRF k·가중치·1차 조합); 검출 — AP@0.5 최대화, 제약 fps ≥ 10 (imgsz·conf·모델 크기 n/s/m/l). 과적합 방지: PRW 933명을 train 70 / val 30 으로 나눠 val 로 판정. 결과는 단일 승자가 아니라 정확도–속도–오병합 Pareto 앞면과 추천 설정.</p>
+    <p class="note"><!-- p3-result --><strong>결과(09-28):</strong> <code>bench/optimize.py</code> — 검색 40 trial 122초: 운영 조합 mAP 70.6 → 추천 89.4 (holdout 71.5 → 88.9; 3-RRF + SOLIDER 재정렬, prefetch 850 / pool 1000 — 기준표의 3-RRF+SOLIDER 88.07 을 탐색이 스스로 찾음). 검출 임계값 스윕(recall ≥ 0.85 아래 F1): YOLO26m 0.42 ≈ RF-DETR-M 0.54, F1 0.831 동급 → 검출기별 운영 임계값이 정해짐. Leiden 30 trial(43k 점, 509초): B³F1 0.884 → 0.936, holdout 0.876 → 0.898 — 그러나 holdout 쌍 정밀도 0.959 → 0.840 으로 제약 위반(혼합 28 → 69) → <strong>미채택</strong>, 제약 강화(≥0.93) 재탐색 필요. 탐색기는 이제 holdout 제약 위반을 경고로 표시한다. GUI 평가 9단계, 테스트 8개. tune(135명)/holdout(315명) 분할, 첫 trial = 운영값, 잡음 기준(클러스터 0.002 · 검색 0.1 %p · 검출 0.005) 아래 차이는 결론에 쓰지 않음.</p>
+    <dl><dt>산출물</dt><dd><code>bench/optimize.py --stage cluster --trials 60 --split-seed 0</code> → <code>bench/studies/&lt;stage&gt;_&lt;date&gt;/</code>(trial 원장, Pareto html, <code>recommended.yaml</code>)</dd>
+    <dt>완료 조건</dt><dd>Leiden 에서 사람이 고른 0.97 과 탐색이 고른 값이 val 에서 비교되고, 재현성 잡음(0.002) 보다 큰 차이만 결론으로 적힘. 비용 실측: 클러스터 43k 1 trial ≈ 1분 → 60 trial ≈ 1시간</dd>
+    <dt>의존</dt><dd>P2 러너 (탐색기는 러너만 호출한다)</dd></dl>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="id">P4 <span class="pill done">완료 09-28</span><small>1.5일</small></div>
+  <div>
+    <h3>조합 탐색 — 단계 사이의 상호작용</h3>
+    <p class="note">"좋은 임베딩 + 좋은 클러스터링 = 좋은 결과" 가 항상 성립하지 않는다(ablation 에서 결합 벡터가 오히려 나빴다). 벡터 캐시를 재사용하면 임베더 × 클러스터링 × 검색 조합 격자를 싸게 돌 수 있다(임베딩 1회, 클러스터 조합당 30초). 탐색은 격자 → 유망 조합만 P3 미세 조정.</p>
+    <p class="note"><!-- p4-result --><strong>결과(09-28):</strong> <code>bench/combos.py</code> — 검색 50조합(feasible 30): 운영 조합 <code>siglip2+irra→solider@200</code> 34위(mAP 67.46), 1위 <code>solider→none@1000</code> mAP 89.36, 상위 3개 미세조정 후 추천 <code>solider→none@1000</code> mAP 89.36 (holdout 88.91); <code>pipeline_best.yaml</code> 생성(가중치만 변경, 로더 검증). 클러스터 4조합: 운영 <code>leiden@solider</code> 1위 (B³F1 0.936, holdout 0.898), DBSCAN 0.784; 다른 벡터는 Leiden 임계값 스케일 차이로 미세조정 없이는 불리. GUI 평가 10단계.</p>
+    <dl><dt>산출물</dt><dd><code>bench/combos.py</code> → 조합 리더보드(각 단계 지표 + 최종 검색 mAP), 추천 조합 <code>pipeline_best.yaml</code></dd>
+    <dt>완료 조건</dt><dd>현재 운영 조합이 격자 안에서 몇 위인지 숫자로 나오고, 상위 조합이 val 에서도 유지됨</dd>
+    <dt>의존</dt><dd>P3 (목적함수·분할 재사용)</dd></dl>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="id">P5a / P5b <span class="pill done">완료 09-28</span><small>1일 + 1일</small></div>
+  <div>
+    <h3>GUI 벤치마크 탭 — 실행, 리더보드, 채택</h3>
+    <p class="note">P5a: 파이프라인 탭과 같은 방식(<code>gui_pipelines.json</code> 단계 + 서브프로세스)으로 러너·탐색기를 실행하고, 원장을 읽어 단계별 리더보드 표를 보여 준다(정렬·필터, 기준표 채택 조건 통과 여부를 색으로). P5b: PR 곡선·Pareto 그래프(원장 데이터로 그림), "이 조합 채택" 버튼 → <code>pipeline_&lt;이름&gt;.yaml</code> 생성 → 기존 드롭다운(<code>choices_glob</code>)에 자동 등장.</p>
+    <p class="note"><!-- p5-result --><strong>결과(09-28):</strong> GUI <strong>벤치마크</strong> 탭(<code>gui/bench_page.py</code>) — 원장 리더보드(단계·이름·최근만·통과만 필터, 숫자 정렬), 채택 기준(<code>bench/criteria.py:ADOPTION_RULES</code> = 기준표 운영값) 통과 색(초록/노랑/빨강), 상세 JSON, verify 실행(재현 검증), 재현 명령(클립보드), 그래프(목적 vs 제약 산점도 + 기준선, 검출 PR 곡선), <strong>채택 → yaml</strong>(<code>criteria.adopt_yaml</code>: 검출기 <code>pipeline_tracking_&lt;이름&gt;.yaml</code>, 클러스터 <code>clusterer_&lt;이름&gt;.yaml</code>, 검색 조합 <code>pipeline_&lt;이름&gt;.yaml</code>(가중치만) + <code>.search.json</code>; 원본 불변) → 드롭다운(pipeline*.yaml glob)에 자동 등장. 검출기 드롭다운은 module/class 로 중복을 없애므로 같은 class 의 변형은 경로로 지정. 테스트 12개(전체 318 통과).</p>
+    <dl><dt>산출물</dt><dd><code>gui/bench_page.py</code>, <code>gui_pipelines.json</code> "벤치마크" 탭, 채택 시 yaml 생성기</dd>
+    <dt>완료 조건</dt><dd>GUI 만으로 새 검출기 yaml 을 골라 벤치 실행 → 표에서 비교 → 채택 → 이미지 파이프라인 1단계 드롭다운에 나타남</dd>
+    <dt>의존</dt><dd>P5a: P2 · P5b: P3/P4 결과 형식</dd></dl>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="id">P6 <span class="pill done">도구 완료 09-28</span> <span class="pill part">라벨링 대기 · 사람</span><small>2~3일 (라벨링)</small></div>
+  <div>
+    <h3>정답 데이터 확보 — 자동화할 수 없는 부분</h3>
+    <p class="note">추적·스티칭, 객체 임베딩/클러스터링, Qwen 후처리는 정답이 없어 어떤 도구를 만들어도 판정이 불가능하다. 최소 규모로 사람이 만든다: ① 영상 3~5편 트랙 30~50개 (ID·프레임 구간), ② 같은 물건 재출현 50쌍 이상, ③ 자연어 30 쿼리 × 상위 20 후보 정답/오답 600건. 라벨링 화면은 기존 갤러리 HTML 에 체크박스를 얹는 정도로 충분하다.</p>
+    <p class="note"><!-- p6-result --><strong>결과(09-28):</strong> 정답 시트 3종 + 평가 스크립트 3종 완료. 추적 <code>eval/track_gt_eval.py</code>(구간 라벨 → raw/before/after IDF1·HOTA·IDSW·과병합), 객체 <code>eval/object_pair_eval.py</code>(쌍 판정 → mAP·쌍 AUC·클러스터 일치), Qwen <code>eval/qwen_verify_eval.py</code>(qwen_stage 별도 실행 → P@K 전·후·오탈락률). 원장 stage track/object/qwen · 러너 <code>bench/run.py track|object|qwen</code> · 벤치마크 탭 · GUI 평가 12~14 · 테스트 44. 시트: <code>eval/gt/tracks/{048,289,100}</code> 구간 116, <code>eval/gt/object_pairs</code> 75쌍, <code>eval/gt/qwen</code> 30×20. 가이드 <code>eval/gt/README.md</code>. pseudo 배관 검증: 추적 after IDF1 0.998 / before 0.931 / raw 0.585, 객체 mAP 81.0. 실측 발견: SUSHI 는 512 프레임 창을 독립 처리 → 같은 사람이 창마다 다른 긴 트랙 id (라벨 후 splits 로 정량화). 남은 것: 사람 라벨링(추적 30~50 트랙 · 객체 50쌍+ · Qwen 600) 뒤 <code>eval</code> 실행 → 기준표 §2·§3·§5·§6 채움.</p>
+    <dl><dt>산출물</dt><dd><code>eval/gt/tracks.jsonl</code>, <code>eval/gt/object_pairs.jsonl</code>, <code>eval/gt/qwen_judgements.jsonl</code> + 각 단계 평가 스크립트 3개(IDF1/HOTA, 객체 mAP, P@K 변화)</dd>
+    <dt>완료 조건</dt><dd>기준표 §2·§3(객체)·§6 의 "미측정" 이 숫자로 바뀜</dd>
+    <dt>의존</dt><dd>없음 — P0 과 동시에 시작 가능. 라벨링은 사용자(또는 지정 인력) 작업</dd></dl>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="id">P7 <span class="pill done">완료 09-28</span><small>1일</small></div>
+  <div>
+    <h3>새 AI 등록기 — 넣으면 자동으로 벤치되는 절차</h3>
+    <p class="note">새 모델 편입을 "어댑터 클래스 1개 + yaml 블록 1개" 로 고정하고, 등록기가 계약(입출력 형태·차원·supports_text)을 검사한 뒤 해당 단계 벤치를 러너로 돌려 리더보드에 올린다. 임베더는 차원이 다르면 새 collection_prefix 로 소규모 적재(PRW GT crop 19k) 까지 자동.</p>
+    <p class="note"><!-- p7-result --><strong>결과(09-28):</strong> <code>bench/register.py</code> — <code>template</code> 로 어댑터 스켈레톤(검출기/클러스터러/임베더), 등록 명령 1줄이 계약 검사(import·base 상속·메서드 재정의·생성자 인자·실제 생성해 출력 규격) → yaml 등록(검출기 <code>pipeline_tracking_&lt;이름&gt;.yaml</code>, 클러스터러 <code>clusterer_&lt;이름&gt;.yaml</code>, 임베더 <code>pipeline_&lt;이름&gt;.yaml</code>; 원본 불변) → 단계 벤치 → 원장 순위·채택 기준을 순서대로 한다. 데모: YOLO26-small 을 코드 수정 없이 등록(기존 YOLO26Detector + weights=yolo26s.pt): 계약 검사 4건 OK → pipeline_tracking_yolo26s.yaml → 300 프레임 벤치 AP@0.5 0.8742 / 최대 재현율 0.9359 / F1 0.8265 → 원장 검출 순위 5/10, 채택 기준 일부 통과. 가이드 <code>bench/REGISTER_GUIDE.md</code>, GUI 평가 11단계. 한계: 임베더는 단독 Re-ID 평가까지 자동이고 운영 DB 적재(ingest/build_db.py)는 수동.</p>
+    <dl><dt>산출물</dt><dd><code>bench/register.py --stage embed --module … --class …</code> → 계약 검사 리포트 + 벤치 실행 + 원장 행, 문서 "새 모델 추가하기 10분 가이드"</dd>
+    <dt>완료 조건</dt><dd>공개 모델 하나(예: YOLO26x 또는 다른 Re-ID 임베더)를 코드 수정 없이 등록기로 넣어 리더보드에 올라감</dd>
+    <dt>의존</dt><dd>P2, (임베더 자동 적재는) P4 의 캐시 규약</dd></dl>
+  </div>
+</div>
+</section>
+
+<section id="time">
+<h2><span class="num">T</span>일정 — 작업일 기준 (약 2주)</h2>
+<div class="timeline">
+  <div class="lbl">P0 검출 재측정</div><div class="bar"><span style="left:0%;width:5%"></span></div>
+  <div class="lbl">P1 원장</div><div class="bar"><span style="left:5%;width:10%"></span></div>
+  <div class="lbl">P2 러너 + verify</div><div class="bar"><span style="left:15%;width:15%"></span></div>
+  <div class="lbl">P3 HPO</div><div class="bar"><span style="left:30%;width:20%"></span></div>
+  <div class="lbl">P5a GUI 표</div><div class="bar"><span style="left:30%;width:10%"></span></div>
+  <div class="lbl">P4 조합 탐색</div><div class="bar"><span style="left:50%;width:15%"></span></div>
+  <div class="lbl">P5b GUI 그래프·채택</div><div class="bar"><span style="left:65%;width:10%"></span></div>
+  <div class="lbl">P7 등록기</div><div class="bar"><span style="left:75%;width:10%"></span></div>
+  <div class="lbl">P6 정답 라벨링 (사람)</div><div class="bar human"><span style="left:0%;width:30%"></span></div>
+  <div class="lbl">P6 평가 스크립트 3종</div><div class="bar"><span style="left:85%;width:15%"></span></div>
+</div>
+<div class="scale"><div></div><div class="ticks"><span>0일</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10일</span></div></div>
+<p class="note">P5a 는 P3 와 같은 날 병렬로 가능(둘 다 P2 만 기다린다). P6 라벨링은 도구 작업과 무관하게 앞에서 시작해야 뒤(85 % 지점)의 평가 스크립트가 바로 돌아간다.</p>
+</section>
+
+<section id="decide">
+<h2><span class="num">D</span>시작 전에 정해야 할 것</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>결정</th><th>선택지</th><th>권고</th></tr></thead>
+<tbody>
+<tr><td>단계별 목적함수의 우선순위</td><td>정밀 우선(오병합 최소) vs 균형(B³F1) vs 재현 우선</td><td>포렌식이므로 <strong>정밀 우선 제약 + B³F1 최대화</strong> (기준표 §5 채택 기준 그대로)</td></tr>
+<tr><td>탐색 예산</td><td>단계당 trial 수 · GPU 시간</td><td>클러스터 60 · 검색 40 · 검출 20 trial (총 ≈ 4 시간). 늘리는 건 나중</td></tr>
+<tr><td>정답 라벨링 담당·기한</td><td>본인 / 지정 인력, 언제까지</td><td>P0 과 같은 주에 시작. 추적 준정답이 가장 급함 (영상 파이프라인 전체가 미측정)</td></tr>
+<tr><td>벡터 DB 추상화</td><td>Qdrant 를 플러그인화할지</td><td><strong>하지 않음</strong> — 30개 파일 수정 대비 얻는 것이 없다. 비교 대상은 모델·알고리즘이지 저장소가 아님</td></tr>
+<tr><td>배포 형태</td><td>github_upload 사본 갱신 / 벤치 번들(BASE_DB 방식)</td><td>P2 완료 시점에 github_upload 재동기화 + <code>bench/README</code> 로 verify 절차 배포</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="next">
+<h2><span class="num">N</span>오늘 바로 할 일</h2>
+<ul>
+<li><strong>P0</strong>: <code>eval/detect_eval_prw.py --mode run --split test</code> 를 YOLO26m · RF-DETR-M 로 전체 실행 + <code>import-qdrant</code>, 운영 임계값 0.5 동작점으로 비교 → 기준표 §1 갱신.</li>
+<li><strong>P1 착수</strong>: 원장 스키마 확정 후 <code>bench/ledger.py</code> 와 평가 스크립트 4개의 <code>--ledger</code> 기록. 기존 결과 파일을 원장으로 1회 이관.</li>
+<li><strong>P6 시작</strong>: 추적 준정답용 영상 3~5편 선정과 라벨링 방식 결정 (사용자).</li>
+</ul>
+</section>
+
+<hr class="rule">
+<footer>근거: 기준표 <code>outputs/audit/eval_criteria_20260926.md</code>, 설계 <code>outputs/audit/eval_framework_design_20260921.md</code>, 실측 <code>eval/results/</code>. 소요 시간은 이 세션에서 비슷한 작업(플러그인화·평가 스크립트)에 걸린 시간을 기준으로 한 추정.</footer>
+</div>

@@ -95,7 +95,7 @@ class EntryTests(unittest.TestCase):
 
     def test_bad_stage_or_name(self):
         with self.assertRaises(ValueError):
-            L.make_entry("track", "t", "x", env=ENV)
+            L.make_entry("nope", "t", "x", env=ENV)
         with self.assertRaises(ValueError):
             L.make_entry("detect", "t", "", env=ENV)
 

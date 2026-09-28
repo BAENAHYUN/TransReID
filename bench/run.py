@@ -292,6 +292,59 @@ class Stage:
             cmd += ["--data-root", a["data_root"]]
         self.run_cmd(cmd)
 
+    # ---- P6: 사람 정답(준정답) 평가 3종 — 평가 스크립트가 원장 조각을 직접 쓴다
+    def track(self) -> None:
+        a = self.a
+        name = a.get("name") or default_name("track", a)
+        processed = a.get("processed_root")
+        if a.get("tracking_config"):
+            # 같은 GT 영상을 이 yaml 로 다시 추적·스티칭한 뒤 평가 (검출기·추적기·스티처 교체 비교)
+            proc_root = self.run_dir / "processed"
+            videos = list(a.get("videos") or [])
+            if not videos:
+                gt_dir = Path(a.get("gt_dir") or PROJECT_ROOT / "eval" / "gt" / "tracks")
+                videos = sorted(p.name for p in gt_dir.iterdir() if (p / "boxes.jsonl").is_file()) if gt_dir.is_dir() else []
+            for v in videos:
+                cmd = [PY, "video/batch_preprocess_videos_parallel.py", "--processed-root", str(proc_root), "--work-root", str(self.run_dir / "work"),
+                       "--tracking-config", str(a["tracking_config"]), "--pattern", str(v), "--workers", "1"]
+                if a.get("videos_root"):
+                    cmd += ["--videos-root", str(a["videos_root"])]
+                self.run_cmd(cmd)
+            processed = str(proc_root)
+        cmd = [PY, "eval/track_gt_eval.py", "eval", "--output-dir", str(self.run_dir), "--ledger", str(self.part_ledger), "--name", name]
+        if a.get("gt_dir"):
+            cmd += ["--gt-dir", str(a["gt_dir"])]
+        if a.get("videos"):
+            cmd += ["--videos", *[str(v) for v in a["videos"]]]
+        if processed:
+            cmd += ["--processed-root", str(processed)]
+        if a.get("pred_file"):
+            cmd += ["--pred-file", str(a["pred_file"])]
+        if a.get("tracking_config"):
+            cmd += ["--tracking-config", str(a["tracking_config"])]
+        self.run_cmd(cmd)
+
+    def object(self) -> None:
+        a = self.a
+        name = a.get("name") or default_name("object", a)
+        cmd = [PY, "eval/object_pair_eval.py", "eval", "--output-dir", str(self.run_dir), "--ledger", str(self.part_ledger), "--name", name,
+               "--vector", str(a.get("vector") or "dinov2")]
+        for k in ("gt_dir", "collection", "threshold", "assignments"):
+            if not _empty(a.get(k)):
+                cmd += [f"--{k.replace('_', '-')}", str(a[k])]
+        self.run_cmd(cmd)
+
+    def qwen(self) -> None:
+        a = self.a
+        name = a.get("name") or default_name("qwen", a)
+        cmd = [PY, "eval/qwen_verify_eval.py", "eval", "--output-dir", str(self.run_dir), "--ledger", str(self.part_ledger), "--name", name]
+        for k in ("gt_dir", "top_k", "alpha", "threshold", "verify_mode", "model_id", "max_queries", "qwen_dir"):
+            if not _empty(a.get(k)):
+                cmd += [f"--{k.replace('_', '-')}", str(a[k])]
+        if a.get("no_reranker"):
+            cmd.append("--no-reranker")
+        self.run_cmd(cmd)
+
     def execute(self) -> List[Dict[str, Any]]:
         if not self.dry:
             self.run_dir.mkdir(parents=True, exist_ok=True)
@@ -369,6 +422,18 @@ def args_from_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
         return {"config": cfg.get("path") or str(DEFAULT_PIPELINE), "stage1": comp.get("stage1"), "rerank": comp.get("rerank") or "none",
                 "limit": params.get("limit"), "pool": params.get("pool"), "max_queries": params.get("max_queries") or 0,
                 "gallery": params.get("gallery"), "pid_split": params.get("pid_split"), "name": entry["name"]}
+    if stage in ("track", "object", "qwen"):
+        out = {"name": entry["name"]}
+        if stage == "track":
+            out.update({"tracking_config": comp.get("tracking_config"), "processed_root": comp.get("processed_root"),
+                        "pred_file": comp.get("pred_file"), "videos": params.get("videos")})
+        elif stage == "object":
+            out.update({"vector": comp.get("vector"), "collection": comp.get("collection"), "threshold": params.get("threshold"),
+                        "assignments": params.get("assignments")})
+        else:
+            out.update({"model_id": comp.get("model_id"), "verify_mode": comp.get("verify_mode"), "top_k": params.get("top_k"),
+                        "alpha": params.get("alpha"), "threshold": params.get("threshold"), "no_reranker": bool(params.get("no_reranker"))})
+        return {k: v for k, v in out.items() if not _empty(v)}
     raise ValueError(f"알 수 없는 stage: {stage}")
 
 
@@ -494,6 +559,22 @@ def add_stage_options(p: argparse.ArgumentParser) -> None:
     g.add_argument("--rerank", default=None)
     g.add_argument("--max-queries", type=int, default=None)
     g.add_argument("--gallery", choices=["test", "all"], default=None)
+    g = p.add_argument_group("track / object / qwen (P6 사람 정답)")
+    g.add_argument("--gt-dir", default=None, help="정답 폴더 (track: eval/gt/tracks · object: eval/gt/object_pairs · qwen: eval/gt/qwen)")
+    g.add_argument("--processed-root", default=None, help="track: 예측을 읽을 영상 파이프라인 출력 루트")
+    g.add_argument("--videos", nargs="*", default=None, help="track: 영상 stem 목록 (기본 gt-dir 전부)")
+    g.add_argument("--videos-root", default=None, help="track: --tracking-config 재추적 시 원본 영상 폴더")
+    g.add_argument("--tracking-config", default=None, help="track: 이 yaml 로 GT 영상을 다시 추적·스티칭한 뒤 평가 (pipeline_tracking*.yaml)")
+    g.add_argument("--pred-file", default=None, help="track: 다른 추적기 출력 파일 (jsonl/json)")
+    g.add_argument("--collection", default=None, help="object: Qdrant 컬렉션 (기본 forensic_object)")
+    g.add_argument("--threshold", type=float, default=None, help="object: 쌍 임계값(0.97) / qwen: 판정 임계값(0.5)")
+    g.add_argument("--assignments", default=None, help="object: 트랙 클러스터 assignments.jsonl")
+    g.add_argument("--top-k", type=int, default=None, help="qwen: Qwen 이 볼 상위 후보 수 (20)")
+    g.add_argument("--alpha", type=float, default=None, help="qwen: 속성 점수 가중 (0.7)")
+    g.add_argument("--verify-mode", choices=["flag", "filter"], default=None, help="qwen: flag 표시만 / filter FAIL 제거")
+    g.add_argument("--no-reranker", action="store_true", help="qwen: Qwen3-VL-Reranker 생략")
+    g.add_argument("--model-id", default=None, help="qwen: Instruct 모델 id")
+    g.add_argument("--qwen-dir", default=None, help="qwen: Qwen 결과 캐시 폴더 (재사용)")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -501,7 +582,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="cmd", required=True)
     for stage, help_text in (("detect", "검출기 평가 (PRW GT)"), ("embed", "임베더 단독 Re-ID 평가 (GT crop)"),
                              ("search", "통합 검색 조합 단독 평가 (GT crop, 모든 변형)"),
-                             ("cluster", "클러스터링 플러그인 실행 + GT 평가"), ("e2e", "전체 파이프라인 검색 평가 (운영 DB)")):
+                             ("cluster", "클러스터링 플러그인 실행 + GT 평가"), ("e2e", "전체 파이프라인 검색 평가 (운영 DB)"),
+                             ("track", "추적·스티칭 준정답 평가 (IDF1/HOTA/IDSW)"), ("object", "객체 재출현 쌍 평가 (객체 임베더)"),
+                             ("qwen", "Qwen 후처리 평가 (P@K 변화·오탈락률)")):
         s = sub.add_parser(stage, help=help_text)
         add_common(s)
         add_stage_options(s)
@@ -527,6 +610,9 @@ STAGE_KEYS = {
     "cluster": {"config", "name", "module", "cls", "params", "method", "method_config", "target", "sources", "vector",
                 "max_points", "min_cluster_size", "vector_cache", "pid_split", "data_root"},
     "e2e": {"config", "name", "stage1", "rerank", "limit", "pool", "max_queries", "gallery", "pid_split", "data_root"},
+    "track": {"name", "gt_dir", "processed_root", "videos", "videos_root", "tracking_config", "pred_file", "data_root"},
+    "object": {"name", "gt_dir", "vector", "collection", "threshold", "assignments", "data_root"},
+    "qwen": {"name", "gt_dir", "top_k", "alpha", "threshold", "verify_mode", "no_reranker", "model_id", "max_queries", "qwen_dir", "data_root"},
 }
 
 
@@ -584,6 +670,12 @@ def default_name(stage: str, a: Dict[str, Any]) -> str:
         return slug(a.get("method") or (a.get("cls") or "cluster"))
     if stage == "e2e":
         return slug("+".join(a.get("stage1") or ["default"]) + "__" + str(a.get("rerank") or "default"))
+    if stage == "track":
+        return slug(Path(a["tracking_config"]).stem if a.get("tracking_config") else "tracks")
+    if stage == "object":
+        return slug(a.get("vector") or "object")
+    if stage == "qwen":
+        return slug("qwen_" + str(a.get("verify_mode") or "flag"))
     return stage
 
 
@@ -621,7 +713,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         stage = target["stage"]
         a = args_from_entry(target)
         want_name = target["name"]
-        if stage in ("detect", "cluster", "e2e"):
+        if stage in ("detect", "cluster", "e2e", "track", "object", "qwen"):
             a["name"] = f"{want_name}__verify"
             want_name = a["name"]
         if stage == "detect":

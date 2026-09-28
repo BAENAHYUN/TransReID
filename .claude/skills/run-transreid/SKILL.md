@@ -70,7 +70,7 @@ for g in pp.load_registry():
 "
 ```
 
-기대 출력: `video_pipeline 6 …`, `image_pipeline 11 …`, `evaluation 11 …`.
+기대 출력: `video_pipeline 6 …`, `image_pipeline 11 …`, `evaluation 14 …`.
 (2026-09-26 재배치: `pipeline_page.py`/`gui_theme.py` 는 `gui/` 패키지, 단계 스크립트는
 `detect/ video/ ingest/ clustering/ search/ verifiers/ report/` 아래에 있고 `gui_pipelines.json` 의
 `script` 값이 그 상대경로다.)

@@ -1,0 +1,3818 @@
+{
+ "generated_at": "2026-09-28T14:44:23",
+ "config": "C:\\Users\\Karsel\\Desktop\\Final_tool\\TransReID\\pipeline.yaml",
+ "scope": "person",
+ "top_k": 20,
+ "queries": [
+  {
+   "query_id": "q01",
+   "text": "검은색 상의를 입은 남성",
+   "query_en": "Black-dressed male.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "68d1b54f-638a-5236-8a23-eea3e631170d",
+     "crop_path": "data\\crops\\000000081903_aec8fb23dd_person_004.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "e94f784e-5ab0-51da-99f2-387d75ddf53c",
+     "crop_path": "data\\crops\\000000161244_d0e8d5ae20_person_001.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "b33d0195-a732-5ad3-b07b-a7cc2ef52977",
+     "crop_path": "data\\crops\\000000063949_926a692d43_person_001.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "3efb7b9e-175c-5407-a4f9-41e4fe85b9bb",
+     "crop_path": "data\\crops\\000000004684_7b579a944d_person_005.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "3987c9c4-beed-5573-8923-603e25283152",
+     "crop_path": "data\\image_crops\\000000177861_4497904ac2_person_002.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "c002dc6f-b958-5a62-891b-45845415964c",
+     "crop_path": "data\\crops\\000000475765_5a6fc7a83c_person_002.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "dcbbc035-0adc-5c77-8822-0f80abb8eca1",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_079467_9725adecb2_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "a6db4eed-9861-5e9a-9207-dab1b2ab4e48",
+     "crop_path": "data\\crops\\000000107705_44bb53d105_person_002.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "b24fe746-18bd-5385-aa0f-8d91b539be0c",
+     "crop_path": "data\\crops\\000000119604_f4ad83f4cf_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "fb96d1d8-40b3-5fcd-8344-eaab43609c1a",
+     "crop_path": "data\\crops\\000000574977_306bb832d2_person_002.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "f4d13d3d-191e-572d-8ead-54fe824c170d",
+     "crop_path": "data\\crops\\000000399078_fe2031c39a_person_002.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "30053ba4-b20f-582f-8684-1679b2229c1a",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_071842_56a7af2a0f_person_003.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "f7474add-6444-595b-9436-6f461b764cb3",
+     "crop_path": "data\\crops\\000000150164_384feebc6f_person_004.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "299e6e70-094b-5ef1-a091-875e8b219269",
+     "crop_path": "data\\crops\\000000382401_702c2bc823_person_001.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "52d009b0-f46d-5970-bf52-df5350f4e36f",
+     "crop_path": "data\\crops\\000000557875_6a33892279_person_001.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "61a3e75e-a57a-503c-b126-c018c52114b1",
+     "crop_path": "data\\crops\\000000286016_2c36d4b7ad_person_003.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "ba2de915-ee85-51d9-911c-3f124c1cc7be",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_149583_2ce4f439f0_person_001.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "b994e241-34ce-5160-b667-6539d90b84c2",
+     "crop_path": "data\\crops\\000000105179_d083e4be9d_person_001.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "eb46e1b7-1529-524a-b288-41408b7061f5",
+     "crop_path": "data\\crops\\000000002686_00a362f2e4_person_001.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "13232c97-596e-523f-93e7-031f41581e18",
+     "crop_path": "data\\crops\\000000368775_f1d6e28525_person_001.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q02",
+   "text": "흰색 셔츠를 입은 사람",
+   "query_en": "The one in the white shirt.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "04ad82ce-93a4-5df5-b2e2-72845d69e253",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_117770_9e8a804fdd_person_002.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "76442fd5-6170-53d1-8554-502925262e92",
+     "crop_path": "data\\crops\\000000577766_402409f9b8_person_001.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "e41f0e2e-0ef5-5ded-a4ce-14a6c54f084a",
+     "crop_path": "data\\prw_crops_p25h75\\c5s2_127449_f8c48ae44e_person_005.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "e0c3a037-3a00-55c5-8363-32dd111f5f24",
+     "crop_path": "data\\crops\\000000149961_4b9c978f7b_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "ea0d6e74-75d2-50ee-b594-411dc1ce05ca",
+     "crop_path": "data\\prw_crops_p25h75\\c2s2_056157_55ace6234b_person_017.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "3afba81c-d3a3-52c1-8a1c-3b808f71da59",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_075018_4061e26ea1_person_004.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "d48f925c-e71f-5fa6-89f6-f952e76563ee",
+     "crop_path": "data\\crops\\000000554392_99576e885f_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "690a5ccf-107c-5098-9dfd-ccc746ceba4c",
+     "crop_path": "data\\prw_crops_p25h75\\c1s1_019376_87df1c14db_person_004.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "2de5065d-ee39-5c34-8191-98c96f60202c",
+     "crop_path": "data\\crops\\000000106652_1a4e5357c5_person_002.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "c2601c31-6a3c-5f6f-b5f6-7ee886e4ad84",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_094973_a1df01ff57_person_006.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "08f50d10-906f-52df-99db-8f60bad065eb",
+     "crop_path": "data\\prw_crops_p25h75\\c5s2_059477_693f9c16be_person_004.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "b21c57a8-d891-5c3d-a8fe-ea6ba33545f5",
+     "crop_path": "data\\crops\\000000485757_cc93b2f5c9_person_002.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "c3051b96-71d6-5171-8e86-8600f0d9b3e2",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_121033_f515f6f15a_person_006.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "14b83a9b-488c-5063-b388-7518cb8f7f03",
+     "crop_path": "data\\crops\\000000090778_2b8d388cdd_person_003.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "b00bceb3-377f-55cc-b271-fcd4d9111b50",
+     "crop_path": "data\\prw_crops_p25h75\\c3s2_126394_e9ecf021b8_person_013.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "86edd143-e1b0-54ef-9cbe-a46eadd8eb0b",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_072318_ed8d9fd40e_person_003.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "2e45771c-1b03-513e-a501-9d8e16712bdd",
+     "crop_path": "data\\crops\\000000475668_c85097fa0f_person_005.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "e509da3a-6d46-58f1-9962-23c72289a59e",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_096923_b7826ce22d_person_006.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "7f5f27b7-2b0c-558b-ab9c-9e654776438d",
+     "crop_path": "data\\prw_crops_p25h75\\c1s4_066936_f63b98d8ac_person_008.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "77c95a11-fbab-5f75-b14e-3aa1e5cee864",
+     "crop_path": "data\\crops\\000000259366_707b7ec69f_person_001.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q03",
+   "text": "빨간색 옷을 입은 여성",
+   "query_en": "The woman in the red.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "fb73c48e-1471-5e75-8e7b-fb56451ffa83",
+     "crop_path": "data\\prw_crops_p25h75\\c3s2_030762_ed1814b420_person_003.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "7864899c-1ff9-58b8-b39e-4bd1debe08a6",
+     "crop_path": "data\\crops\\000000206680_cb79a57588_person_001.jpg",
+     "score": 0.5157068
+    },
+    {
+     "rank": 3,
+     "point_id": "dd96d1f1-3957-5f61-8caf-4849ac9dbff9",
+     "crop_path": "data\\crops\\000000083178_2b7524cb33_person_004.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "778ba5c5-4d35-518f-a5b6-b89c571033cc",
+     "crop_path": "data\\crops\\000000248263_55adccdbf3_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "87a4b37f-c3e7-549d-9bf1-45263d2684b3",
+     "crop_path": "data\\crops\\000000418315_a45470b5b3_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "fd48ddc1-f957-5f8b-ab46-4001a73da086",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_007793_a503886498_person_005.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "333b50a1-5e0f-5df7-9799-1ae90ef4b17d",
+     "crop_path": "data\\crops\\000000341402_a00b9f419a_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "9642cbf7-71a8-57ee-8353-2639a7d5bbbc",
+     "crop_path": "data\\prw_crops_p25h75\\c3s2_012462_bddd080945_person_007.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "028c7e40-3de1-5d23-a932-3d50ba7c9c36",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_092548_204ec744e9_person_005.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "304a6d88-48b6-5c93-aeea-c1346f59710a",
+     "crop_path": "data\\crops\\000000158443_b2157cdb52_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "2c689d21-ea7e-54b4-9b62-b70e37d5afab",
+     "crop_path": "data\\prw_crops_p25h75\\c3s2_030112_48a9f0f73f_person_003.jpg",
+     "score": 0.1880985
+    },
+    {
+     "rank": 12,
+     "point_id": "187352b6-bd08-58d7-9198-f33f4739742f",
+     "crop_path": "data\\crops\\000000568492_acfe26026d_person_002.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "7aed1ce3-d0f5-5879-8d9d-0269c63d6ea1",
+     "crop_path": "data\\prw_crops_p25h75\\c3s2_030812_64820cc2a2_person_004.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "3bd56a64-af7c-5917-b02a-17f35e939de0",
+     "crop_path": "data\\crops\\000000393442_17978e7c1a_person_004.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "57b3923b-5589-576b-8b91-5cc2dd0d9ebe",
+     "crop_path": "data\\prw_crops_p25h75\\c5s2_031155_50ff635a60_person_004.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "f224596a-a993-52a8-b241-b933a1f2cba7",
+     "crop_path": "data\\crops\\000000525232_5c8da7469d_person_003.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "3acb50b1-169a-5a92-b591-bd056af4e60b",
+     "crop_path": "data\\crops\\000000006424_7ef5618f63_person_001.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "b6e2394b-eb6f-54ae-811e-7f383504f1b1",
+     "crop_path": "data\\crops\\000000289329_83ce8ad01c_person_003.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "f80eaa92-950f-5123-b248-ee93103ec95a",
+     "crop_path": "data\\prw_crops_p25h75\\c2s2_009712_60b570eff8_person_002.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "e5a05c61-6e3e-5a81-bcab-6c84d9b0dba8",
+     "crop_path": "data\\crops\\000000374430_60c31373e5_person_003.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q04",
+   "text": "배낭을 멘 사람",
+   "query_en": "Someone with backpacks.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "a9fe9145-2f08-55fe-8a30-c7ad4fa68d3b",
+     "crop_path": "data\\crops\\000000020172_aa9f8d71b4_person_004.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "c7cc745d-1cc6-5790-b625-90a62047ba04",
+     "crop_path": "data\\crops\\000000513145_6a741ca624_person_002.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "51df487e-929b-5de8-8c9c-b53599a0e1c6",
+     "crop_path": "data\\prw_crops_p25h75\\c2s2_126027_e82325687d_person_019.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "6890f85e-3db8-5b6a-96c3-9a96b21b000d",
+     "crop_path": "data\\crops\\000000206435_281dde50b8_person_003.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "35e17ea3-d52a-5b2f-af7f-b42e9298a09c",
+     "crop_path": "data\\prw_crops_p25h75\\c5s2_125624_d3c8a17eba_person_010.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "7082387c-8906-5213-aeab-baec3091cda0",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_094873_1ce1e18873_person_004.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "13e25d5c-1325-5d6f-adbe-ebf56fe2ea6c",
+     "crop_path": "data\\crops\\000000105589_d5d73e74cc_person_002.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "2a76abb2-2e46-5ae1-9f9f-fdfc7b620a26",
+     "crop_path": "data\\crops\\000000029153_8ea9c87ed1_person_013.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "0b0139a8-ec00-53ff-9fc1-5c311bd294ba",
+     "crop_path": "data\\crops\\000000066292_08f51ccd96_person_002.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "3862fb88-1d6e-5920-aadf-190ce3fc596f",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_125083_b80324ca40_person_005.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "7a2ae17e-5809-51eb-ac09-6b861bbcb47c",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_125583_ff8bd8ae17_person_008.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "0da25b5a-9823-56fe-bc9a-ce91a546ba73",
+     "crop_path": "data\\crops\\000000378611_469b8ade06_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "1d4d7f5c-cb31-51f3-809c-7e8f8049c0ae",
+     "crop_path": "data\\crops\\000000416159_6eeeef34d3_person_003.jpg",
+     "score": 0.16195858
+    },
+    {
+     "rank": 14,
+     "point_id": "11be8796-31ae-576d-8dc0-b1e74e7de4b8",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_125708_95738fb847_person_005.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 15,
+     "point_id": "147a7c98-37b7-5666-a363-6c8b1118e938",
+     "crop_path": "data\\crops\\000000562632_1c5a70f2b8_person_002.jpg",
+     "score": 0.15757576
+    },
+    {
+     "rank": 16,
+     "point_id": "b6348437-599b-5a09-8e60-625265e264d7",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_052893_4861c7b4d9_person_003.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 17,
+     "point_id": "cd31c042-e5b7-5348-8a0e-fc08da77cf59",
+     "crop_path": "data\\crops\\000000236111_03a9404d12_person_004.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 18,
+     "point_id": "88dcf3aa-0f2e-557c-bc29-19714ad44967",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_125483_0b6d5ff757_person_006.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 19,
+     "point_id": "0d0d3708-7665-5820-9737-02d2f7d181d4",
+     "crop_path": "data\\crops\\000000429456_f7fe99a774_person_011.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 20,
+     "point_id": "f00ddb26-9f0a-5ca1-9f76-021472ac69f5",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_125858_498ed150d8_person_004.jpg",
+     "score": 0.11999999
+    }
+   ]
+  },
+  {
+   "query_id": "q05",
+   "text": "모자를 쓴 남성",
+   "query_en": "Men in hats.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "987bf8d4-d0ea-5d91-855a-1512e1d6bd21",
+     "crop_path": "data\\crops\\000000297617_e44353cdaf_person_002.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "9e95314a-3674-5fd0-a8ce-721e39770361",
+     "crop_path": "data\\crops\\000000209232_0909afbfae_person_001.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "8dd3ffdc-0c13-5000-83a8-1b9b555ed858",
+     "crop_path": "data\\crops\\000000256290_db552a7dd1_person_004.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "cd87b8ec-f40b-594b-8ddc-753758c20c84",
+     "crop_path": "data\\crops\\000000208450_5e427d0e37_person_003.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "bad68dbc-5a3e-5901-9f29-e22878fff50c",
+     "crop_path": "data\\crops\\000000014160_64379ed1ae_person_003.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "21a2fa30-9061-5bff-9b00-285cc6e2dce1",
+     "crop_path": "data\\crops\\000000444627_20de6e6833_person_001.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "d592c6e6-eebc-58aa-9033-f3464de75fd0",
+     "crop_path": "data\\crops\\000000354843_ab02ec6cc8_person_002.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "b7670bac-dc5f-58bf-8af6-d3bd60594b65",
+     "crop_path": "data\\crops\\000000073182_3119fe8f4d_person_003.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "88c30a43-f5bc-5099-8dbf-2bb6c8499727",
+     "crop_path": "data\\crops\\000000256290_db552a7dd1_person_003.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "c6c20a2b-632e-5d09-b4bc-7096121257aa",
+     "crop_path": "data\\crops\\000000106344_da676b1312_person_006.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "a94ecae0-053f-5063-b43b-cf85fc971894",
+     "crop_path": "data\\crops\\000000431917_141cb3b051_person_006.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "8cb0b093-d658-5769-acf2-33a17de281d9",
+     "crop_path": "data\\crops\\000000226472_b4e3205612_person_005.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "5839f0e7-4cfa-5c0a-8dd3-7937b751dd18",
+     "crop_path": "data\\crops\\000000131127_7a131aa3f6_person_004.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "0ea61a65-8183-5b05-a49d-ee280e756ff8",
+     "crop_path": "data\\crops\\000000097722_3e71ad1a39_person_002.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "e7840abe-2082-56e6-ae0a-9fa4066e35af",
+     "crop_path": "data\\crops\\000000230769_ea04186425_person_002.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "1d3bb36b-f310-5f03-9140-563c469a1e2d",
+     "crop_path": "data\\crops\\000000117916_3c86ed755b_person_008.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "05a5b485-91de-5565-9a7f-86bfb12a6db1",
+     "crop_path": "data\\crops\\000000297981_9a083d15c1_person_002.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "d233d81e-0f0d-5a0b-a2fc-7f64aac9cc3c",
+     "crop_path": "data\\crops\\000000145898_5fc2e9aa39_person_001.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "bcf2c8c6-c9cf-5b91-ade3-9b4212f24118",
+     "crop_path": "data\\prw_crops_p25h75\\c4s2_003717_b5458381ca_person_005.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "3fe052bd-ea2f-55c1-96d6-9684d985609e",
+     "crop_path": "data\\crops\\000000272588_dc1dfb4382_person_003.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q06",
+   "text": "청바지에 흰 운동화를 신은 사람",
+   "query_en": "The one with the white shoes on his jeans.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "a24a7249-9d23-5639-8a19-ddfd7ed1c3a0",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_026068_a27ecac604_person_001.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "e3767ccf-ba83-5294-8e83-5a85930c17d6",
+     "crop_path": "data\\crops\\000000495808_4f4d961d09_person_001.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "daaa84be-0562-5615-a2eb-c891c0c24ffe",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_026018_ba624eaf17_person_001.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "0b15ed23-1d2a-503e-86a7-e20a2f6244ca",
+     "crop_path": "data\\crops\\000000156608_c561f3ef72_person_003.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "ce5d3433-d118-57d7-a000-938847760cc8",
+     "crop_path": "data\\image_crops\\000000264968_970458f94b_person_002.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "a345b544-2e83-5b13-ad60-b08de4cdd91b",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_059843_e4605e0299_person_001.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "5e45aa7f-92da-5a7e-a80e-880ffdc52879",
+     "crop_path": "data\\image_crops\\000000257084_e46a067f54_person_003.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "18b82929-95dd-5bd8-a7c4-b0023d516279",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_054493_90c8a01e5c_person_001.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "994b0f33-bf24-518e-bcf4-c0ff4434f081",
+     "crop_path": "data\\prw_crops_p25h75\\c5s2_041155_ecd1ab31da_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "2c4d42b2-9390-545a-b195-2f4514c893b5",
+     "crop_path": "data\\crops\\000000066345_43cb58ce65_person_002.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "49d41cd0-4e0e-55e4-98a6-6f70f7c16571",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_093323_51767c35a7_person_002.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "fbe2193f-c30f-5bb9-a166-499f43130676",
+     "crop_path": "data\\crops\\000000195391_110e2a5652_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "6f1666c8-62fa-5afe-b34a-322eeb276d13",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_043526_e8588850c6_person_010.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "132e733f-8748-568c-bd75-934969fe9635",
+     "crop_path": "data\\crops\\000000540581_d2d815b78a_person_002.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "e9acc2c5-8bae-55f8-afee-70e7f0a125ec",
+     "crop_path": "data\\prw_crops_p25h75\\c4s4_030460_46426ca621_person_001.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "4772fb41-4384-5ec7-889a-a68b3743c9c4",
+     "crop_path": "data\\crops\\000000270333_b5ac524801_person_003.jpg",
+     "score": 0.13916256
+    },
+    {
+     "rank": 17,
+     "point_id": "5da85c91-1c2b-51ca-a2d3-bcf1f6094294",
+     "crop_path": "data\\prw_crops_p25h75\\c3s2_040537_58a42c8c95_person_001.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 18,
+     "point_id": "edd3d1c1-1372-5c65-a14e-9e497e0dafa5",
+     "crop_path": "data\\crops\\000000477988_8ad7fc4730_person_001.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 19,
+     "point_id": "d1df4623-e48c-5f45-9f72-538bc60071cd",
+     "crop_path": "data\\prw_crops_p25h75\\c6s1_045926_2a654b955b_person_001.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 20,
+     "point_id": "70fa5253-d8e5-55b4-ab78-918eee51c28d",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_050443_d465b627c5_person_002.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q07",
+   "text": "긴 머리를 한 여성",
+   "query_en": "A woman with long hair.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "64a4ff83-484d-5cf4-92f3-42458e0b6f55",
+     "crop_path": "data\\crops\\000000154590_6705df48bb_person_010.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "7c8b1872-3614-5302-bb1d-ac10ee71d501",
+     "crop_path": "data\\crops\\000000538163_20ca2e83cd_person_001.jpg",
+     "score": 0.51960784
+    },
+    {
+     "rank": 3,
+     "point_id": "858c85fb-904d-573f-a8c8-b52ddcfea537",
+     "crop_path": "data\\crops\\000000418315_a45470b5b3_person_014.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "56e80c46-ce9c-596f-8475-b536bfb6ac48",
+     "crop_path": "data\\crops\\000000282067_2e304bbd8e_person_008.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "6cb59f6b-780b-51a1-b3c9-85eb33117085",
+     "crop_path": "data\\crops\\000000105470_2dc18077f7_person_003.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "3fc7672b-fc75-574c-a933-128199a7d5e3",
+     "crop_path": "data\\crops\\000000254930_3fda61b338_person_003.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "c4a8cdaf-87bc-5bbb-a31c-a89524539e2e",
+     "crop_path": "data\\image_crops\\000000397354_b60223e9d9_person_002.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "cc3002fa-cd1e-502a-bf3d-79a165406a0f",
+     "crop_path": "data\\crops\\000000476731_b4b3427f23_person_003.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "3344bfa6-3a3a-5633-bdde-f8ffc5b67f56",
+     "crop_path": "data\\crops\\000000414289_f8079a7933_person_005.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "330bf2dd-cd02-50fa-9ffd-1616c54d7c9f",
+     "crop_path": "data\\crops\\000000279030_7b8a0ff58d_person_003.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "f0647467-6f7a-565d-afd3-b3e54e53a852",
+     "crop_path": "data\\crops\\000000003366_d7c961beac_person_006.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "c5aed2fd-8627-525d-a9b8-a98883432ba8",
+     "crop_path": "data\\crops\\000000111759_b1b1624bc7_person_003.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "604d2ec4-2fd3-503b-8aaa-c19a1b4bb718",
+     "crop_path": "data\\crops\\000000468602_db7bfbc2d7_person_002.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "45b153c6-cf1d-58dc-9680-23849ab82175",
+     "crop_path": "data\\crops\\000000255573_58d15c8b2b_person_001.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "9154c453-3056-5137-bc5f-aa32b6d44047",
+     "crop_path": "data\\crops\\000000385522_4471e292a8_person_007.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "d854c2e2-4007-551e-b84c-d3994cf6452f",
+     "crop_path": "data\\crops\\000000064016_25b5db92cb_person_002.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "b0d2f3b7-3b64-5f34-bc54-ade5dff75a56",
+     "crop_path": "data\\crops\\000000200939_f380ea02c3_person_002.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "55878111-4c83-58eb-a6b5-bde1b066e3d1",
+     "crop_path": "data\\crops\\000000215569_6285d8e690_person_002.jpg",
+     "score": 0.12417582
+    },
+    {
+     "rank": 19,
+     "point_id": "6a09196c-4e0d-572c-ae6a-4694c317b3df",
+     "crop_path": "data\\crops\\000000429033_a49e596cc7_person_007.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 20,
+     "point_id": "df73fdaf-5598-5c5a-bddb-9c679dbc1dda",
+     "crop_path": "data\\crops\\000000056006_9617f72485_person_005.jpg",
+     "score": 0.11655012
+    }
+   ]
+  },
+  {
+   "query_id": "q08",
+   "text": "안경을 쓴 남성",
+   "query_en": "Men in glasses.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "2543299e-be99-50a2-9af5-7bc24fd4b002",
+     "crop_path": "data\\crops\\000000509864_70b0e37da7_person_006.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "c7cd6b36-7530-50e1-a589-892f64bfd591",
+     "crop_path": "data\\crops\\000000118124_a74e065115_person_001.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "382d8bc0-76d5-51f8-b36c-39919da42e80",
+     "crop_path": "data\\crops\\000000332003_d4687a86f8_person_001.jpg",
+     "score": 0.49999997
+    },
+    {
+     "rank": 4,
+     "point_id": "364efb25-aa23-522c-9b86-7e528f218363",
+     "crop_path": "data\\crops\\000000405973_11d3b6f58c_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "3ed5c174-150f-5fa1-afa3-c52301019ad1",
+     "crop_path": "data\\crops\\000000455666_5225b74fb7_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "f2ab8d6d-1c54-5eba-8ddd-e0ced7cbe7a8",
+     "crop_path": "data\\crops\\000000150435_424298b493_person_004.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "3895ec22-ee7a-58ae-b3d5-0ea5a0343d2e",
+     "crop_path": "data\\image_crops\\000000133343_0d70c88136_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "c94304e0-910d-52e2-bc33-e77d5396d6d8",
+     "crop_path": "data\\crops\\000000409771_b48c4ba770_person_009.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "5eb02b20-3511-5be1-a115-e26bbab07e3f",
+     "crop_path": "data\\crops\\000000298443_efcab1930b_person_010.jpg",
+     "score": 0.20980392
+    },
+    {
+     "rank": 10,
+     "point_id": "258dd4c1-37df-5e31-8776-83336fde5098",
+     "crop_path": "data\\crops\\000000266131_73d72c5b08_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "8005ba19-28bb-5aad-9c5a-f6decbb82829",
+     "crop_path": "data\\crops\\000000426011_e2a726815f_person_005.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 12,
+     "point_id": "833c6d8a-533a-504a-942f-342f31c97742",
+     "crop_path": "data\\crops\\000000351590_82d973c894_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "cd6bab8e-701c-5b64-bfa5-e85f08635260",
+     "crop_path": "data\\crops\\000000482187_8993a7ff94_person_004.jpg",
+     "score": 0.16103896
+    },
+    {
+     "rank": 14,
+     "point_id": "03562801-c35d-55a9-a624-33a9b426ce75",
+     "crop_path": "data\\crops\\000000001436_e5d1c96437_person_001.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 15,
+     "point_id": "135d2cdd-198b-54f3-b44b-b6d1527f7007",
+     "crop_path": "data\\crops\\000000510651_5da4ca7a6d_person_008.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "ec1a7351-116a-5d20-a70a-06f722f810e9",
+     "crop_path": "data\\crops\\000000222564_b072a6b8a1_person_002.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "e4fc7336-72ef-57a8-a689-b850d44012e3",
+     "crop_path": "data\\crops\\000000180696_535406c09e_person_001.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "0ecf6582-d6c1-5f32-8b3d-7ccccd03c3d2",
+     "crop_path": "data\\crops\\000000351235_5b41e6e6fc_person_005.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "191cc6c7-afc4-5494-ba63-9f3383f2f17f",
+     "crop_path": "data\\crops\\000000099416_fefb069cca_person_001.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "aa46bbcf-0390-50d3-8c5f-f34e7e959b39",
+     "crop_path": "data\\crops\\000000088653_e93ff668db_person_001.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q09",
+   "text": "정장을 입은 남성",
+   "query_en": "A man in a suit.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "5def0f91-eaf8-5a02-a473-ec69af0c56ba",
+     "crop_path": "data\\crops\\000000269873_10e5279c36_person_008.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "83ac42f3-0c92-5205-b725-579ab4adac3f",
+     "crop_path": "data\\crops\\000000392684_0a551e7587_person_003.jpg",
+     "score": 0.527027
+    },
+    {
+     "rank": 3,
+     "point_id": "49072b6f-bf24-52f5-9ff3-abd8f03b5d31",
+     "crop_path": "data\\crops\\000000266383_4ffd804355_person_001.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "874cee85-afd2-56c6-83e6-8acc3b5c83cd",
+     "crop_path": "data\\crops\\000000105026_8c5a1ea410_person_002.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "b294e4a3-6bd3-5369-9815-9099a9cce7e3",
+     "crop_path": "data\\crops\\000000001149_ae9866aa1f_person_011.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "927d9837-3d43-52a0-88ea-997d68d5e8e5",
+     "crop_path": "data\\crops\\000000143458_4cc63befaa_person_005.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "6f4e8191-b3e2-5ab4-91f2-ffa09d6b7c94",
+     "crop_path": "data\\crops\\000000034570_7ee551a88d_person_008.jpg",
+     "score": 0.25980392
+    },
+    {
+     "rank": 8,
+     "point_id": "839ae4ad-a789-5773-ba56-76f43a0c6ae4",
+     "crop_path": "data\\crops\\000000038670_7c63e706d6_person_003.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 9,
+     "point_id": "9dbbe7e0-d959-5546-8166-8333dfed841e",
+     "crop_path": "data\\crops\\000000007297_9db6b0a067_person_001.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 10,
+     "point_id": "21a3fd33-2fb2-5970-851b-ce824ec6c7c6",
+     "crop_path": "data\\crops\\000000353942_ef0e55829d_person_003.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "1bf286cd-83c0-5970-b8a4-1a5c41fdacbd",
+     "crop_path": "data\\crops\\000000560009_3c68f03ca6_person_006.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 12,
+     "point_id": "fe894f80-f00d-521d-8d32-5b7835b5ec99",
+     "crop_path": "data\\crops\\000000143458_4cc63befaa_person_006.jpg",
+     "score": 0.17198336
+    },
+    {
+     "rank": 13,
+     "point_id": "372580af-3712-5ed8-ade0-965df182d3bc",
+     "crop_path": "data\\crops\\000000194879_c939072444_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 14,
+     "point_id": "8c39cecb-624f-58f7-958d-e4fa24251dde",
+     "crop_path": "data\\crops\\000000025987_fa06087f20_person_001.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 15,
+     "point_id": "47a32d58-cc25-516f-b21e-622007a004ad",
+     "crop_path": "data\\crops\\000000520810_1fd4b4302b_person_004.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "6eee80fe-5ba5-5e46-bd54-998ea97789ff",
+     "crop_path": "data\\crops\\000000204767_28d2658d99_person_002.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "be7cb198-64a0-5e74-8690-f98449880a6c",
+     "crop_path": "data\\crops\\000000381529_8da6867d11_person_001.jpg",
+     "score": 0.125817
+    },
+    {
+     "rank": 18,
+     "point_id": "7ab56903-be7c-54f8-9e1a-2517c3633a03",
+     "crop_path": "data\\crops\\000000352654_64ef6a1502_person_004.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 19,
+     "point_id": "ccd6a629-47dc-5ae6-81b1-4e40191deadb",
+     "crop_path": "data\\crops\\000000227607_0e9a49d233_person_002.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 20,
+     "point_id": "e4097438-542b-5a01-992c-93f6ca053f63",
+     "crop_path": "data\\crops\\000000099724_cf232e0a14_person_002.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q10",
+   "text": "손에 가방을 든 여성",
+   "query_en": "A woman with a bag in her hand.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "09c7f17e-bc24-5538-9e59-0aab8919b884",
+     "crop_path": "data\\crops\\000000186315_6b1bafd2ed_person_001.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "127d3a1d-4f25-5135-803a-42c330d4654b",
+     "crop_path": "data\\crops\\000000036469_5a9a1003d1_person_002.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "5a402ff4-5cb1-577f-acb3-95d1548ca2db",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_014518_a21c9470e9_person_002.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "9bca1a51-fe13-5c2c-a102-e09cf9d6b33a",
+     "crop_path": "data\\crops\\000000047654_cba8a31369_person_005.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "91ad59e2-e158-526c-baaa-c382c776a31f",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_117370_84c25a783c_person_005.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "78a7f974-4a32-53dd-91f8-d464dbc0e3ba",
+     "crop_path": "data\\prw_crops_p25h75\\c6s1_060651_0084eea136_person_001.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "22da5a37-c6ca-526d-882b-46d22b92617a",
+     "crop_path": "data\\crops\\000000576896_1520ed4dd3_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "095d1e58-9d97-5109-bed7-5195981d06ed",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_109218_6dbd94c998_person_002.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "e112f7a6-a00d-5f54-8cbd-e66469d6bf18",
+     "crop_path": "data\\crops\\000000295448_df34b2b58c_person_005.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "f2fe71aa-6585-5049-9544-2f3b6d2ba1fe",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_014468_cd966def39_person_002.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "5dd1a5f2-3390-5d04-8e70-dfd57e0f024e",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_112768_c087270ff1_person_006.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "e9f7d73c-3860-5278-9cf0-7883c5fefc84",
+     "crop_path": "data\\crops\\000000562517_cf98e6f40c_person_005.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "b003a911-d1a4-5228-bf30-de83f68b45ec",
+     "crop_path": "data\\prw_crops_p25h75\\c5s2_084427_3b4c2190a6_person_002.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "ee14bd69-7bb5-5e57-bf17-2199a1ba1641",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_014493_7dc2088f06_person_002.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "d365c68a-64fc-5073-a277-665c30c2dcf7",
+     "crop_path": "data\\crops\\000000415388_949f3f722d_person_005.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "74b6e1f8-0954-5478-b52b-3a1d7d85a82b",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_074968_c195b74d08_person_004.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "2ad78385-dc5a-569f-bca2-fecaaaed1305",
+     "crop_path": "data\\crops\\000000118769_7c8f05ff18_person_002.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "9fce98d8-01a4-5dff-9dd9-6d440f00795e",
+     "crop_path": "data\\prw_crops_p25h75\\c3s2_078853_046fd78afa_person_002.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "5a6a3b30-b238-5336-82b7-51ade4843df5",
+     "crop_path": "data\\prw_crops_p25h75\\c1s1_047076_cb4e8e76a7_person_004.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "4582c346-5b18-500a-bd47-2cb6899b7f2b",
+     "crop_path": "data\\crops\\000000580277_24f52ff620_person_002.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q11",
+   "text": "반바지를 입은 사람",
+   "query_en": "He's wearing shorts.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "7e57fd73-e73c-5d98-897d-1cea77433409",
+     "crop_path": "data\\crops\\000000350289_4070d17504_person_002.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "2211f8d5-7320-59d0-9ae1-e443fca81d0c",
+     "crop_path": "data\\crops\\000000121174_106e338f1a_person_004.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "12fa2925-c21d-509d-b01e-7615fa24e27e",
+     "crop_path": "data\\image_crops\\000000105264_e1e75f3d93_person_002.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "678ee14b-bf95-5bdd-9281-fc20e9287d5a",
+     "crop_path": "data\\crops\\000000404233_3647dfa5e6_person_003.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "47ad7950-5b09-5011-b709-f0b9cdbd48c1",
+     "crop_path": "data\\crops\\000000441539_b9866e98ec_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "2a69c5ca-1cb6-55d2-aa9b-5c028620abc6",
+     "crop_path": "data\\crops\\000000217827_edcc997bc8_person_007.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "9b821015-3c17-50f3-a7f5-e32a54abd377",
+     "crop_path": "data\\crops\\000000363522_3817ac2930_person_005.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "3a3e6db0-b3d1-5065-b7ad-44eedbf1aa1e",
+     "crop_path": "data\\crops\\000000158908_eebbd5e506_person_001.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "6832986b-7cd5-5490-86f1-7e2d52210331",
+     "crop_path": "data\\crops\\000000314904_b2789ec16f_person_005.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "c83b715b-3cf9-58c0-9935-68628b5bff0b",
+     "crop_path": "data\\crops\\000000306549_c6e5f4b3e6_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "cc3dd6dc-da6b-527c-985b-d44ff164b0b1",
+     "crop_path": "data\\crops\\000000497768_ac67ecaa29_person_002.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "36a102bd-f163-56e6-876b-925490f79c9d",
+     "crop_path": "data\\crops\\000000292554_ef1ece6a48_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "3d17742a-3cfe-5e45-b034-a300f783cd2f",
+     "crop_path": "data\\image_crops\\000000576654_0e4d0eb545_person_001.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "a6b7ec04-06be-523b-bffc-15f27d36d480",
+     "crop_path": "data\\crops\\000000252736_803b4dc11a_person_001.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "d261658a-38be-53fc-9c5c-46d9c46fbc57",
+     "crop_path": "data\\crops\\000000164780_b9da08d7d0_person_001.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "2a001949-9182-52da-ba95-06a28903add3",
+     "crop_path": "data\\crops\\000000339674_7ecf69ced3_person_002.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "b1765cd3-65a9-59bf-856b-35c962ed8b71",
+     "crop_path": "data\\crops\\000000460458_eb40cf81f4_person_002.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "636b2dcd-328f-58b4-ba54-b3f4a143ba16",
+     "crop_path": "data\\crops\\000000328189_3e0f8fb341_person_001.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "45b0fb32-5aab-5b2a-92bf-84b480166427",
+     "crop_path": "data\\crops\\000000056868_9b9aa9bb01_person_001.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "f5983e56-3f8f-5940-bdf6-1fa6a72d53d2",
+     "crop_path": "data\\crops\\000000486906_11c5e40dbe_person_003.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q12",
+   "text": "노란색 상의를 입은 사람",
+   "query_en": "He's got a yellow costume.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "37bb5ebb-4eaa-50ed-948b-e351d6fadd7a",
+     "crop_path": "data\\crops\\000000026448_131537b55b_person_002.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "b0fae575-c6f6-54de-a836-100f0b59f141",
+     "crop_path": "data\\crops\\000000566355_8d76fa5255_person_001.jpg",
+     "score": 0.52255636
+    },
+    {
+     "rank": 3,
+     "point_id": "0e3be779-a10f-510c-a1c2-d91a3f793941",
+     "crop_path": "data\\crops\\000000066191_db1a94b1d3_person_003.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "69228043-d33d-5dda-95f6-8af0c3638cf1",
+     "crop_path": "data\\prw_crops_p25h75\\c1s4_043081_ddb0a86714_person_009.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "f19eec9a-e43a-573d-b5a9-dc16244e9234",
+     "crop_path": "data\\crops\\000000112480_1530525223_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "47a27179-faef-59d9-863f-a91c192a1037",
+     "crop_path": "data\\crops\\000000115251_792bf9914b_person_003.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "86699340-ec40-5a26-8d12-d48b33949afc",
+     "crop_path": "data\\crops\\000000169802_bfd9a06376_person_010.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "a15d0017-19bb-5431-9d3b-446cb395d27d",
+     "crop_path": "data\\image_crops\\000000435205_318707570c_person_001.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "1ea0ac88-c4da-562a-93a4-085674148ab3",
+     "crop_path": "data\\crops\\000000417720_42b0d99b7f_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "14cc332f-1e20-58e9-8f53-3693de8248d7",
+     "crop_path": "data\\crops\\000000183401_fdf08f17ed_person_005.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "899a68d3-cd98-5876-a1bc-308ba06b7cac",
+     "crop_path": "data\\image_crops\\000000574520_62bc5025ef_person_001.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "08b3316f-22af-5b02-b9b5-c1349e0360cc",
+     "crop_path": "data\\image_crops\\000000283785_af0165222b_person_002.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "db654fe4-1b71-5776-a35c-f05f3fd5458b",
+     "crop_path": "data\\crops\\000000500543_392994f268_person_003.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "7fa72b12-f3cc-53d6-94f6-ff96a30cfd7c",
+     "crop_path": "data\\crops\\000000092301_cd86531ef9_person_003.jpg",
+     "score": 0.14751287
+    },
+    {
+     "rank": 15,
+     "point_id": "1a8ce6ee-77c8-5b7c-ac11-1b9add8b50ef",
+     "crop_path": "data\\crops\\000000500543_392994f268_person_004.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "5200791b-4400-50e0-be7e-dbe38cb06764",
+     "crop_path": "data\\crops\\000000092301_cd86531ef9_person_001.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 17,
+     "point_id": "0df87e65-ca4d-5482-9e69-f9f3ec49029c",
+     "crop_path": "data\\crops\\000000294124_b1ba385a93_person_009.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 18,
+     "point_id": "33378ced-de50-5f62-a6b4-40fbd28354ff",
+     "crop_path": "data\\crops\\000000095677_ac97e00d31_person_001.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 19,
+     "point_id": "8cd89031-5efd-561e-a4f4-9c16f0ab35c3",
+     "crop_path": "data\\crops\\000000041745_a2e852a6f2_person_006.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 20,
+     "point_id": "6f52a0ea-033b-511e-ab1e-5103e6d4b728",
+     "crop_path": "data\\crops\\000000245530_35918e829f_person_001.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q13",
+   "text": "파란색 재킷을 입은 남성",
+   "query_en": "The man in the blue jacket.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "d361ac01-ec8c-5c55-8a07-d1fddcb71a7c",
+     "crop_path": "data\\prw_crops_p25h75\\c2s1_054151_8c99a9eb64_person_018.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "31db5df4-9aaf-5541-8159-d23bd1a136b1",
+     "crop_path": "data\\crops\\000000497125_cdaa2412c1_person_002.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "e1733b3a-9212-5559-ab18-495631b82c97",
+     "crop_path": "data\\prw_crops_p25h75\\c4s3_035754_a3eab97faf_person_008.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "3401cde2-4915-578a-a69c-3e3274a5435a",
+     "crop_path": "data\\crops\\000000169576_858e18ef51_person_014.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "56e1f8d5-bdbf-55e9-97c0-17d0e7255b88",
+     "crop_path": "data\\crops\\000000249251_7e39472313_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "f1e63e75-d54c-5cdc-949b-cbf5281bef3b",
+     "crop_path": "data\\crops\\000000137609_f6f24da08f_person_003.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "4b2ac8a3-6833-5d0c-bfa9-e484ce8164d2",
+     "crop_path": "data\\crops\\000000196797_f37fe0d65d_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "f039b29e-83ad-5215-bd19-b7377b818729",
+     "crop_path": "data\\crops\\000000534976_a63b792dce_person_001.jpg",
+     "score": 0.24313727
+    },
+    {
+     "rank": 9,
+     "point_id": "dd037dd6-0de0-54aa-b53b-b6b608f28950",
+     "crop_path": "data\\crops\\000000245425_e03a5f80ee_person_002.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 10,
+     "point_id": "eedf507d-9b5a-52cc-b7bc-942a5c386912",
+     "crop_path": "data\\crops\\000000450052_25046d6b8d_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "f8dd4799-8d24-5e6c-b4e2-a6326a10144a",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_024676_597f2518cd_person_007.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 12,
+     "point_id": "961f13a4-8ad1-5095-be4f-fcdd30e5fab8",
+     "crop_path": "data\\crops\\000000192929_4bcb32a83b_person_001.jpg",
+     "score": 0.19817072
+    },
+    {
+     "rank": 13,
+     "point_id": "23cd1a7d-96be-555f-ba86-08899e5035d3",
+     "crop_path": "data\\crops\\000000304173_73f3732e97_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 14,
+     "point_id": "55b1d7b7-aa51-5948-9ee7-b8fedeb05cc9",
+     "crop_path": "data\\crops\\000000262531_e9ca545d83_person_001.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 15,
+     "point_id": "8d6f2c83-a203-56a7-9809-ed9c3776ba01",
+     "crop_path": "data\\crops\\000000169576_858e18ef51_person_004.jpg",
+     "score": 0.14347826
+    },
+    {
+     "rank": 16,
+     "point_id": "b6160824-bd37-5032-8c93-c8cf0d1a8282",
+     "crop_path": "data\\crops\\000000055849_eddf5cc93e_person_002.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 17,
+     "point_id": "f06e1b78-270d-571d-be1d-d92a4c681259",
+     "crop_path": "data\\crops\\000000015110_0d9376c743_person_003.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 18,
+     "point_id": "9741564c-5b92-5569-9ab6-3310cbd7bb14",
+     "crop_path": "data\\crops\\000000567224_b668a71cd2_person_013.jpg",
+     "score": 0.13226745
+    },
+    {
+     "rank": 19,
+     "point_id": "40701127-6e39-50d5-b7f2-b4945c82e33b",
+     "crop_path": "data\\crops\\000000500622_c288721e34_person_004.jpg",
+     "score": 0.13095239
+    },
+    {
+     "rank": 20,
+     "point_id": "78f448fd-288e-5e0e-89dc-3e734f8be06c",
+     "crop_path": "data\\crops\\000000439926_75f2e48749_person_002.jpg",
+     "score": 0.1304348
+    }
+   ]
+  },
+  {
+   "query_id": "q14",
+   "text": "어린이",
+   "query_en": "CHILDREN",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "be7397aa-2b94-56fd-951e-86e2e6e62f44",
+     "crop_path": "data\\crops\\000000372198_a55a385446_person_002.jpg",
+     "score": 0.7428571
+    },
+    {
+     "rank": 2,
+     "point_id": "a9b8170b-f808-582f-b0ea-5969a02a2767",
+     "crop_path": "data\\crops\\000000175118_b0f7f92d23_person_002.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "c4c01d7c-7782-553a-b189-2ce09ed180c1",
+     "crop_path": "data\\crops\\000000242605_a7054f755c_person_002.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "08d3dd34-cfa1-5da9-84c6-9b47af288103",
+     "crop_path": "data\\crops\\000000370162_f67dac0f09_person_005.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "8f7b60dc-387a-58fb-8a2b-eaf1001c954f",
+     "crop_path": "data\\crops\\000000510980_60a9e585ed_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "e15871ff-a117-5c7a-9062-a49856f5b4e0",
+     "crop_path": "data\\crops\\000000213532_f6fc7e9c8d_person_002.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "ffd78707-2353-581f-94fd-ec629f659e1a",
+     "crop_path": "data\\crops\\000000225562_7c2e84a3f4_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "26711496-1d42-5896-b671-6102736cb6ce",
+     "crop_path": "data\\crops\\000000102540_c2964cd81e_person_004.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "636894d4-a2f7-5774-bdea-bc0d9151d486",
+     "crop_path": "data\\image_crops\\000000276018_14ea5fcc52_person_007.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "b3d6662d-fc47-5edc-8e5a-184957874a4c",
+     "crop_path": "data\\crops\\000000230905_0b93dce751_person_002.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "4921c9d2-0ff1-5c72-a233-7c702a96ac35",
+     "crop_path": "data\\crops\\000000099658_6fbb43913c_person_001.jpg",
+     "score": 0.19035949
+    },
+    {
+     "rank": 12,
+     "point_id": "4bd93f3f-471a-5253-9140-c9fcbf430f7d",
+     "crop_path": "data\\crops\\000000249347_e5876118a2_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "6db214a8-f60f-5a43-8842-a997513be3ce",
+     "crop_path": "data\\crops\\000000188956_50adb149eb_person_002.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "d17c0d7c-a152-53ae-b852-c4a717b30b72",
+     "crop_path": "data\\crops\\000000438623_dd52afea07_person_003.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "629c3904-e4e4-5945-acec-47f57620f875",
+     "crop_path": "data\\crops\\000000427820_540dc84967_person_006.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 16,
+     "point_id": "54ab1f70-347a-5f21-804f-1ea33132b2aa",
+     "crop_path": "data\\crops\\000000579663_c60e8edf3a_person_020.jpg",
+     "score": 0.12870014
+    },
+    {
+     "rank": 17,
+     "point_id": "6a6a23b2-ddcb-5f4c-99b6-7eb700188b65",
+     "crop_path": "data\\image_crops\\000000276018_14ea5fcc52_person_005.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "e8bfc762-4b6a-592f-9e50-d314c651f9c4",
+     "crop_path": "data\\crops\\000000391361_ed5f227ca5_person_003.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "d7f4b29f-cbd2-58b6-b15e-005969c77788",
+     "crop_path": "data\\crops\\000000259853_2e0ef9726b_person_007.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "4a37ca8a-0b78-5a80-babe-85fcf4007083",
+     "crop_path": "data\\crops\\000000232894_30a574870d_person_001.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q15",
+   "text": "자전거를 탄 사람",
+   "query_en": "The guy on the bike.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "70d9c2ce-012f-5261-8812-c3bfe81aee2e",
+     "crop_path": "data\\prw_crops_p25h75\\c2s1_104621_3face35f33_person_006.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "b828f70c-ae3a-5484-a985-a49f098cfe05",
+     "crop_path": "data\\image_crops\\000000411938_0981c0e574_person_001.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "36eb2392-4da7-54a7-ace4-a0dea117528b",
+     "crop_path": "data\\prw_crops_p25h75\\c4s1_061857_09b34da01d_person_005.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "98fe8854-c1fb-5f1f-97c8-0b281ce74833",
+     "crop_path": "data\\crops\\000000504452_ae95c28894_person_002.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "7025869b-27af-5efa-8bfb-6cb22222aab7",
+     "crop_path": "data\\prw_crops_p25h75\\c4s1_025851_ab374301ce_person_003.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "d4672838-78cc-5278-815a-4e22f5041f66",
+     "crop_path": "data\\prw_crops_p25h75\\c2s2_055832_82118b2b99_person_016.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "817be68c-ae92-5af7-857a-6dfdd0fe91fc",
+     "crop_path": "data\\crops\\000000193878_a9c56600e6_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "4af055f5-354a-5daa-8316-d0f6247c143b",
+     "crop_path": "data\\prw_crops_p25h75\\c2s1_025276_03bd561406_person_005.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "fb71b29e-596d-5554-9208-19aaa62e3ea3",
+     "crop_path": "data\\crops\\000000341164_3f62f1a572_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "93a68083-9499-5856-8c6b-401609edd758",
+     "crop_path": "data\\prw_crops_p25h75\\c2s1_104596_b4b0eb909c_person_008.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "dbaae047-2be9-5838-a507-391ef539d727",
+     "crop_path": "data\\prw_crops_p25h75\\c2s1_025251_598c229c57_person_009.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "539ba839-c987-518a-a18a-7e9279f784c7",
+     "crop_path": "data\\crops\\000000252994_80949b6e72_person_003.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "309ab9f3-9ef3-5474-965a-e3667a4d6179",
+     "crop_path": "data\\prw_crops_p25h75\\c2s1_104146_4df21da425_person_007.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "34a97b93-2b0a-5eed-b439-5d671b81b485",
+     "crop_path": "data\\prw_crops_p25h75\\c2s1_001801_b5875ff94d_person_004.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "2aa96252-353f-5cca-8eab-ac719cd8d12c",
+     "crop_path": "data\\crops\\000000123555_6d0373d474_person_008.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "c02702ed-96d7-5b2f-aa56-9fe1d5177f5f",
+     "crop_path": "data\\prw_crops_p25h75\\c2s1_104171_2f9c33cfc6_person_009.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "28be59d1-1390-54ed-9e34-5df661e1433d",
+     "crop_path": "data\\crops\\000000314778_841fdec182_person_002.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "a7f6a954-0fd4-53dc-af3d-bad376de364c",
+     "crop_path": "data\\prw_crops_p25h75\\c4s1_009576_5d952a5169_person_002.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "dfebc171-d44d-5d2a-b6cd-d89702a4ca43",
+     "crop_path": "data\\crops\\000000509914_94e2960941_person_001.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "bef0891e-f6fe-5f92-b8bd-099b828a4a3c",
+     "crop_path": "data\\prw_crops_p25h75\\c2s1_104821_93fa0c165e_person_006.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q16",
+   "text": "휴대폰을 보고 있는 사람",
+   "query_en": "Someone who's looking at the phone.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "eb9bcaa3-0407-5a54-b56d-1649b05d01b4",
+     "crop_path": "data\\crops\\000000410337_c6ac671679_person_005.jpg",
+     "score": 0.6232558
+    },
+    {
+     "rank": 2,
+     "point_id": "a30b5082-1843-5178-8a95-4d7bba6fe9b1",
+     "crop_path": "data\\crops\\000000029601_7a410790c7_person_004.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "ede56f34-1a4a-5348-871e-32a51606efe9",
+     "crop_path": "data\\crops\\000000315005_ae348b02c9_person_007.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "41d3aca3-0952-5711-aed4-c70f45f2137b",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_136258_ba2618e312_person_004.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "6e0e1928-fcef-576d-875f-aaa375abcba4",
+     "crop_path": "data\\crops\\000000162283_a454e93f0f_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "db5faa55-9594-5f70-b398-8332657a32bb",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_116993_d950505006_person_007.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "3384cbb3-cb87-5c78-afd6-2761f097eff3",
+     "crop_path": "data\\crops\\000000556744_026e9a464e_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "97e27a1c-a536-51db-a907-7ffaabb31db2",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_005143_29a5c5e31d_person_003.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "c57158ee-d981-56e9-9e0d-1983f5aef39d",
+     "crop_path": "data\\crops\\000000284400_53e2e80a18_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "3a561612-64cb-5d8c-8430-8755ca4683d9",
+     "crop_path": "data\\crops\\000000173745_8a570b7558_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "88f121cb-7d1e-5bab-9d9b-39e4f54404a4",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_101418_d433ca26c8_person_007.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "453c95d8-49d5-5ce2-8b43-4471933b9933",
+     "crop_path": "data\\image_crops\\000000292488_3bea6ec0cb_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "a27e0521-31af-5502-9b14-ee9441cad26b",
+     "crop_path": "data\\crops\\000000460370_533e7f7d01_person_001.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "c30dbaff-3b6b-562b-88b1-336223e3c3ab",
+     "crop_path": "data\\crops\\000000514243_be5bea0ac5_person_003.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "b9c439a6-0798-50e1-9c00-f92c0f4f308b",
+     "crop_path": "data\\crops\\000000561013_ed54c3787e_person_008.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "2e678843-be13-5f2d-b15c-d8b0f2379789",
+     "crop_path": "data\\crops\\000000360053_c684f1a4b1_person_003.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "89568e32-d7eb-5351-86f7-e026f4c5a5b0",
+     "crop_path": "data\\crops\\000000444955_c11a1d1bfd_person_001.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "3f1332fe-ff14-546a-b167-f27b8f748c75",
+     "crop_path": "data\\crops\\000000561907_8a34289c7c_person_003.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "90a5b0c0-e213-50c0-bff0-d345d8dd135c",
+     "crop_path": "data\\crops\\000000012733_206368be0f_person_002.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "eeb03838-f90b-56fa-aee5-79095773a161",
+     "crop_path": "data\\crops\\000000535689_c88852c7f4_person_002.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q17",
+   "text": "우산을 든 사람",
+   "query_en": "Someone with an umbrella.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "f2d15bc9-ad9f-50c7-9544-d88cdbf6aff5",
+     "crop_path": "data\\crops\\000000203882_3d400444e6_person_004.jpg",
+     "score": 0.6785714
+    },
+    {
+     "rank": 2,
+     "point_id": "90ee95a5-9479-5f3e-a615-36986c0939e0",
+     "crop_path": "data\\image_crops\\000000278848_09e3e9a5cb_person_008.jpg",
+     "score": 0.6217391
+    },
+    {
+     "rank": 3,
+     "point_id": "2c50dbea-b293-5e85-b6d8-c3b779c20fbf",
+     "crop_path": "data\\crops\\000000371564_bc9d54ffe3_person_005.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 4,
+     "point_id": "859ab463-c5e5-5216-b135-eac90ab07b15",
+     "crop_path": "data\\crops\\000000305667_8b8ecbcf24_person_002.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "2cc5d7b5-5009-5ccb-b40b-b22b9f7d9184",
+     "crop_path": "data\\crops\\000000448069_47c3782917_person_002.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "f6304588-beff-52e4-af88-c155e5357753",
+     "crop_path": "data\\crops\\000000162547_215dbc6f86_person_007.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "d6214ee5-6db4-5366-b36e-e12305c4abe1",
+     "crop_path": "data\\crops\\000000531459_029855883f_person_001.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 8,
+     "point_id": "24f18b73-085d-5e71-81a9-793d960dd8ec",
+     "crop_path": "data\\crops\\000000248831_5810a362b9_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 9,
+     "point_id": "0d2cedae-c935-56eb-baed-177dc4eeee1d",
+     "crop_path": "data\\crops\\000000522173_3b178de529_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "027271b7-f1a3-52cb-a64a-f91ab231bfdf",
+     "crop_path": "data\\crops\\000000545163_8f73a3cd8e_person_008.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 11,
+     "point_id": "81241307-2d29-59b8-8918-c61f27d9d11a",
+     "crop_path": "data\\image_crops\\000000060052_9520e9c406_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 12,
+     "point_id": "f6477f0d-267b-5ea6-8c3b-5101aa761fc6",
+     "crop_path": "data\\crops\\000000032054_cfbacdba01_person_003.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 13,
+     "point_id": "7c226097-5b80-53cb-b315-94a970ff38aa",
+     "crop_path": "data\\crops\\000000282679_96f9ddd01c_person_005.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 14,
+     "point_id": "15f5f22f-8612-5f40-b214-f584ea7b8acb",
+     "crop_path": "data\\crops\\000000451767_c8c80cce9f_person_003.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "cf25a8fb-3822-5396-8964-990abd2ffc3e",
+     "crop_path": "data\\crops\\000000017945_4fed8dbdbd_person_004.jpg",
+     "score": 0.13194445
+    },
+    {
+     "rank": 16,
+     "point_id": "d12eb255-9290-56f3-825f-1fe7e149aa50",
+     "crop_path": "data\\image_crops\\000000557672_5e293a52af_person_004.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "541cccc0-7fa3-5e63-a9b9-434961e524df",
+     "crop_path": "data\\crops\\000000479361_7ababf90a0_person_003.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "db9859a6-02ab-5680-8e5a-c82ebb7ca6dd",
+     "crop_path": "data\\crops\\000000101189_1f89085034_person_006.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "85a74c20-10b4-5203-b9fc-55f4cd61ca69",
+     "crop_path": "data\\crops\\000000173149_670906f1b3_person_002.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "817cd40a-1932-5cee-83bd-e93f3edad965",
+     "crop_path": "data\\crops\\000000449302_ffb0ca076c_person_001.jpg",
+     "score": 0.11014493
+    }
+   ]
+  },
+  {
+   "query_id": "q18",
+   "text": "후드티를 입은 남성",
+   "query_en": "The man in the hoodie.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "03d3d0ee-2c9e-5f16-bfd2-db855c12cefe",
+     "crop_path": "data\\crops\\000000268927_d910803a30_person_001.jpg",
+     "score": 1.0999999
+    },
+    {
+     "rank": 2,
+     "point_id": "a70efab1-bdd8-5b76-8e98-0611db49479b",
+     "crop_path": "data\\crops\\000000137711_0372e2e643_person_001.jpg",
+     "score": 0.49999997
+    },
+    {
+     "rank": 3,
+     "point_id": "2c958865-fe19-5a1b-9d07-04691a51b434",
+     "crop_path": "data\\crops\\000000301256_1a1ed844c9_person_003.jpg",
+     "score": 0.43939394
+    },
+    {
+     "rank": 4,
+     "point_id": "0f5cbb29-ed9e-5556-b9bd-77a5c467823e",
+     "crop_path": "data\\crops\\000000412442_77d9599c74_person_001.jpg",
+     "score": 0.3899371
+    },
+    {
+     "rank": 5,
+     "point_id": "5db292a9-80cc-5a4a-970d-ccf0c8949b44",
+     "crop_path": "data\\crops\\000000072809_43c4ebc391_person_012.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "7a9a7155-79eb-57be-a60a-eb68a5b26718",
+     "crop_path": "data\\crops\\000000501625_71a2a7f1cb_person_002.jpg",
+     "score": 0.31932774
+    },
+    {
+     "rank": 7,
+     "point_id": "3132bc67-52cd-54d3-a2f5-71d91d9ad428",
+     "crop_path": "data\\crops\\000000539937_95d29862d2_person_001.jpg",
+     "score": 0.30769232
+    },
+    {
+     "rank": 8,
+     "point_id": "f4edbf5b-7748-51b6-aac7-43edb575de16",
+     "crop_path": "data\\crops\\000000154053_bc83cd2081_person_002.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 9,
+     "point_id": "84edcd77-d7bf-512b-8120-020099c6c34d",
+     "crop_path": "data\\crops\\000000396496_ac31208ab2_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "2c821fc1-7938-5b79-a4e5-aad5ed2e59f2",
+     "crop_path": "data\\crops\\000000157593_9e68358b50_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "d1747c93-1707-5209-9215-2c94cf9eaf7e",
+     "crop_path": "data\\image_crops\\000000151938_1640277335_person_004.jpg",
+     "score": 0.16029412
+    },
+    {
+     "rank": 12,
+     "point_id": "b5077a5c-5e1d-5ac9-b424-6a5e613b405d",
+     "crop_path": "data\\crops\\000000047016_4af4663106_person_003.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 13,
+     "point_id": "58f52fda-2c27-5adb-ab5b-2a2ab546d658",
+     "crop_path": "data\\crops\\000000026027_588165e71e_person_004.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 14,
+     "point_id": "06df2ef0-6641-507e-8c7d-712f3e8813df",
+     "crop_path": "data\\crops\\000000108892_4841c13f16_person_007.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 15,
+     "point_id": "8f4a0f3e-353c-5d81-be63-737603968422",
+     "crop_path": "data\\crops\\000000491426_236e25619a_person_006.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 16,
+     "point_id": "d26a1223-9c31-52f8-9307-02968254fe3d",
+     "crop_path": "data\\crops\\000000063650_be1ad891f9_person_001.jpg",
+     "score": 0.11145511
+    },
+    {
+     "rank": 17,
+     "point_id": "317e3c23-79a9-547e-a899-ce6ed7c9f6e5",
+     "crop_path": "data\\crops\\000000107233_97868af621_person_001.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 18,
+     "point_id": "65fa86b2-f9d0-59bb-bff7-7cac28616b19",
+     "crop_path": "data\\image_crops\\000000470924_b6c7ce807b_person_001.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 19,
+     "point_id": "e89be709-fc50-5d1b-b394-52cbc8a6fa7a",
+     "crop_path": "data\\crops\\000000120333_c33fe87e08_person_002.jpg",
+     "score": 0.10370371
+    },
+    {
+     "rank": 20,
+     "point_id": "214ec5b4-9a45-5e30-aede-46865905a45d",
+     "crop_path": "data\\crops\\000000137371_a974446e93_person_002.jpg",
+     "score": 0.10344827
+    }
+   ]
+  },
+  {
+   "query_id": "q19",
+   "text": "치마를 입은 여성",
+   "query_en": "A woman in a skirt.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "3799c0b6-74fc-5765-93b7-fa78616152fa",
+     "crop_path": "data\\prw_crops_p25h75\\c3s2_118769_07b5f8c890_person_012.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "aa48bc86-610b-50f3-b395-a25ffa33b094",
+     "crop_path": "data\\crops\\000000323155_bbf0b0fadc_person_001.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "1e3372df-7d69-5023-94b0-977cc7e6502e",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_011476_04bf71811f_person_005.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "8c436633-2656-5ec0-a58e-2e545bc8367b",
+     "crop_path": "data\\crops\\000000064270_b37ef324ac_person_003.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "95bc858a-7e1c-5de1-b52c-80b56f431e44",
+     "crop_path": "data\\prw_crops_p25h75\\c1s3_024126_87cd3fc1da_person_005.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "a649a727-bf80-5352-b4a5-fc85022b5a08",
+     "crop_path": "data\\prw_crops_p25h75\\c5s2_012680_8f9fc93fe5_person_004.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "1471d60c-68c5-51ef-81d2-0ddf491479cb",
+     "crop_path": "data\\crops\\000000397665_568154317f_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "8ff714d7-e7bc-5529-b3ce-c3a501639b3a",
+     "crop_path": "data\\prw_crops_p25h75\\c4s2_014742_8819d2442a_person_008.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "c32a8115-a05f-51b1-8a66-ef4baff054cb",
+     "crop_path": "data\\crops\\000000018402_e398677335_person_006.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "443ca341-1378-5809-8190-1078fae547fc",
+     "crop_path": "data\\crops\\000000489062_f9ccf4ad3f_person_003.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "a3d81b33-7ff3-59e8-ab15-b33f705812a3",
+     "crop_path": "data\\prw_crops_p25h75\\c1s4_037806_94384b431c_person_004.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "17145b24-5bca-5ced-93d3-80c37ba59691",
+     "crop_path": "data\\crops\\000000147347_4953c27011_person_002.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "da3a5026-777e-56bf-9d2b-4c3191f0b35f",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_080842_c833be4239_person_005.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "40c7553b-cf6b-55d6-a4e4-9c1e4dfded77",
+     "crop_path": "data\\prw_crops_p25h75\\c5s2_109127_42c2649648_person_010.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "9144763b-d78a-5bbb-81f9-f9a3b55e187f",
+     "crop_path": "data\\prw_crops_p25h75\\c4s4_072341_e5ba799804_person_008.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "5d98b028-745b-5ae6-9623-a15ab97dd844",
+     "crop_path": "data\\prw_crops_p25h75\\c1s4_037756_1baa5edea7_person_007.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "b51f192d-53fe-5f17-9289-ad9d2581e8a4",
+     "crop_path": "data\\crops\\000000054003_f9b0e36250_person_002.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "3ebb88fc-c1c3-560e-987a-7288b121b42f",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_109867_4dcadfab1e_person_002.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "3b0d8b10-69e8-5179-a096-396c7f17573f",
+     "crop_path": "data\\crops\\000000116003_fcaa8dba82_person_001.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "a49c76fc-3d99-51ae-8db1-6d76282c23ea",
+     "crop_path": "data\\prw_crops_p25h75\\c1s1_021826_087d536817_person_001.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q20",
+   "text": "줄무늬 상의를 입은 사람",
+   "query_en": "The man in the striped costume.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "e9244ffe-da02-56d5-bd26-08423fbe3a83",
+     "crop_path": "data\\crops\\000000338054_8f1913cf35_person_002.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "913b0880-013d-500b-90d2-f3382e84ef5e",
+     "crop_path": "data\\crops\\000000364468_f2d3c52435_person_001.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "444f62c4-d32a-5f2b-b632-86949320110d",
+     "crop_path": "data\\crops\\000000159774_fc7307d06e_person_001.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "0962ef7b-bed3-51e4-8e0b-932d4854edb7",
+     "crop_path": "data\\crops\\000000409970_6a9570848f_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "0e7d5e3d-a021-5c44-89e1-a014513d94c4",
+     "crop_path": "data\\crops\\000000036361_50e4c17ca8_person_002.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "db6550ae-6091-5447-ac54-c2adeb7b0b65",
+     "crop_path": "data\\crops\\000000434787_933bfbebb8_person_010.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "6b7e1dbd-fdb9-515e-8c23-d2af1012f01c",
+     "crop_path": "data\\crops\\000000537246_6d5ebe43a4_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "71b97e33-744b-5ae3-9467-90e0ceee817a",
+     "crop_path": "data\\crops\\000000126409_c7bbd88b1d_person_003.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "ef61a446-bc85-57f7-ab9d-9edb26d05e72",
+     "crop_path": "data\\crops\\000000434787_933bfbebb8_person_002.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "39242c66-96e7-592d-8a3d-afe7405afcec",
+     "crop_path": "data\\crops\\000000321874_4c3d1d0834_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "23806485-2f59-57b1-aa5d-4843552c69f6",
+     "crop_path": "data\\crops\\000000495592_da45a09d5f_person_002.jpg",
+     "score": 0.17763159
+    },
+    {
+     "rank": 12,
+     "point_id": "c4d8b04e-9bda-56b6-a3e8-da88b13fdb52",
+     "crop_path": "data\\crops\\000000187178_99ca0f6957_person_001.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 13,
+     "point_id": "739076cc-360c-5430-a51f-6eeceffcd94e",
+     "crop_path": "data\\crops\\000000262967_43918bf9db_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 14,
+     "point_id": "a285b9de-1d21-591a-ba7f-78a7b092d359",
+     "crop_path": "data\\crops\\000000516596_78de51d5bb_person_008.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 15,
+     "point_id": "e95eddea-5af8-55b8-9783-85a94f4631ce",
+     "crop_path": "data\\crops\\000000306467_8d1d0ef93c_person_002.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "36cd179d-3fe3-5a95-bd7e-dfd3d50301f4",
+     "crop_path": "data\\crops\\000000183988_4ccb05c64c_person_001.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 17,
+     "point_id": "ec7af779-087e-5677-9482-18aa0cf52f9e",
+     "crop_path": "data\\crops\\000000565444_cbb0cf2940_person_002.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 18,
+     "point_id": "c451db1e-976d-5fe6-b9e6-f67c9354a58a",
+     "crop_path": "data\\crops\\000000038439_5b6f1a3893_person_003.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "9e7a31bf-5ed1-58ba-948e-75b593fdb4b7",
+     "crop_path": "data\\image_crops\\000000289343_542775cd29_person_001.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "ae25ef9c-cb5b-5d09-9ff7-cd19605cb06d",
+     "crop_path": "data\\crops\\000000319902_7154dfd6fd_person_004.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q21",
+   "text": "검은색 코트를 입은 여성",
+   "query_en": "A woman in a black coat.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "d67a3c38-3bf4-5634-a441-573e70cf802f",
+     "crop_path": "data\\prw_crops_p25h75\\c3s2_118644_268dc52627_person_008.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "22e0f3ad-e8b3-56cb-b6e8-25080be008eb",
+     "crop_path": "data\\crops\\000000525075_00b46eaa6e_person_003.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "c9336586-7ed4-5955-ad29-aef5bf1704b3",
+     "crop_path": "data\\crops\\000000335111_949ae312ec_person_002.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "f7009d94-06d8-505e-bd92-9874cf7f79d1",
+     "crop_path": "data\\crops\\000000098550_64ad2d08a3_person_003.jpg",
+     "score": 0.39583334
+    },
+    {
+     "rank": 5,
+     "point_id": "4e829e65-2bf7-5b54-ac7e-6e026f47ae44",
+     "crop_path": "data\\crops\\000000169800_cd6291d642_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "47625cff-651c-5af9-a434-f999544a2344",
+     "crop_path": "data\\crops\\000000261585_ea38beaf8f_person_009.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "a0bd7ab1-cb1d-5d3f-a5ad-881a6fa23970",
+     "crop_path": "data\\crops\\000000028575_8fa302f62d_person_002.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "6dafe710-76f7-5b9f-b6b8-88d6ee8c8ac3",
+     "crop_path": "data\\crops\\000000479081_6e326f7c64_person_006.jpg",
+     "score": 0.23225807
+    },
+    {
+     "rank": 9,
+     "point_id": "ba19e355-857e-53f5-a7ff-3ad1deacb85d",
+     "crop_path": "data\\crops\\000000080130_c7e3f4c434_person_003.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 10,
+     "point_id": "869bb01c-a9ec-56f1-a1d8-e343ecb70dd8",
+     "crop_path": "data\\crops\\000000180354_a70dc834e3_person_001.jpg",
+     "score": 0.22134389
+    },
+    {
+     "rank": 11,
+     "point_id": "0410c201-ae69-5ef2-adcc-435c8cf048a3",
+     "crop_path": "data\\crops\\000000577169_cb999b1b6e_person_007.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 12,
+     "point_id": "2032b593-2f37-535e-b35d-efbb2f12f03b",
+     "crop_path": "data\\crops\\000000080130_c7e3f4c434_person_005.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 13,
+     "point_id": "2cc60ed4-a321-58d6-ad70-1110431ab6a1",
+     "crop_path": "data\\crops\\000000542718_c4ba2d9b60_person_004.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 14,
+     "point_id": "407fa189-47ac-54cf-b639-977a842db74b",
+     "crop_path": "data\\crops\\000000331670_a707c413af_person_009.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 15,
+     "point_id": "527e5e4c-4ef0-5b7f-b346-347528f8342d",
+     "crop_path": "data\\crops\\000000300578_9e90f06700_person_004.jpg",
+     "score": 0.14344826
+    },
+    {
+     "rank": 16,
+     "point_id": "a6798e33-4487-5fc8-815b-8ffd94ceae1e",
+     "crop_path": "data\\image_crops\\000000148508_5e42272760_person_002.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 17,
+     "point_id": "bcaf08c3-05f4-5cc6-8cc3-61a52c472b07",
+     "crop_path": "data\\crops\\000000047004_cf6e383b83_person_005.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 18,
+     "point_id": "4382b7e7-869c-5474-ab17-1a0bd952b327",
+     "crop_path": "data\\crops\\000000460980_215cee2c88_person_003.jpg",
+     "score": 0.13525835
+    },
+    {
+     "rank": 19,
+     "point_id": "cd5a9e0c-adbf-5d0f-8524-fabd11b89aa3",
+     "crop_path": "data\\crops\\000000372833_b9fd65418d_person_001.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 20,
+     "point_id": "232d779c-651e-513d-9616-008f52de9dac",
+     "crop_path": "data\\crops\\000000060532_880c244863_person_001.jpg",
+     "score": 0.11999999
+    }
+   ]
+  },
+  {
+   "query_id": "q22",
+   "text": "흰색 바지를 입은 사람",
+   "query_en": "He's wearing white pants.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "9b94747c-1fdc-53d5-90df-82804f472acd",
+     "crop_path": "data\\crops\\000000458143_8b3a2463e5_person_002.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "30553ac4-ab54-5b0c-9adb-d723b7d354e8",
+     "crop_path": "data\\crops\\000000356406_90a9139091_person_002.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "27ca7988-8cc4-5676-a348-3938222d5d06",
+     "crop_path": "data\\crops\\000000402081_bfa9947da9_person_004.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "27df9b57-83dc-51e1-92a6-47b040a12ff8",
+     "crop_path": "data\\prw_crops_p25h75\\c6s2_043993_ef5726eaa6_person_002.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "2fd2b629-2640-5338-aad5-99d3decc2255",
+     "crop_path": "data\\crops\\000000370602_7e7f6bcb60_person_003.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "1ac8ea4c-9acd-5a45-a304-868ef0a14b2a",
+     "crop_path": "data\\crops\\000000526723_276e7df851_person_002.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "e6c1d63a-0a1a-5f52-9887-1225b0c4fe3d",
+     "crop_path": "data\\crops\\000000366927_50680d5d06_person_002.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "05982675-a7a6-52c1-b52e-923a62c3c9ac",
+     "crop_path": "data\\crops\\000000389743_1866eeaed9_person_002.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "941ba3cf-579d-5a70-a0a5-84c29b140675",
+     "crop_path": "data\\crops\\000000427981_033627f08a_person_002.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "ef0ec9ac-b18b-5ae2-8ee5-8c751cca3e6f",
+     "crop_path": "data\\crops\\000000250801_b919a9593e_person_002.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "56db9df0-e3d5-52f4-865e-69cbbe933adf",
+     "crop_path": "data\\crops\\000000187735_89afd9c8f4_person_008.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "13a58478-07af-5cb7-b59f-3b1e08f98435",
+     "crop_path": "data\\prw_crops_p25h75\\c6s1_037876_dac34db4dd_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "ed14d3df-256d-5e57-98a9-99adc0f36aca",
+     "crop_path": "data\\crops\\000000464967_43038d5102_person_001.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "b5920e84-8103-54e9-bf86-4f8bc0a0a44c",
+     "crop_path": "data\\crops\\000000250804_cdc02fde29_person_004.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "b584043a-3189-5ec0-846e-e9488c2b17a3",
+     "crop_path": "data\\crops\\000000511639_eb7eee177e_person_003.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "4696aadc-98e3-5d59-abb0-bad3752109e3",
+     "crop_path": "data\\crops\\000000033743_3699e75024_person_002.jpg",
+     "score": 0.14008942
+    },
+    {
+     "rank": 17,
+     "point_id": "2c8362a3-c9c1-567d-b61f-488db8a116af",
+     "crop_path": "data\\crops\\000000094155_846f6ae21e_person_001.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 18,
+     "point_id": "75e00fe0-c97d-53ab-aa68-f61b78ca8366",
+     "crop_path": "data\\crops\\000000133090_324a88d922_person_002.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 19,
+     "point_id": "5ee38850-3b17-5d1e-9637-a2e59e0b9fa4",
+     "crop_path": "data\\crops\\000000149739_9c6ee859bb_person_004.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 20,
+     "point_id": "95a3f14a-220c-56a4-b274-d09724ff93ee",
+     "crop_path": "data\\prw_crops_p25h75\\c2s2_103907_28a66154d7_person_002.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q23",
+   "text": "헬멧을 쓴 사람",
+   "query_en": "Someone with a helmet.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "ba976252-f1ae-54bb-b428-debb220a7c04",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_117770_9e8a804fdd_person_004.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "9fc6bf86-bdb0-5d9c-be20-f03ccd2289f5",
+     "crop_path": "data\\crops\\000000514161_8db00f8248_person_002.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "30258d18-ce64-5fc7-9d83-60aaa6c0e1d3",
+     "crop_path": "data\\crops\\000000135671_fd08a69dba_person_004.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "845a056d-88f2-5a94-b67f-76feb2f1610b",
+     "crop_path": "data\\crops\\000000573284_b08b5d8ede_person_006.jpg",
+     "score": 0.37333333
+    },
+    {
+     "rank": 5,
+     "point_id": "d2cd46e0-e3e2-51b4-8350-c5044b074b29",
+     "crop_path": "data\\crops\\000000028626_ed5748c293_person_005.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "3e0dafa5-ee3a-5316-aa35-ad506b2a8068",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_103898_cb4395f3d4_person_008.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "ded2bc9b-84fd-5e0c-8541-a034719c90cb",
+     "crop_path": "data\\crops\\000000489011_6c7cf8901d_person_002.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "11bc2ca2-5027-5fc9-8db5-e94dc07b952a",
+     "crop_path": "data\\prw_crops_p25h75\\c5s2_073977_8e3ae7f29d_person_009.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "8437c88f-f317-5b57-85bc-ff2dbc8f8ef0",
+     "crop_path": "data\\crops\\000000383085_5893e3ae07_person_005.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "6e6c7054-d040-5b8e-a501-8b5588f5337f",
+     "crop_path": "data\\prw_crops_p25h75\\c2s2_069857_9d882c3089_person_015.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "ad176cd4-7e99-5a74-a042-91898b8e1826",
+     "crop_path": "data\\prw_crops_p25h75\\c2s2_051212_f183389562_person_013.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "cf0a02b7-4e19-52ce-878b-5a01eb8f8417",
+     "crop_path": "data\\crops\\000000218703_05d6cb6fda_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "994f0964-18b1-52e7-930e-39674e6e8eca",
+     "crop_path": "data\\crops\\000000042479_17f747e0b6_person_004.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "365e7812-ae6d-5f8a-8690-6d7c31de42de",
+     "crop_path": "data\\prw_crops_p25h75\\c3s2_055012_164f77e719_person_003.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "77b04fe5-e128-551d-805b-dcf8ef8e8136",
+     "crop_path": "data\\crops\\000000337087_25f3135440_person_007.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "74dbd87b-c8c7-5d4b-a9df-b399bd9e016e",
+     "crop_path": "data\\prw_crops_p25h75\\c1s2_019566_d8d0da4563_person_010.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "d2fdeeeb-5673-5488-b4dd-37bb5bb00eb3",
+     "crop_path": "data\\crops\\000000470189_380d8de7a6_person_001.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "4dfb3d27-091d-5297-acf5-686d80fb0f8a",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_103923_8f17d1fe2a_person_004.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "46675cb3-cc67-5121-b9ae-8c784f4e2d42",
+     "crop_path": "data\\crops\\000000008339_14e0ac6a59_person_013.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "2e594528-833a-5510-a7e4-b9ddd4fe579e",
+     "crop_path": "data\\crops\\000000032606_9007208fba_person_004.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q24",
+   "text": "녹색 상의를 입은 남성",
+   "query_en": "The guy in the green costume.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "11842bf6-fab3-5248-a8e0-b169a85e2c8b",
+     "crop_path": "data\\crops\\000000284902_6f2746f75d_person_003.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "860f3456-7a97-52a4-924a-1b5670f4e8f0",
+     "crop_path": "data\\crops\\000000548647_f5a5675ddd_person_001.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "6010cba3-b150-5365-b47d-1a9b418c794c",
+     "crop_path": "data\\crops\\000000093127_6ac1576d16_person_001.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "3e9cbc96-6364-53aa-a333-05e5ef175019",
+     "crop_path": "data\\crops\\000000448288_072b205c7f_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "eec980e9-8c55-5168-bf06-6119b790f694",
+     "crop_path": "data\\image_crops\\000000477288_ef725d2586_person_002.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "ae6e479a-3737-5784-996b-11ef1c96e490",
+     "crop_path": "data\\crops\\000000505099_4c0527bdca_person_002.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "454789aa-929e-5d86-abda-6e78af58d1ab",
+     "crop_path": "data\\crops\\000000482959_68f3d526ea_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "6252cc44-3eb3-5da4-a047-41bf69e2eb4d",
+     "crop_path": "data\\crops\\000000549284_3d20df97fe_person_001.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "ea84d8c4-cdb5-54c7-a8fd-be44e6be25a9",
+     "crop_path": "data\\crops\\000000439658_3a1c3ee776_person_004.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "1f62c6b8-15c9-59ff-996c-454038be1d3c",
+     "crop_path": "data\\crops\\000000554006_63762aa0fb_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "3b5b3d8a-80d5-5e7f-8ce7-482b50e717a4",
+     "crop_path": "data\\crops\\000000070788_72f7e9d087_person_001.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "cbcb9308-ba6c-5927-aa30-a31a2f5b8ae2",
+     "crop_path": "data\\crops\\000000438368_4fdfcb7b0c_person_004.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "2bc2ec62-57f2-5a94-bc98-2dfaace77017",
+     "crop_path": "data\\crops\\000000037323_41958c0849_person_001.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "6968edd0-1f1a-50e0-bac8-b174894ea20f",
+     "crop_path": "data\\crops\\000000464274_eee1331473_person_001.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "2f3a18f5-e9eb-524e-be3a-e9a064854adc",
+     "crop_path": "data\\crops\\000000051663_27ffe8d815_person_003.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "275f55df-268c-5083-84fb-d5dba4b4f6f4",
+     "crop_path": "data\\crops\\000000151130_b5df4824c9_person_002.jpg",
+     "score": 0.13793103
+    },
+    {
+     "rank": 17,
+     "point_id": "dcad17e6-2d9a-5db8-8cde-fe602600149d",
+     "crop_path": "data\\crops\\000000333081_56256fad2f_person_007.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 18,
+     "point_id": "36422cf2-fcd7-582e-8288-b4054d18f142",
+     "crop_path": "data\\crops\\000000467512_3f50223591_person_001.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 19,
+     "point_id": "8aee4aa8-25da-5f62-b3b9-996cfe0b25bc",
+     "crop_path": "data\\crops\\000000439939_f8fe2dd4e4_person_002.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 20,
+     "point_id": "5bd93372-befa-58c6-8b69-c2a7ebee1626",
+     "crop_path": "data\\crops\\000000434187_b019ee237f_person_003.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q25",
+   "text": "유모차를 미는 사람",
+   "query_en": "Someone who shaves a stroller.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "b49990f5-f102-53c1-8bb7-60b5ef5ca5ac",
+     "crop_path": "data\\crops\\000000060325_2db21c3c61_person_010.jpg",
+     "score": 0.6833333
+    },
+    {
+     "rank": 2,
+     "point_id": "d09149b3-ded3-5f23-8027-9a63633ba466",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_057667_871c625ac7_person_007.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "cc00726e-0626-5928-9448-1c46b242c00e",
+     "crop_path": "data\\crops\\000000034818_9c9428cd7c_person_002.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "38518961-1147-5f16-a7ab-cafa79b9fd7d",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_058423_4fb9b7178f_person_006.jpg",
+     "score": 0.3841808
+    },
+    {
+     "rank": 5,
+     "point_id": "995904e6-7c41-538b-9b89-0346a3b6dfd7",
+     "crop_path": "data\\prw_crops_p25h75\\c2s1_161516_aefa96c3c6_person_011.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "88df3c53-c0c3-5935-8874-d28b06871fda",
+     "crop_path": "data\\prw_crops_p25h75\\c4s1_059132_73f472f0b9_person_004.jpg",
+     "score": 0.30075186
+    },
+    {
+     "rank": 7,
+     "point_id": "809d3c6a-d00d-594c-8140-cc77d8f83aa6",
+     "crop_path": "data\\crops\\000000477193_79d1cae642_person_001.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 8,
+     "point_id": "aa2ce847-5f15-56ce-891d-38eceb314dd1",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_058648_2d565254bb_person_004.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 9,
+     "point_id": "12fbe161-69e3-5010-9554-1e145cb68e9d",
+     "crop_path": "data\\prw_crops_p25h75\\c2s2_106057_a74ea3569f_person_021.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 10,
+     "point_id": "6d2858cf-910c-5be3-8ef9-f07ba174d399",
+     "crop_path": "data\\prw_crops_p25h75\\c1s2_047096_fb5b712992_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "ffa3d0c6-caf3-5527-a1c7-8e4ac3e28489",
+     "crop_path": "data\\crops\\000000559778_b14b82dc92_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 12,
+     "point_id": "d2753e35-09b9-5c9a-a6d0-c33ca01f6f68",
+     "crop_path": "data\\prw_crops_p25h75\\c2s2_066507_53ee32f6ca_person_014.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 13,
+     "point_id": "522119f6-7993-59eb-b70e-2f65f74bc67c",
+     "crop_path": "data\\prw_crops_p25h75\\c1s2_047521_123fd4f5bc_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 14,
+     "point_id": "97b46f67-47be-5ae5-bdc9-1c113a538e2e",
+     "crop_path": "data\\crops\\000000152886_ecd211ae19_person_003.jpg",
+     "score": 0.16374269
+    },
+    {
+     "rank": 15,
+     "point_id": "b416e2fb-4511-5d82-b301-455bd55fba56",
+     "crop_path": "data\\prw_crops_p25h75\\c2s1_066846_bed34a6cfb_person_009.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "e48f9c35-e58a-5805-873d-01463078fd2c",
+     "crop_path": "data\\prw_crops_p25h75\\c1s2_047521_123fd4f5bc_person_003.jpg",
+     "score": 0.14022842
+    },
+    {
+     "rank": 17,
+     "point_id": "cf90decf-cdf5-5b4d-8186-534be7b05621",
+     "crop_path": "data\\prw_crops_p25h75\\c4s1_062882_68ae876b46_person_002.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 18,
+     "point_id": "8cf7c5a7-e395-58d5-876d-4862582a8e85",
+     "crop_path": "data\\prw_crops_p25h75\\c2s2_046087_bec96351c9_person_011.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "e7fc47d7-0195-5066-b688-e33b5ba82b2d",
+     "crop_path": "data\\prw_crops_p25h75\\c5s1_058473_93c6f58791_person_003.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "ce722782-c033-5fd1-ad6b-0e7adc010397",
+     "crop_path": "data\\prw_crops_p25h75\\c1s1_018401_cbdced1b71_person_001.jpg",
+     "score": 0.11025642
+    }
+   ]
+  },
+  {
+   "query_id": "q26",
+   "text": "노인",
+   "query_en": "Old man.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "5572c7b2-68df-524c-98d6-f697b677a34c",
+     "crop_path": "data\\image_crops\\000000462371_d31cc6a100_person_001.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "e4f09b21-84cb-5a7b-b982-3edfb9c6d466",
+     "crop_path": "data\\crops\\000000569075_d2850f4267_person_002.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "d2304692-a99c-5028-b6e5-fcb31d6bee49",
+     "crop_path": "data\\crops\\000000318355_ad0a4b8db5_person_002.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "55c926a4-5d06-516c-baff-11ad44ae9d63",
+     "crop_path": "data\\crops\\000000227295_0e1be1d6bf_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "47639537-c06d-5906-8265-d8cb9c5b0880",
+     "crop_path": "data\\crops\\000000068290_bd53731417_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "269520e1-11ef-573e-b890-46f3a3f7c01d",
+     "crop_path": "data\\crops\\000000277717_a0e25d75a7_person_001.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "efc76b95-4e2b-5744-b537-2ad0a2ab90b9",
+     "crop_path": "data\\crops\\000000075595_0e018f1508_person_002.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "56655eb5-1ef8-54bd-8f86-5ca4add7e7d7",
+     "crop_path": "data\\crops\\000000527858_36e28ed19b_person_001.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "3f2eacc5-6644-57e4-9f77-b7724ebfc8b7",
+     "crop_path": "data\\crops\\000000137694_c390515149_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "25758e05-c514-57e4-846f-19131eb096f2",
+     "crop_path": "data\\crops\\000000269234_e09972dd30_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "d98a8e5e-3855-5209-9165-a25702f413ba",
+     "crop_path": "data\\crops\\000000046447_ebed9a17c2_person_009.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "1776392d-3245-5901-81d7-604a92ebc605",
+     "crop_path": "data\\crops\\000000151300_17f974c097_person_001.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "244f664f-8ea5-52f0-91f2-7f621da86932",
+     "crop_path": "data\\crops\\000000393087_481036d2bd_person_001.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "1693a5d5-921c-5735-826a-784665e3f1af",
+     "crop_path": "data\\crops\\000000569075_d2850f4267_person_003.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "6ff4d952-261e-53b6-9212-25f14650d44f",
+     "crop_path": "data\\crops\\000000414747_ba16c56102_person_005.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "88647fe5-7c0a-529f-a404-9f9435d40e55",
+     "crop_path": "data\\crops\\000000226639_35ad4152f5_person_002.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "acd94471-1e66-5a3c-8614-6ea6ccb19f0b",
+     "crop_path": "data\\crops\\000000317330_e2fa5ec6bf_person_001.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "de28ead7-af46-51cf-a81d-54ba5b5f909c",
+     "crop_path": "data\\crops\\000000188965_cf0d3b9eee_person_001.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "cfc099ef-4813-5f27-9d01-82b281870fff",
+     "crop_path": "data\\crops\\000000523230_78358da677_person_002.jpg",
+     "score": 0.11894648
+    },
+    {
+     "rank": 20,
+     "point_id": "b1601080-08ae-5f39-9d97-c637a8e219fd",
+     "crop_path": "data\\crops\\000000241820_db7adde4af_person_001.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q27",
+   "text": "교복을 입은 학생",
+   "query_en": "The student in the uniform.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "48975ccd-7aa4-5d66-9d68-98a1cd01291b",
+     "crop_path": "data\\crops\\000000369249_84291e1453_person_003.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 2,
+     "point_id": "7282036e-936d-5e30-86d0-f2266563365e",
+     "crop_path": "data\\crops\\000000552163_fce3460092_person_007.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "05e7c265-befa-5259-a35c-82ea97d2a5b2",
+     "crop_path": "data\\crops\\000000550478_546473686d_person_002.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "8822f194-675f-5c86-859a-b6cfa8fb5310",
+     "crop_path": "data\\crops\\000000308312_a969f49a9b_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "146eb94a-ed00-5eba-a2ac-623494e15acd",
+     "crop_path": "data\\crops\\000000018270_f6252b303b_person_002.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "e0803d5b-a3d4-5e71-818a-86222c62da2b",
+     "crop_path": "data\\prw_crops_p25h75\\c3s2_063103_82d1e41659_person_007.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "12fdd530-5aa7-534d-9b2f-bbdff446878f",
+     "crop_path": "data\\crops\\000000552163_fce3460092_person_004.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "394593bf-0ae6-5b3c-9a1e-ed1e40aa2642",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_048176_6c56e7acde_person_007.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "4fc1486e-7b75-5941-9ff6-af1fcb5e65fe",
+     "crop_path": "data\\crops\\000000552163_fce3460092_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "e1ceb78e-dfbf-56ff-b4f8-7311aebffe4c",
+     "crop_path": "data\\crops\\000000464725_36368fce59_person_003.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "43797483-e3f3-57ec-8aca-77ef4de5895c",
+     "crop_path": "data\\prw_crops_p25h75\\c5s2_064852_d2d5261052_person_009.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "b5c915d3-d97e-5d66-9d0f-9bca8d901ffa",
+     "crop_path": "data\\crops\\000000552163_fce3460092_person_005.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "52a94362-7bb7-5d14-9179-d4b0973a1584",
+     "crop_path": "data\\prw_crops_p25h75\\c3s1_024601_bbf9d18bf1_person_001.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "04468107-0511-5b61-929b-8902f6b80e76",
+     "crop_path": "data\\crops\\000000351991_3ec1ce2afa_person_001.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "55b345a6-5ad8-5f44-b414-082974dda101",
+     "crop_path": "data\\crops\\000000131825_99165e2dd4_person_001.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "2a2d87db-8dd3-576d-90d5-6ce17433e80f",
+     "crop_path": "data\\crops\\000000026051_c5110317d2_person_001.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "5d982ded-18fc-54f1-b6f4-fef5c52f7878",
+     "crop_path": "data\\crops\\000000552163_fce3460092_person_010.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "0c39e3ec-113d-5479-b2d7-fb56c2cd637e",
+     "crop_path": "data\\crops\\000000567082_3f8afbbbca_person_003.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "ec595889-8dd2-5507-9f5a-a027658e3cf9",
+     "crop_path": "data\\crops\\000000552163_fce3460092_person_012.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "f7cf73dd-2aaa-50dd-bac5-4aa4a5fdb043",
+     "crop_path": "data\\crops\\000000070347_a8f5cc5329_person_001.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q28",
+   "text": "분홍색 옷을 입은 여자아이",
+   "query_en": "A girl in pink.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "efee8a17-1169-5cc5-a639-e2f59478a8cd",
+     "crop_path": "data\\crops\\000000365267_1190d1a7b3_person_007.jpg",
+     "score": 0.61052626
+    },
+    {
+     "rank": 2,
+     "point_id": "4f602efa-2f51-5d5b-838e-3fa8d2a953f0",
+     "crop_path": "data\\crops\\000000379201_b41a5680fc_person_001.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 3,
+     "point_id": "2014d574-ecce-5e97-baf6-fb84eca2abf1",
+     "crop_path": "data\\crops\\000000529404_b955f53792_person_002.jpg",
+     "score": 0.47204965
+    },
+    {
+     "rank": 4,
+     "point_id": "e21f121f-ac75-513e-a5c2-b69ab44391ae",
+     "crop_path": "data\\crops\\000000309093_625fc3c032_person_001.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "13c81ed0-8ede-5b61-b863-b41d44752568",
+     "crop_path": "data\\crops\\000000021310_e36a514902_person_003.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "21851bcf-bf08-5951-9312-98d493a7a308",
+     "crop_path": "data\\crops\\000000428973_c9209913eb_person_001.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "c46fb323-2e92-5161-abc8-43ee90d153ec",
+     "crop_path": "data\\crops\\000000470062_f008bb9a19_person_002.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "ccddb12a-5630-5efe-8cc5-f64349822484",
+     "crop_path": "data\\crops\\000000236222_433a29f2a0_person_001.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "58d7e1b9-688e-5c3b-8d38-15a1e2ea5017",
+     "crop_path": "data\\crops\\000000461673_52e0d6fe77_person_001.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "29d4a67c-56ff-5201-bcf7-03e912c2a2f1",
+     "crop_path": "data\\crops\\000000446351_7a2dd32397_person_004.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "0a65bac0-1358-5d2d-9bdf-582234557c75",
+     "crop_path": "data\\prw_crops_p25h75\\c1s2_002766_63293933b1_person_006.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "891e784a-4f48-5f72-a560-2ce45b40165f",
+     "crop_path": "data\\crops\\000000406034_b44da4ca7e_person_006.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 13,
+     "point_id": "80076ee2-7771-5d05-9896-3bcf4b19359d",
+     "crop_path": "data\\crops\\000000072165_8539cfbc84_person_002.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "fb8ebcf3-06eb-5cd1-b200-83b28885b454",
+     "crop_path": "data\\crops\\000000048160_34ad93d0c0_person_002.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "f2dd0c40-afd2-5c22-aacf-f2be1f72c5ef",
+     "crop_path": "data\\crops\\000000140333_a0b060db01_person_002.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "9303045c-381a-5eff-a189-902f07c813b9",
+     "crop_path": "data\\crops\\000000506555_28f8eb3301_person_002.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 17,
+     "point_id": "3db6b737-e4cf-5d29-b4c4-361dc608f2a9",
+     "crop_path": "data\\crops\\000000122780_281e64a5f5_person_003.jpg",
+     "score": 0.12929294
+    },
+    {
+     "rank": 18,
+     "point_id": "f00d32e5-af94-5eeb-b356-a3f41d3c9187",
+     "crop_path": "data\\crops\\000000015544_f3f4b3523a_person_001.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 19,
+     "point_id": "36640586-f072-58d1-98f7-f8e673999827",
+     "crop_path": "data\\crops\\000000365267_1190d1a7b3_person_003.jpg",
+     "score": 0.12316716
+    },
+    {
+     "rank": 20,
+     "point_id": "3b1c8ed6-81e3-53cd-803e-31d119195c26",
+     "crop_path": "data\\crops\\000000387561_a1d4c7ef11_person_003.jpg",
+     "score": 0.11999999
+    }
+   ]
+  },
+  {
+   "query_id": "q29",
+   "text": "회색 후드티에 검은 바지를 입은 남성",
+   "query_en": "Gray hoodie, black pants.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "06df2ef0-6641-507e-8c7d-712f3e8813df",
+     "crop_path": "data\\crops\\000000108892_4841c13f16_person_007.jpg",
+     "score": 0.63571423
+    },
+    {
+     "rank": 2,
+     "point_id": "2c821fc1-7938-5b79-a4e5-aad5ed2e59f2",
+     "crop_path": "data\\crops\\000000157593_9e68358b50_person_001.jpg",
+     "score": 0.57142854
+    },
+    {
+     "rank": 3,
+     "point_id": "df49213a-8a7a-5e40-bee0-a6fce912bb52",
+     "crop_path": "data\\crops\\000000318967_e4c625e3d9_person_005.jpg",
+     "score": 0.5
+    },
+    {
+     "rank": 4,
+     "point_id": "bd801257-2595-5557-88c5-e236fedb0c5a",
+     "crop_path": "data\\crops\\000000303991_19cbb954fc_person_002.jpg",
+     "score": 0.45333332
+    },
+    {
+     "rank": 5,
+     "point_id": "5848d889-706c-5c27-81bf-51d7312851fa",
+     "crop_path": "data\\crops\\000000061328_8d0832c951_person_005.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "43966ce6-0a98-5ce6-a395-27fb5ba45c5d",
+     "crop_path": "data\\crops\\000000571661_d6709b05d4_person_002.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "d68751be-3960-597b-a368-6fe9463e32f1",
+     "crop_path": "data\\crops\\000000203372_42d0bf5f42_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "5c2ba8b9-412c-538f-848a-606f8627fd7e",
+     "crop_path": "data\\crops\\000000393826_edf8077a0b_person_005.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "b86a4881-21c4-52de-86b9-b06164ffe124",
+     "crop_path": "data\\crops\\000000223874_ac19e1878a_person_004.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "98370897-1eb0-506e-a0df-94e67d90566a",
+     "crop_path": "data\\crops\\000000092646_26e186b50b_person_002.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "7a9a7155-79eb-57be-a60a-eb68a5b26718",
+     "crop_path": "data\\crops\\000000501625_71a2a7f1cb_person_002.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 12,
+     "point_id": "950282fd-ce72-588c-9f43-b84a5d845889",
+     "crop_path": "data\\crops\\000000386408_2cfefc652e_person_002.jpg",
+     "score": 0.17424244
+    },
+    {
+     "rank": 13,
+     "point_id": "bb2136a2-5bee-5f5d-aca7-9e2bdccedce2",
+     "crop_path": "data\\crops\\000000042201_70c92c65bf_person_003.jpg",
+     "score": 0.16666667
+    },
+    {
+     "rank": 14,
+     "point_id": "b89524bc-9e4d-5fe6-93ff-97fdafe2b457",
+     "crop_path": "data\\crops\\000000152701_1cb12e74df_person_011.jpg",
+     "score": 0.16609588
+    },
+    {
+     "rank": 15,
+     "point_id": "9b215195-6395-5953-be24-68aa7cd6439a",
+     "crop_path": "data\\crops\\000000274917_8e349b24d5_person_008.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 16,
+     "point_id": "fb8f5d2b-8cff-5913-a912-6ca4737fbe86",
+     "crop_path": "data\\prw_crops_p25h75\\c1s3_049926_e1b8fcba9d_person_002.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 17,
+     "point_id": "52daa8bf-1fd7-5b79-945e-cd7386d9dbbe",
+     "crop_path": "data\\crops\\000000019766_408b15ab0a_person_001.jpg",
+     "score": 0.1304348
+    },
+    {
+     "rank": 18,
+     "point_id": "979ca399-b2f7-5309-a60f-a37192fd521b",
+     "crop_path": "data\\crops\\000000011624_7a10778ac6_person_002.jpg",
+     "score": 0.123876125
+    },
+    {
+     "rank": 19,
+     "point_id": "81b312e7-1f90-5567-be07-940448ed71eb",
+     "crop_path": "data\\crops\\000000000419_10a6293f92_person_001.jpg",
+     "score": 0.12305611
+    },
+    {
+     "rank": 20,
+     "point_id": "9b10b24a-3e86-579c-b6f7-94f6247bbdab",
+     "crop_path": "data\\crops\\000000152701_1cb12e74df_person_001.jpg",
+     "score": 0.11111111
+    }
+   ]
+  },
+  {
+   "query_id": "q30",
+   "text": "체크무늬 셔츠를 입은 남성",
+   "query_en": "The man in the check-out shirt.",
+   "candidates": [
+    {
+     "rank": 1,
+     "point_id": "8e1efaed-8623-5356-b189-1bc46e0db854",
+     "crop_path": "data\\prw_crops_p25h75\\c6s1_080901_89ef8d38c6_person_001.jpg",
+     "score": 0.6304348
+    },
+    {
+     "rank": 2,
+     "point_id": "1253f8e1-752f-5f8f-ad0e-0ca3723c2468",
+     "crop_path": "data\\crops\\000000107225_b96afbe30d_person_002.jpg",
+     "score": 0.59999996
+    },
+    {
+     "rank": 3,
+     "point_id": "a2fc540c-c737-5ded-99a6-94e76160b827",
+     "crop_path": "data\\crops\\000000344065_cc8cba70f0_person_001.jpg",
+     "score": 0.4285714
+    },
+    {
+     "rank": 4,
+     "point_id": "07855783-28fc-550f-a9c3-78073d4758b0",
+     "crop_path": "data\\crops\\000000298276_57620dd0a6_person_003.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 5,
+     "point_id": "f69d6a66-d036-50e4-b69b-dd336bfb1765",
+     "crop_path": "data\\crops\\000000265879_57affe3a4d_person_006.jpg",
+     "score": 0.33333334
+    },
+    {
+     "rank": 6,
+     "point_id": "a4c03c53-7506-5ecc-88cc-189e80ec965b",
+     "crop_path": "data\\image_crops\\000000209530_11bc1758c8_person_002.jpg",
+     "score": 0.27272725
+    },
+    {
+     "rank": 7,
+     "point_id": "1b5c913b-d6f3-55bc-9396-8c36d8aa9859",
+     "crop_path": "data\\prw_crops_p25h75\\c1s4_049081_7ffa9fff49_person_001.jpg",
+     "score": 0.25
+    },
+    {
+     "rank": 8,
+     "point_id": "70a764cd-0e0d-5e4e-939a-b70607300eec",
+     "crop_path": "data\\crops\\000000503623_e7be361b25_person_006.jpg",
+     "score": 0.23076925
+    },
+    {
+     "rank": 9,
+     "point_id": "e33e6de2-abdb-5617-9dff-149907e9c0a5",
+     "crop_path": "data\\crops\\000000293949_43c41eb0a1_person_004.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 10,
+     "point_id": "af2075f9-159f-5358-91ef-9a8cd1856253",
+     "crop_path": "data\\crops\\000000534018_6dd2380c92_person_002.jpg",
+     "score": 0.2
+    },
+    {
+     "rank": 11,
+     "point_id": "87446019-cfcc-55cb-9f93-6784e5196929",
+     "crop_path": "data\\crops\\000000479707_44800b08d4_person_003.jpg",
+     "score": 0.19892474
+    },
+    {
+     "rank": 12,
+     "point_id": "1d74c9af-6f71-5af9-b9e9-63c800fca18d",
+     "crop_path": "data\\image_crops\\000000411817_1b9a766eba_person_004.jpg",
+     "score": 0.1764706
+    },
+    {
+     "rank": 13,
+     "point_id": "8a552da5-6fbd-5ae5-a793-8a2cccceda22",
+     "crop_path": "data\\crops\\000000193925_fb7d63e549_person_001.jpg",
+     "score": 0.15789473
+    },
+    {
+     "rank": 14,
+     "point_id": "f4dc3645-8756-5835-b9de-3d4996d1ac63",
+     "crop_path": "data\\crops\\000000175536_c8105d4afc_person_001.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 15,
+     "point_id": "175a9271-46b8-5b3c-976e-5f42e72f8fce",
+     "crop_path": "data\\crops\\000000408163_32fbb555d7_person_005.jpg",
+     "score": 0.14285715
+    },
+    {
+     "rank": 16,
+     "point_id": "5732a628-a123-51de-a74d-9878537a2204",
+     "crop_path": "data\\crops\\000000003276_a1bd064562_person_001.jpg",
+     "score": 0.13095239
+    },
+    {
+     "rank": 17,
+     "point_id": "fca9eae9-28b2-5eb8-af70-b5d3aa2ef2f6",
+     "crop_path": "data\\crops\\000000135356_655d0aace0_person_001.jpg",
+     "score": 0.125
+    },
+    {
+     "rank": 18,
+     "point_id": "a0b02c5e-ee60-5ea3-b703-1dd155d11b79",
+     "crop_path": "data\\crops\\000000518844_1202347144_person_001.jpg",
+     "score": 0.11999999
+    },
+    {
+     "rank": 19,
+     "point_id": "e0e9e9b8-80c1-5102-bd06-bfae1f25c56d",
+     "crop_path": "data\\crops\\000000575743_9587286999_person_016.jpg",
+     "score": 0.11111111
+    },
+    {
+     "rank": 20,
+     "point_id": "ed6cb1bf-c0e5-5785-8a8c-505be806d638",
+     "crop_path": "data\\crops\\000000090570_5930103bf1_person_002.jpg",
+     "score": 0.11111111
+    }
+   ]
+  }
+ ]
+}

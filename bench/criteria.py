@@ -6,6 +6,9 @@ ADOPTION_RULES[stage] = [(지표, 연산자, 기준값, 설명)]. 기준값은 �
   search  mAP ≥ 기존 최선(88.07) AND pool_recall ≥ 90
   cluster 쌍 정밀도 ≥ 0.90 AND B³F1 ≥ 기존(0.851) AND 혼합 클러스터 ≤ 기존(138)
   e2e     mAP ≥ 운영(58.3) AND 검출 상한 ≥ 0.90
+  track   과병합 0 AND 스티칭 후 IDSW ≤ 전의 50 % (IDF1/HOTA "기존 −1%p" 는 첫 라벨 측정 뒤 절대값으로 채움)  — P6
+  object  쌍 AUC ≥ 0.90(잠정) AND 클러스터 쌍 정밀도 ≥ 0.90                                                — P6
+  qwen    P@10 ≥ +10 %p AND 오탈락률 ≤ 10 % AND 후보당 ≤ 30 s (2B)                                       — P6
 evaluate(entry) → {"status": pass|partial|fail|n/a, "checks": [...]} — 리더보드 색과 "채택" 버튼 활성화에 쓴다.
 
 adopt_yaml(entry, root, overwrite=False) → 만든 파일 경로(들). 검출기 → pipeline_tracking_<이름>.yaml (tracker/stitcher 는 pipeline_tracking.yaml 에서),
@@ -33,12 +36,18 @@ ADOPTION_RULES: Dict[str, List[Tuple[str, str, float, str]]] = {
     "cluster": [("pair_precision", ">=", 0.90, "쌍 정밀도 ≥ 0.90"), ("b3_f1", ">=", 0.851, "B³F1 ≥ 기존 0.851"),
                 ("mixed_clusters", "<=", 138, "혼합 클러스터 ≤ 기존 138")],
     "e2e": [("map", ">=", 58.3, "e2e mAP ≥ 운영 58.3"), ("det_ceiling", ">=", 0.90, "검출 상한 ≥ 0.90")],
+    # P6 — 사람 정답이 생기기 전에는 절대값을 둘 수 없는 지표(IDF1/HOTA "기존 −1%p", 객체 mAP)는 첫 라벨 측정 뒤 채운다.
+    "track": [("over_merges", "<=", 0, "과병합 0 (우선)"), ("idsw_ratio", "<=", 0.5, "스티칭 후 IDSW ≤ 전의 50 %")],
+    "object": [("pair_auc", ">=", 0.90, "쌍 AUC ≥ 0.90 (잠정)"), ("cluster_pair_precision", ">=", 0.90, "클러스터 쌍 정밀도 ≥ 0.90 (정밀 우선)")],
+    "qwen": [("p10_gain_pp", ">=", 10.0, "P@10 ≥ +10 %p"), ("false_drop_rate", "<=", 0.10, "오탈락률 ≤ 10 %"),
+             ("sec_per_candidate", "<=", 30.0, "2B ≤ 30 s/후보")],
 }
 
 # 리더보드 그래프의 (x = 제약 지표, y = 목적 지표)
 CHART_AXES: Dict[str, Tuple[str, str]] = {
     "detect": ("max_recall", "ap50"), "embed": ("rank1", "map"), "search": ("pool_recall", "map"),
     "cluster": ("pair_precision", "b3_f1"), "e2e": ("det_ceiling", "map"),
+    "track": ("over_merges", "idf1"), "object": ("cluster_pair_precision", "map"), "qwen": ("false_drop_rate", "p10_gain_pp"),
 }
 
 

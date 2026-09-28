@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>할 일 우선순위 맵</title>
+<meta name="description" content="TransReID 자동 벤치마크 — 2026-09-28 기준 남은 일을 우선순위·의존 순서로 정리한 맵">
+<style>
+:root{--bg:#f6f7f9;--panel:#ffffff;--line:#d9dde3;--ink:#1c1f24;--muted:#5c6470;--acc:#1e66f5;--p1:#b3261e;--p1bg:#fdecea;--p2:#b26a00;--p2bg:#fff4d6;--p3:#1a7f37;--p3bg:#e6f4ea;--code:#eef1f5;--human:#6b3fa0;--humanbg:#efe7fb}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#111418;--panel:#181c22;--line:#2b323c;--ink:#e6e8eb;--muted:#9aa3ad;--acc:#7aa7ff;--p1:#ff8a80;--p1bg:#3a1a18;--p2:#f0b64a;--p2bg:#332a12;--p3:#6fcf8a;--p3bg:#17301f;--code:#222831;--human:#c9a8f0;--humanbg:#2a1f3a}}
+:root[data-theme="dark"]{--bg:#111418;--panel:#181c22;--line:#2b323c;--ink:#e6e8eb;--muted:#9aa3ad;--acc:#7aa7ff;--p1:#ff8a80;--p1bg:#3a1a18;--p2:#f0b64a;--p2bg:#332a12;--p3:#6fcf8a;--p3bg:#17301f;--code:#222831;--human:#c9a8f0;--humanbg:#2a1f3a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Malgun Gothic","Segoe UI",system-ui,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:22px 16px 48px}
+h1{font-size:23px;margin:0 0 4px}.sub{color:var(--muted);margin-bottom:14px}
+h2{font-size:17px;margin:26px 0 10px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:13px}
+.flow{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;overflow:auto}
+.flow svg{display:block;min-width:760px;width:100%;height:auto}
+.lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.lane{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.lane h3{margin:0 0 8px;font-size:15px;display:flex;gap:8px;align-items:center}
+.badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:700}
+.b1{background:var(--p1bg);color:var(--p1)}.b2{background:var(--p2bg);color:var(--p2)}.b3{background:var(--p3bg);color:var(--p3)}.bh{background:var(--humanbg);color:var(--human)}
+.card{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;background:var(--bg)}
+.card .t{font-weight:700;margin-bottom:3px}.card .m{color:var(--muted);font-size:12.5px}
+.card .d{font-size:13.5px;margin-top:3px}
+.lane.l1 .card{border-left:4px solid var(--p1)}.lane.l2 .card{border-left:4px solid var(--p2)}.lane.l3 .card{border-left:4px solid var(--p3)}
+table{border-collapse:collapse;width:100%;background:var(--panel);font-size:13.5px}
+th,td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}th{background:var(--code)}
+pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow:auto;font-size:12.5px;margin:6px 0}
+@media (max-width:640px){table{font-size:12px}th,td{padding:5px 6px}}
+</style>
+</head>
+<body>
+<main>
+<h1>TransReID 자동 벤치마크 — 할 일 우선순위 맵</h1>
+<div class="sub">2026-09-28 기준 · <span class="badge b1">1순위 오늘</span> <span class="badge b2">2순위 라벨 뒤</span> <span class="badge b3">3순위 도구 보완</span> · <span class="badge bh">사람</span> = 사람 손이 필요한 일</div>
+
+<h2>의존 흐름</h2>
+<div class="flow">
+<svg viewBox="0 0 980 300" xmlns="http://www.w3.org/2000/svg" font-family="Malgun Gothic, Segoe UI, sans-serif" font-size="13">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8a94a3"/></marker></defs>
+  <g stroke="#8a94a3" stroke-width="1.6" fill="none" marker-end="url(#a)">
+    <path d="M150,60 L200,60"/>
+    <path d="M330,60 L380,60"/>
+    <path d="M510,60 L560,60"/>
+    <path d="M690,60 L740,60"/>
+    <path d="M820,84 L820,110"/>
+    <path d="M820,150 L820,176"/>
+    <path d="M760,196 L640,232"/>
+    <path d="M820,216 L820,232"/>
+    <path d="M880,196 L930,232"/>
+    <path d="M445,84 L445,110"/>
+  </g>
+  <g>
+    <rect x="20" y="36" width="130" height="48" rx="8" fill="#fdecea" stroke="#b3261e"/><text x="85" y="56" text-anchor="middle" fill="#1c1f24" font-weight="700">① git push</text><text x="85" y="74" text-anchor="middle" fill="#5c6470" font-size="11">5분</text>
+    <rect x="200" y="36" width="130" height="48" rx="8" fill="#fdecea" stroke="#b3261e"/><text x="265" y="56" text-anchor="middle" fill="#1c1f24" font-weight="700">② Qwen 배관 확인</text><text x="265" y="74" text-anchor="middle" fill="#5c6470" font-size="11">GPU 터미널 · 10분</text>
+    <rect x="380" y="36" width="130" height="48" rx="8" fill="#efe7fb" stroke="#6b3fa0"/><text x="445" y="56" text-anchor="middle" fill="#1c1f24" font-weight="700">③ 라벨링 (사람)</text><text x="445" y="74" text-anchor="middle" fill="#5c6470" font-size="11">추적 → 객체 → Qwen</text>
+    <rect x="380" y="110" width="130" height="40" rx="8" fill="#eef1f5" stroke="#8a94a3"/><text x="445" y="128" text-anchor="middle" fill="#1c1f24" font-size="12">시트 3종 이미 준비됨</text><text x="445" y="142" text-anchor="middle" fill="#5c6470" font-size="11">eval/gt/README.md</text>
+    <rect x="560" y="36" width="130" height="48" rx="8" fill="#fdecea" stroke="#b3261e"/><text x="625" y="56" text-anchor="middle" fill="#1c1f24" font-weight="700">④ eval 3종 실행</text><text x="625" y="74" text-anchor="middle" fill="#5c6470" font-size="11">GUI 평가 12·13·14</text>
+    <rect x="740" y="36" width="160" height="48" rx="8" fill="#fff4d6" stroke="#b26a00"/><text x="820" y="56" text-anchor="middle" fill="#1c1f24" font-weight="700">⑤ 기준표 §2·§3·§5·§6</text><text x="820" y="74" text-anchor="middle" fill="#5c6470" font-size="11">미측정 → 실측</text>
+    <rect x="740" y="110" width="160" height="40" rx="8" fill="#fff4d6" stroke="#b26a00"/><text x="820" y="134" text-anchor="middle" fill="#1c1f24" font-weight="700">⑥ 채택 기준 절대값 확정</text>
+    <rect x="740" y="176" width="160" height="40" rx="8" fill="#fff4d6" stroke="#b26a00"/><text x="820" y="200" text-anchor="middle" fill="#1c1f24" font-weight="700">⑦ 결정 3건</text>
+    <rect x="520" y="232" width="240" height="44" rx="8" fill="#fff4d6" stroke="#b26a00"/><text x="640" y="250" text-anchor="middle" fill="#1c1f24" font-weight="700">스티처 512창 단절 보완 여부</text><text x="640" y="266" text-anchor="middle" fill="#5c6470" font-size="11">run.py track --tracking-config 로 비교</text>
+    <rect x="770" y="232" width="100" height="44" rx="8" fill="#fff4d6" stroke="#b26a00"/><text x="820" y="250" text-anchor="middle" fill="#1c1f24" font-weight="700">검색 가중치</text><text x="820" y="266" text-anchor="middle" fill="#5c6470" font-size="11">pipeline_best</text>
+    <rect x="880" y="232" width="95" height="44" rx="8" fill="#fff4d6" stroke="#b26a00"/><text x="927" y="250" text-anchor="middle" fill="#1c1f24" font-weight="700">Qwen 모드</text><text x="927" y="266" text-anchor="middle" fill="#5c6470" font-size="11">flag / filter</text>
+  </g>
+</svg>
+</div>
+
+<h2>우선순위별 카드</h2>
+<div class="lanes">
+<div class="lane l1"><h3><span class="badge b1">1순위</span> 오늘 (도구는 끝났고 손만 대면 됨)</h3>
+ <div class="card"><div class="t">① git push</div><div class="m">5분 · 사람</div><div class="d">P0~P7 은 커밋·병합 완료, P6 파일 60개(11 MB) 추가 커밋 후 <code>git push origin main</code>. 명령은 이전 메시지에 있음. <code>git add .</code> 금지(outputs/ 18만 파일).</div></div>
+ <div class="card"><div class="t">② Qwen 배관 확인</div><div class="m">10분 · 사람 (GPU 터미널)</div><div class="d">이 세션 프로세스에는 GPU 가 안 잡혀 데모가 죽었음. GPU 가 보이는 터미널에서 1쿼리·5후보로 확인:<pre>.\.venv\Scripts\python.exe eval\qwen_verify_eval.py eval --allow-unlabeled --max-queries 1 --top-k 5 --name demo --no-ledger</pre>후보당 20~30 s 면 정상. 실패하면 로그 <code>eval/results/qwen_verify/demo/qwen/q01.log</code> 를 보내 주세요.</div></div>
+ <div class="card"><div class="t">③ 라벨링 — 추적 시트 3편부터 <span class="badge bh">사람</span></div><div class="m">1~2시간 · 구간 116 (person 80)</div><div class="d"><code>eval/gt/tracks/{048,289,100}/sheet.html</code> 를 브라우저에서 열고 gt_id 확인 → <b>labels.json 내려받기</b> → 같은 폴더에 저장. 같은 사람이 창마다 다른 L 번호로 나뉜 것(SUSHI 512 프레임 창)을 같은 gt_id 로 묶는 게 핵심.</div></div>
+ <div class="card"><div class="t">③ 라벨링 — 객체 쌍 75 <span class="badge bh">사람</span></div><div class="m">30분</div><div class="d"><code>eval/gt/object_pairs/sheet.html</code> · 같은 개체인지만(같음/다름/모름). 출처 태그에 끌리지 말 것.</div></div>
+ <div class="card"><div class="t">③ 라벨링 — Qwen 600 판정 <span class="badge bh">사람</span></div><div class="m">2~3시간 (나눠서 가능)</div><div class="d"><code>eval/gt/qwen/sheet.html</code> · 후보가 쿼리 설명에 맞는 사람인지(맞다/아니다/모름). 쿼리 문장이 영상과 안 맞으면 <code>eval/gt/qwen_queries.json</code> 을 고치고 시트를 다시 만들어도 됨(GUI 14단계 sheet).</div></div>
+ <div class="card"><div class="t">④ eval 3종 실행 → 원장</div><div class="m">추적·객체 각 1분, Qwen 4~5시간 GPU(분할 가능)</div><div class="d">GUI 평가 12·13·14 의 명령을 <code>eval</code> 로 바꿔 실행. Qwen 은 <code>--max-queries 5</code> 씩 나눠 돌려도 캐시로 이어짐. 결과는 벤치마크 탭 stage track/object/qwen 에 나타남.</div></div>
+</div>
+<div class="lane l2"><h3><span class="badge b2">2순위</span> 라벨 결과가 나온 뒤</h3>
+ <div class="card"><div class="t">⑤ 기준표 채우기</div><div class="m">30분 · 도구</div><div class="d">§2 추적, §3·§5 객체, §6 Qwen 의 "도구 준비" 를 실측값으로 교체(원장에서 자동 추출). 요청 주시면 제가 반영.</div></div>
+ <div class="card"><div class="t">⑥ 채택 기준 절대값 확정</div><div class="m">10분 · 도구</div><div class="d">첫 실측을 "기존" 으로 삼아 <code>bench/criteria.py</code> 에 IDF1/HOTA(−1 %p), 객체 mAP 기준을 넣음. 이후 새 추적기·객체 임베더는 자동 판정.</div></div>
+ <div class="card"><div class="t">⑦-a 스티처 512 창 단절 보완 여부</div><div class="m">반나절 · 도구</div><div class="d">라벨 후 after 의 splits/IDSW 가 크면 SUSHI 창 경계 연결(후처리 스티치) 또는 다른 스티처를 <code>bench/run.py track --tracking-config</code> 로 같은 정답에 비교.</div></div>
+ <div class="card"><div class="t">⑦-b 검색 가중치 채택 결정</div><div class="m">5분 · 사람</div><div class="d"><code>pipeline_best.yaml</code>(solider→none@1000, mAP 89.36 vs 운영 88.9). 이득이 작아 운영 유지도 합리적. Leiden 추천값은 정밀도 미달 → 거부 유지.</div></div>
+ <div class="card"><div class="t">⑦-c Qwen 모드·임계 결정</div><div class="m">1시간 · 도구</div><div class="d">본 실행 결과로 flag vs filter, threshold 를 <code>--rescore</code>(Qwen 재호출 없이) 로 스윕해 P@10 +10 %p · 오탈락 ≤10 % 를 만족하는 값 선택.</div></div>
+</div>
+<div class="lane l3"><h3><span class="badge b3">3순위</span> 도구 보완 (급하지 않음)</h3>
+ <div class="card"><div class="t">임베더 교체 시 운영 DB 적재 자동화</div><div class="m">1일 · 도구</div><div class="d">지금은 단독 Re-ID 평가까지 자동, <code>ingest/build_db.py</code> 새 prefix 적재는 수동. 등록기에 소규모 적재 단계 추가.</div></div>
+ <div class="card"><div class="t">검출기 드롭다운 중복 제거 개선</div><div class="m">반나절</div><div class="d">같은 class 변형(yolo26s 등)은 경로 지정해야 함 → 라벨을 파일명으로 바꾸면 해결.</div></div>
+ <div class="card"><div class="t">클러스터 조합 공정 비교 재실행</div><div class="m">2시간 GPU</div><div class="d"><code>bench/combos.py cluster --refine-trials 20</code> 로 벡터별 미세조정 후 순위(현재는 solider 외 벡터가 불리).</div></div>
+ <div class="card"><div class="t">yolo26s 전체 프레임 벤치</div><div class="m">10분 GPU</div><div class="d"><code>bench/run.py detect --config pipeline_tracking_yolo26s.yaml --limit 0</code> → 원장 순위를 같은 GT 크기로 비교.</div></div>
+ <div class="card"><div class="t">Astra 지적 중 남긴 한계</div><div class="m">반나절</div><div class="d">클러스터 벡터 캐시에 DB build id 없음, e2e gallery=test 혼합 프로토콜, 통합 검색 eval 모델 3개 고정.</div></div>
+ <div class="card"><div class="t">저장소 정리</div><div class="m">30분 · 사람</div><div class="d"><code>github_upload/</code>(별도 .git, 이제 불필요), 루트 <code>.bak</code>·로그·임시 json 삭제 여부, <code>outputs/</code> 를 .gitignore 에 넣을지 결정.</div></div>
+</div>
+</div>
+
+<h2>한 줄 판단</h2>
+<table>
+<tr><th>지금 당장</th><td>① push → ② Qwen 배관 확인 → ③ 추적 시트 라벨링 시작. 도구 쪽은 라벨이 들어오기 전까지 할 일이 없음.</td></tr>
+<tr><th>막히면</th><td>Qwen 이 GPU 에서도 죽으면 로그를, 시트가 안 열리면 브라우저 이름을 알려 주세요. 라벨 중 애매한 사례는 "모름" 으로 두면 평가에서 제외됩니다.</td></tr>
+<tr><th>끝나는 조건</th><td>기준표 §0 의 "도구 준비" 4칸이 실측으로 바뀌고, 벤치마크 탭에 track/object/qwen 행이 채택 기준 색으로 보이면 로드맵 P0~P7 전부 종료.</td></tr>
+</table>
+</main>
+</body>
+</html>

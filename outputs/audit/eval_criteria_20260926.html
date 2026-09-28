@@ -1,0 +1,265 @@
+<title>TransReID 정량 평가 기준표</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f6f7f5; --panel:#ffffff; --ink:#1b2420; --muted:#5b6862; --rule:#d7ddd9; --rule-soft:#e8ece9;
+  --accent:#0f6e56; --accent-soft:#e2f1ec; --warn:#a85a0c; --warn-soft:#f8ecdc; --crit:#a33b2f; --crit-soft:#f7e3df;
+  --good:#1f7a4d; --good-soft:#dff2e6; --code:#eef1ef;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0f1613; --panel:#161f1b; --ink:#e4eae6; --muted:#9aa8a1; --rule:#2d3934; --rule-soft:#232d29;
+    --accent:#5fd0a8; --accent-soft:#173129; --warn:#e0a25a; --warn-soft:#33270f; --crit:#e2857a; --crit-soft:#3a1d19;
+    --good:#7bd39e; --good-soft:#163425; --code:#1e2a25;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0f1613; --panel:#161f1b; --ink:#e4eae6; --muted:#9aa8a1; --rule:#2d3934; --rule-soft:#232d29;
+  --accent:#5fd0a8; --accent-soft:#173129; --warn:#e0a25a; --warn-soft:#33270f; --crit:#e2857a; --crit-soft:#3a1d19;
+  --good:#7bd39e; --good-soft:#163425; --code:#1e2a25;
+}
+body{background:var(--ground);color:var(--ink);font-family:"IBM Plex Sans KR","Malgun Gothic",system-ui,sans-serif;font-size:15px;line-height:1.6;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1120px;margin:0 auto}
+header{padding-block:40px 20px;border-bottom:2px solid var(--accent)}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+h1{font-size:30px;line-height:1.2;margin:6px 0 10px;text-wrap:balance;font-weight:700}
+.lede{color:var(--muted);max-width:68ch;margin:0}
+nav{display:flex;flex-wrap:wrap;gap:8px;padding-block:14px;border-bottom:1px solid var(--rule)}
+nav a{font-size:13px;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--rule);padding:4px 10px;border-radius:999px}
+nav a:hover,nav a:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+h2{font-size:21px;margin:40px 0 6px;font-weight:700;text-wrap:balance}
+h2 .num{color:var(--accent);font-family:"IBM Plex Mono",monospace;font-weight:500;margin-right:8px}
+h3{font-size:16px;margin:22px 0 6px;font-weight:600}
+p{margin:6px 0}
+.note{color:var(--muted);font-size:14px;max-width:80ch}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:1px 9px;border-radius:999px;white-space:nowrap;line-height:1.6}
+.pill.done{background:var(--good-soft);color:var(--good)}
+.pill.part{background:var(--warn-soft);color:var(--warn)}
+.pill.todo{background:var(--crit-soft);color:var(--crit)}
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--rule);border-radius:6px;margin:10px 0 4px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--rule-soft);vertical-align:top;text-align:left}
+th{background:var(--accent-soft);color:var(--ink);font-weight:600;white-space:nowrap;position:sticky;top:0}
+tbody tr:last-child td{border-bottom:none}
+td.n{text-align:right;white-space:nowrap}
+td.best{font-weight:700;color:var(--accent)}
+code{font-family:"IBM Plex Mono",Consolas,monospace;font-size:12.5px;background:var(--code);padding:1px 5px;border-radius:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:10px}
+.stat{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:12px 14px}
+.stat .k{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+.stat .s{font-size:12.5px;color:var(--muted)}
+ul{margin:6px 0 6px 20px;padding:0}
+li{margin:3px 0}
+.rule{border:none;border-top:1px solid var(--rule);margin:28px 0 0}
+footer{color:var(--muted);font-size:12.5px;margin-top:36px}
+@media (max-width:600px){h1{font-size:24px}table{font-size:12.5px}th,td{padding:6px 8px}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Forensic Visual Retrieval · 모듈 교체·조합 분석</div>
+  <h1>TransReID 정량 평가 기준표</h1>
+  <p class="lede">검출 → 추적·스티칭 → 임베딩 → 클러스터링 → 검색 → 후처리 각 단계에서 <strong>무엇을, 어떤 정답으로, 어떤 도구로</strong> 재고, 모델·알고리즘을 <strong>바꿔도 되는지</strong>를 어떤 숫자로 판정하는지 정리한 표. 현재값은 전부 이 프로젝트에서 실제로 측정한 값이다 (2026-09-26 기준).</p>
+</header>
+
+<nav>
+  <a href="#rules">판정 원칙</a><a href="#detect">1 검출</a><a href="#track">2 추적·스티칭</a><a href="#embed">3 임베딩</a>
+  <a href="#search">4 통합 검색</a><a href="#cluster">5 클러스터링</a><a href="#post">6 후처리</a><a href="#perf">7 속도</a><a href="#status">현황 요약</a><a href="#howto">측정 명령</a>
+</nav>
+
+<section id="status">
+<h2><span class="num">0</span>단계별 측정 현황</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>단계</th><th>교체 가능 (GUI)</th><th>정답(GT) 데이터</th><th>측정 도구</th><th>상태</th></tr></thead>
+<tbody>
+<tr><td>1 검출</td><td>RF-DETR / YOLO26 (드롭다운)</td><td>PRW annotations 사람 박스 (test 6,112 프레임)</td><td><code>eval/detect_eval_prw.py</code></td><td><span class="pill done">측정됨</span> 6,112 프레임 전체 (09-26), YOLO26m 미채택</td></tr>
+<tr><td>2 추적·스티칭</td><td>BoT-SORT / Deep-OC-SORT · SUSHI (yaml)</td><td>준정답 시트 3편 (P6, 라벨링 대기)</td><td><code>eval/track_gt_eval.py</code> (IDF1/HOTA/IDSW)</td><td><span class="pill part">도구 준비 — 라벨 후 측정</span></td></tr>
+<tr><td>3 임베딩 (사람)</td><td>SigLIP2 / IRRA / SOLIDER (yaml, 검색 탭 드롭다운)</td><td>PRW query_box 2,057 / gallery GT crop 19,127</td><td><code>eval/prw_eval.py</code></td><td><span class="pill done">측정됨</span></td></tr>
+<tr><td>3 임베딩 (객체)</td><td>SigLIP2 / DINOv2</td><td>객체 트랙 쌍 75 (P6, 라벨링 대기)</td><td><code>eval/object_pair_eval.py</code> (mAP · 쌍 AUC)</td><td><span class="pill part">도구 준비 — 라벨 후 측정</span></td></tr>
+<tr><td>4 통합 검색 (이미지)</td><td>1차 조합 + 2차 재정렬 (검색 탭 드롭다운)</td><td>PRW GT (위와 동일)</td><td><code>eval/prw_eval_unified.py</code> (단독) · <code>eval/prw_e2e_search_eval.py</code> (전체)</td><td><span class="pill done">측정됨</span> 단독 + 전체 §4b</td></tr>
+<tr><td>4 통합 검색 (영상)</td><td>벡터 선택 (검색 탭 드롭다운)</td><td>없음 (30 쿼리 다양성 지표만)</td><td><code>eval/run_clustering_dup_eval.ps1</code></td><td><span class="pill part">다양성만</span></td></tr>
+<tr><td>5 클러스터링 (사람)</td><td>Leiden / DBSCAN v6 / 커스텀 (4b 드롭다운)</td><td>PRW GT 인물 ID (30,919점 / 933명)</td><td><code>eval/prw_cluster_gt_eval.py</code>, <code>eval/cluster_ablation_prw.py</code></td><td><span class="pill done">측정됨</span> 재현성까지</td></tr>
+<tr><td>5 클러스터링 (객체)</td><td>Leiden (DINOv2)</td><td>같은 쌍 정답 (P6)</td><td><code>eval/object_pair_eval.py</code> (클러스터 쌍 정밀도/재현율)</td><td><span class="pill part">도구 준비 — 라벨 후 측정</span></td></tr>
+<tr><td>6 Qwen 후처리</td><td>Qwen3-VL 2B / 4B</td><td>30 쿼리 × 20 후보 시트 (P6, 라벨링 대기)</td><td><code>eval/qwen_verify_eval.py</code> (P@K 전·후, 오탈락률)</td><td><span class="pill part">도구 준비 — 라벨 후 측정</span></td></tr>
+</tbody></table></div>
+</section>
+
+<section id="rules">
+<h2><span class="num">R</span>판정 원칙 — 모델·알고리즘을 바꿀 때 공통으로 적용</h2>
+<ul>
+<li><strong>같은 데이터, 같은 정답, 같은 스크립트</strong>로 잰 값끼리만 비교한다. 프레임 수·소스 필터·임계값이 다르면 표에 같이 적지 않는다.</li>
+<li><strong>정밀도와 재현율은 항상 같이</strong> 적는다. 오병합(정밀도↓)과 과분할(재현율↓)은 맞바꿈 관계라 한쪽만 좋아진 결과는 개선이 아니다. 노이즈 비율 단독 보고 금지.</li>
+<li><strong>개선 폭이 재현성 잡음보다 커야</strong> 한다. Leiden 은 seed 를 바꿔도 쌍 F1 변동 ≤ 0.002 (seed 42/1/777 실측) → 클러스터링은 Δ ≥ 0.01 부터 유의미로 본다. 검출은 300 프레임 값이 아니라 test 전체 6,112 프레임 값으로 판정한다.</li>
+<li><strong>운영 동작점을 명시</strong>한다. 검출 임계값(운영 0.5 / 영상 0.2), 클러스터 임계값(0.97), 후보 수(200) 를 바꾼 비교는 "설정 변경"이지 "모델 교체"가 아니다.</li>
+<li><strong>속도는 제약 조건</strong>이다. 정확도가 같으면 빠른 쪽, 정확도가 낮으면 속도로 만회하지 않는다 (제약: 검출 ≥ 10 fps@1080p, 검색 1건 ≤ 3 s 모델 로드 제외).</li>
+<li>결과 파일에는 사용한 조합을 <code>pipeline</code>/<code>models</code>(검색), <code>detector</code>(검출 checkpoint), <code>plugin</code>(클러스터 report) 필드로 남긴다 — 표의 숫자는 그 파일에서 나온 것이어야 한다.</li>
+</ul>
+</section>
+
+<section id="detect">
+<h2><span class="num">1</span>검출 (Detection)</h2>
+<p class="note">정답: PRW <code>annotations/*.jpg.mat</code> 의 모든 사람 박스 (pid −2 미표기 보행자 포함). 매칭: confidence 내림차순 greedy, IoU ≥ 0.5. 현재값은 <strong>test 6,112 프레임 전체 (GT 25,062 박스)</strong>, 2026-09-26 재측정. 동작점은 세 방법 모두 <strong>임계값 0.5</strong> 로 통일.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>지표</th><th>정의</th><th class="n">YOLO26m (imgsz 640)</th><th class="n">RF-DETR Medium</th><th class="n">운영 DB (RF-DETR, thr 0.5, h≥75)</th><th>채택 기준 (신규 검출기)</th><th>YOLO26m 판정</th></tr></thead>
+<tbody>
+<tr><td>AP@0.5</td><td>IoU 0.5 에서 PR 곡선 아래 면적 (all-point)</td><td class="n">0.876</td><td class="n">0.876</td><td class="n">0.810 (곡선 잘림)</td><td>기존 − 0.01 이상</td><td><span class="pill done">✓</span> 동률 (−0.0001)</td></tr>
+<tr><td>AP@[.5:.95]</td><td>IoU 0.50~0.95 10단계 평균 (박스 정밀도)</td><td class="n">0.537</td><td class="n">0.537</td><td class="n">0.511</td><td>기존 이상</td><td><span class="pill done">✓</span> 동률 (−0.0003, 잡음 이내)</td></tr>
+<tr><td>최대 재현율</td><td>임계값 없이 잡을 수 있는 GT 비율 (검색 재현율의 상한)</td><td class="n">0.947</td><td class="n best">0.954</td><td class="n">0.841</td><td>≥ 0.90</td><td><span class="pill done">✓</span> 기존 −0.007</td></tr>
+<tr><td>정밀도 / 재현율 / F1 @0.5</td><td>공통 운영 임계값 0.5 동작점</td><td class="n best">0.851 / 0.818 / 0.834</td><td class="n">0.785 / 0.865 / 0.823</td><td class="n">0.874 / 0.841 / 0.857</td><td>같은 임계값에서 F1 기존 이상</td><td><span class="pill done">✓</span> F1 +0.011</td></tr>
+<tr><td>FP 유형 @0.5</td><td>중복(같은 GT 에 두 박스) / 배경 오검출</td><td class="n best">33 / 3,557</td><td class="n">48 / 5,884</td><td class="n">42 / 3,003</td><td>중복 FP 비율 ≤ 5 %</td><td><span class="pill done">✓</span> 0.1 %</td></tr>
+<tr><td>FN @0.5</td><td>놓친 GT 박스 수</td><td class="n">4,551</td><td class="n best">3,385</td><td class="n">3,975</td><td>—</td><td><span class="pill todo">✗</span> +1,166</td></tr>
+<tr><td>높이별 재현율 75–119 px @0.5</td><td>crop 최소 높이(75) 바로 위 구간 — 작은 사람 (GT 5,327)</td><td class="n">0.559</td><td class="n best">0.660</td><td class="n">0.581</td><td>기존 이상 (작은 사람 손실 금지)</td><td><span class="pill todo">✗</span> −0.101</td></tr>
+<tr><td>높이별 재현율 120–199 / 200+ px @0.5</td><td>중·대형 (GT 9,539 / 9,923)</td><td class="n">0.815 / 0.974</td><td class="n best">0.864 / 0.983</td><td class="n">0.863 / 0.983</td><td>기존 − 0.02 이상</td><td><span class="pill todo">✗</span> −0.049 / −0.009</td></tr>
+<tr><td>속도</td><td>프레임당 평균 지연 / FPS (RTX 5090, fp16, 6,112 프레임)</td><td class="n best">25.6 ms / 39.1</td><td class="n">64.1 ms / 15.6</td><td class="n">—</td><td>≥ 10 fps</td><td><span class="pill done">✓</span> 2.5×</td></tr>
+</tbody></table></div>
+<p class="note"><strong>판정: YOLO26m 미채택 — 운영 검출기 RF-DETR Medium 유지.</strong> 300 프레임에서 보였던 AP 우위(0.871 vs 0.859)는 전체 프레임에서 사라져 동률. 같은 임계값 0.5 에서 YOLO26m 은 정밀도가 높지만(0.851 vs 0.785) 작은 사람(75–119 px, DB 에 들어가는 crop 최소 높이 구간) 재현율이 0.10, 중형이 0.05 낮아 놓친 GT 박스가 1,166개 더 많다. 속도는 2.5배 빨라 영상 경로처럼 처리량이 우선인 곳의 대안. 임계값을 검출기별로 맞추면 동급(YOLO 0.4: P 0.800 / R 0.859 ≈ RF-DETR 0.5: P 0.785 / R 0.865; RF-DETR 0.6 ≈ YOLO 0.5) → 검출기별 운영 임계값은 P3 탐색 대상. 객체 클래스(가방·차량 등)는 PRW 에 GT 가 없어 <strong>사람만</strong> 평가. 파일: <code>eval/results/detect_prw/detect_eval_prw.html</code>(임계값별 곡선), <code>op050/</code>(0.5 공통 동작점), <code>t300_report/</code>(300 프레임 값), 원장 <code>bench/ledger.jsonl</code>.</p>
+<p class="note"><strong>검출기별 운영 임계값 (P3 스윕, 2026-09-28):</strong> recall ≥ 0.85 제약 아래 F1 최대 — YOLO26m <strong>0.42</strong> (P 0.812 / R 0.852 / F1 0.831, 배경 FP 4,868) ≈ RF-DETR-M <strong>0.54</strong> (P 0.811 / R 0.851 / F1 0.831, 배경 FP 4,930). 같은 재현율 제약에서는 두 검출기가 동급이고, 운영값 0.2 는 둘 다 배경 FP 가 과다(F1 0.60 · 0.76). <code>bench/studies/detect_*/report.md</code>, 추천 yaml 은 <code>recommended.yaml</code>.</p>
+</section>
+
+<section id="track">
+<h2><span class="num">2</span>추적 · 스티칭 (Tracking · Stitching)</h2>
+<p class="note">현재 GT 가 없어 <strong>미측정</strong>. 트랙 품질 리포트(<code>build_track_quality_report</code> 계열)는 길이·단절 통계만 있고 정답 대조가 없다. 아래는 채택 전에 갖춰야 할 지표와 정답 확보 방안.</p>
+<p class="note p6"><strong>P6 (09-28) 도구 준비</strong>: <code>eval/track_gt_eval.py sheet</code> 가 영상별 준정답 시트(<code>eval/gt/tracks/&lt;영상&gt;/sheet.html</code>, 썸네일 내장)를 만들고 <code>eval</code> 이 labels.json 으로 raw(추적기 id)/before(구간)/after(긴 트랙)의 IDF1·HOTA·MOTA·IDSW·단절·갈라짐·과병합을 낸다 (원장 stage=track). 시트 3편(048·289·100: 구간 116, 긴 트랙 77 중 person 54) 라벨링 대기. <strong>실측 주의</strong>: 추적기 id 는 시간이 지나면 재사용되고(한 id 가 5 명), SUSHI 는 512 프레임 창을 독립 처리해 같은 사람이 창마다 다른 긴 트랙 id 를 받는다 (048 영상의 정지 박스 하나가 L1·L8·L18·L28) — 라벨이 붙으면 after 의 <code>splits</code>/IDSW 로 정량화된다. pseudo(스티처 = 정답 가정) 실행: raw IDF1 0.585 / before 0.931 / after 0.998, IDSW 96 / 105 / 0.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>지표</th><th>정의</th><th>정답 확보 방안</th><th>채택 기준</th></tr></thead>
+<tbody>
+<tr><td>IDF1</td><td>같은 사람에게 같은 ID 를 얼마나 일관되게 붙였나 (ID 기준 F1)</td><td rowspan="4">① 보유 영상 3~5편에서 사람 트랙 30~50개를 수동 검수해 준정답(ID·프레임 구간) 작성, 또는 ② MOT17/MOT20 공개셋에서 BoT-SORT vs Deep-OC-SORT 비교(검출은 공개 검출 사용)</td><td>기존 − 1 %p 이상</td></tr>
+<tr><td>HOTA</td><td>검출 정확도와 연관(association) 정확도의 기하평균</td><td>기존 이상</td></tr>
+<tr><td>ID switch 수</td><td>한 사람의 ID 가 바뀐 횟수 (스티칭 전/후)</td><td>스티칭 후 ≤ 스티칭 전의 50 %</td></tr>
+<tr><td>트랙 단절 / 과병합</td><td>한 사람이 여러 트랙으로 갈라진 수 / 서로 다른 사람이 한 트랙에 섞인 수</td><td>과병합 0 우선 (포렌식은 오병합이 치명적)</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="embed">
+<h2><span class="num">3</span>임베딩 (Re-ID / 검색 벡터)</h2>
+<p class="note">정답: PRW test 프레임 GT 박스 crop 19,127 장을 gallery, <code>query_box</code> 2,057 장(933명)을 query 로 하는 Re-ID 프로토콜. 같은 프레임·같은 pid 는 junk 로 제외. 도구 <code>eval/prw_eval.py --model {siglip2|irra|solider}</code>.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>모델</th><th>차원</th><th>텍스트 쿼리</th><th class="n">mAP (%)</th><th class="n">Rank-1</th><th class="n">Rank-5</th><th class="n">Rank-10</th><th>역할</th></tr></thead>
+<tbody>
+<tr><td>SOLIDER (Swin-B, Market1501)</td><td class="n">1024</td><td>불가</td><td class="n best">89.06</td><td class="n best">97.08</td><td class="n best">98.69</td><td class="n best">98.98</td><td>사람 identity 기준 벡터 (2차 재정렬 · 클러스터링 · 영상 검색)</td></tr>
+<tr><td>IRRA (ViT-B/16)</td><td class="n">512</td><td>가능</td><td class="n">58.59</td><td class="n">91.54</td><td class="n">96.50</td><td class="n">97.42</td><td>자연어 → 사람, 1차 후보</td></tr>
+<tr><td>SigLIP2 (base, 256 patch)</td><td class="n">768</td><td>가능</td><td class="n">12.38</td><td class="n">58.77</td><td class="n">73.12</td><td class="n">78.56</td><td>자연어 → 사람/객체 (속성 위주, identity 약함)</td></tr>
+<tr><td>DINOv2 (g14, registers)</td><td class="n">1536</td><td>불가</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td>객체 identity — P6 쌍 정답 라벨링 대기 (아래 주)</td></tr>
+</table>
+<p class="note p6"><strong>P6 (09-28) 도구 준비</strong>: <code>eval/object_pair_eval.py sheet</code> 가 운영 DB 객체 트랙 2,233개에서 쌍 75개(클러스터 안 40 · 최근접-다른 클러스터 25 · 무작위 10)를 제안한 시트 <code>eval/gt/object_pairs/sheet.html</code> 을 만들고, <code>eval --vector dinov2|siglip2</code> 가 같음 쌍으로 identity 그룹을 만들어 검색 mAP/R1·쌍 AUC·최적 임계값·운영 클러스터의 쌍 정밀도/재현율을 낸다 (원장 stage=object). 라벨링 대기. pseudo(클러스터 쌍 = 같음 가정) 실행: mAP 81.0 (라벨 갤러리 90.4), 쌍 AUC 0.74, 최적 임계 0.739 — 운영 0.97 과 차이가 커서 라벨 후 재확인 필요.</p>
+<table style="display:none">
+</tbody></table></div>
+<h3>채택 기준 (새 임베더)</h3>
+<ul>
+<li>이미지 쿼리용(사람): PRW mAP ≥ 89.1 이면 SOLIDER 대체 후보, 80 이상이면 조합 후보. 그 미만은 채택하지 않는다.</li>
+<li>텍스트 쿼리용: <code>supports_text: true</code> 이고 PRW mAP ≥ 58.6 (IRRA) 이면 1차 후보 교체 검토. SigLIP2 수준(12.4)은 속성 검색 보조로만 쓴다.</li>
+<li>차원이 다르면 새 <code>collection_prefix</code> 로 별도 적재 후 비교한다 (기존 컬렉션과 named vector 차원 충돌).</li>
+<li>객체 임베더는 정답이 없으므로 채택 전 소규모 객체 identity 세트(같은 물건 재출현 50쌍 이상) 라벨링이 선행돼야 한다.</li>
+</ul>
+</section>
+
+<section id="search">
+<h2><span class="num">4</span>통합 검색 (1차 후보 조합 + 2차 재정렬)</h2>
+<p class="note">같은 PRW GT 프로토콜을 GUI 검색 경로(Qdrant RRF → 재정렬)로 재현. 핵심 추가 지표는 <strong>pool recall</strong> — 1차 후보(기본 200) 안에 정답이 들어 있는 비율. 이것이 낮으면 2차 재정렬이 아무리 좋아도 mAP 가 오르지 않는다. 도구 <code>eval/prw_eval_unified.py</code>.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>조합 (GUI 드롭다운으로 선택 가능)</th><th class="n">mAP (%)</th><th class="n">Rank-1</th><th class="n">Rank-10</th><th class="n">pool recall (%)</th><th class="n">정답 전부 후보 안 (%)</th><th>비고</th></tr></thead>
+<tbody>
+<tr><td>SigLIP2 + IRRA (RRF) → SOLIDER 재정렬 <em>(운영 기본)</em></td><td class="n">71.20</td><td class="n">96.79</td><td class="n">98.88</td><td class="n">73.3</td><td class="n">12.3</td><td>1차 후보에서 정답 27 % 가 빠짐</td></tr>
+<tr><td>SOLIDER 단독 (전체 순위)</td><td class="n best">89.06</td><td class="n best">97.08</td><td class="n">98.98</td><td class="n">100</td><td class="n">100</td><td>후보 제한 없음 = 상한</td></tr>
+<tr><td>SigLIP2 + IRRA + SOLIDER (RRF) → SOLIDER 재정렬</td><td class="n">88.07</td><td class="n">97.08</td><td class="n">98.98</td><td class="n">93.5</td><td class="n">54.8</td><td>운영 후보 수(200) 안에서 최선</td></tr>
+<tr><td>IRRA 단독 후보 → SOLIDER 재정렬</td><td class="n">74.82</td><td class="n">96.84</td><td class="n">98.88</td><td class="n">77.4</td><td class="n">16.2</td><td>SigLIP2 를 빼면 오히려 상승</td></tr>
+<tr><td>SigLIP2 단독 후보 → SOLIDER 재정렬</td><td class="n">25.52</td><td class="n">92.81</td><td class="n">94.65</td><td class="n">26.0</td><td class="n">0.2</td><td>identity 후보로 부적합</td></tr>
+<tr><td>SigLIP2 + IRRA (RRF), 재정렬 없음</td><td class="n">46.07</td><td class="n">91.01</td><td class="n">97.13</td><td class="n">73.3</td><td class="n">12.3</td><td>재정렬 효과 = +25 mAP</td></tr>
+<tr><td>운영 조합, 후보 1000</td><td class="n">82.52</td><td class="n">96.99</td><td class="n">99.03</td><td class="n">87.6</td><td class="n">33.5</td><td>후보 수만 늘려도 +11 mAP</td></tr>
+</tbody></table></div>
+<p class="note"><strong>조합 탐색 (P4, 2026-09-28) — 검색:</strong> 임베더 부분집합 × 재정렬 × 후보 수 50조합을 tune 분할로 전부 채점(feasible 30, pool_recall ≥ 90). 운영 조합 <code>siglip2+irra→solider@200</code> 은 34위 (mAP 67.46, holdout 68.50); 1위 <code>solider→none@1000</code> mAP 89.36 (holdout 88.91); 상위 3개 미세조정 후 최종 추천 <code>solider→none@1000</code> (grid) mAP 89.36, holdout 88.91. 추천 가중치로 만든 <code>pipeline_best.yaml</code>(가중치만 변경, 로더 검증)은 <code>search_grid_20260928T120139/</code>. <code>leaderboard.md</code> 참고.</p>
+<h3>4b. 전체 파이프라인 검색 (운영 DB 의 검출 crop, e2e, 2026-09-28)</h3>
+<p class="note">단독 평가(위 표, GT crop 입력)와 달리 실제 파이프라인이 만든 운영 DB(RF-DETR 검출 → crop 필터 → 임베딩 → Qdrant 43,343 point)를 GUI 와 같은 검색 경로로 PRW query_box 로 검색하고 point→pid IoU≥0.5 매칭으로 채점 (<code>eval/prw_e2e_search_eval.py</code>, K=200, gallery = test 프레임). <strong>mAP</strong> 는 GT 박스 수가 분모(검출 손실 포함), <strong>mAP(db)</strong> 는 DB 에 들어간 point 수가 분모(검색만). 검출 상한 = 검출이 DB 에 넣은 GT 비율.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>조합</th><th class="n">mAP (%)</th><th class="n">mAP(db)</th><th class="n">Rank-1</th><th class="n">Rank-10</th><th class="n">recall@K</th><th class="n">검출 상한</th><th class="n">distractor</th><th class="n">s/쿼리</th><th class="n">쿼리</th><th>run_id</th></tr></thead>
+<tbody>
+<tr><td>SigLIP2+IRRA → SOLIDER (운영 기본)</td><td class="n">58.32</td><td class="n">63.26</td><td class="n">92.00</td><td class="n">98.00</td><td class="n">61.62</td><td class="n">0.908</td><td class="n">0.39</td><td class="n">0.59</td><td class="n">500</td><td><code>e2e_20260928T114923_df20</code></td></tr>
+<tr><td>SOLIDER 단독 (재정렬 없음)</td><td class="n">54.28</td><td class="n">59.04</td><td class="n">89.20</td><td class="n">96.40</td><td class="n">59.89</td><td class="n">0.908</td><td class="n">0.56</td><td class="n">0.19</td><td class="n">500</td><td><code>e2e_20260928T115123_6bdd</code></td></tr>
+<tr><td>운영 기본, 50쿼리 스모크</td><td class="n">58.51</td><td class="n">61.33</td><td class="n">94.00</td><td class="n">96.00</td><td class="n">62.68</td><td class="n">0.926</td><td class="n">0.37</td><td class="n">1.86</td><td class="n">50</td><td><code>e2e_20260928T111341_f5b3</code></td></tr>
+</tbody></table></div>
+<p class="note">읽는 법: 단독 88.1(3-RRF+SOLIDER)·89.1(SOLIDER) 과 전체 파이프라인의 차이는 (1) 검출·crop 필터가 놓친 사람(검출 상한 &lt; 1), (2) 후보 200 안에 train 프레임·다른 source 의 distractor 가 섞여 정답이 밀려나는 것, (3) 후보 단계 pool recall. 채택 판정은 이 표(전체)와 위 표(단독)를 함께 본다 — 단독만 오르고 전체가 안 오르면 후보·검출 쪽 문제. 500 쿼리는 2,057 개에서 고르게 뽑은 부분집합(1.9 s/쿼리라 전체는 약 1시간; <code>bench/run.py e2e</code> 로 전체 실행 가능). 원장 stage=e2e.</p>
+<h3>채택 기준 (조합 변경)</h3>
+<ul>
+<li>mAP 상승 <strong>그리고</strong> pool recall ≥ 90 % (후보 단계에서 정답을 잃지 않을 것). Rank-1 은 이미 97 % 근처라 판정 기준으로 쓰지 않는다.</li>
+<li>영상 검색(track 그룹)은 정답이 없다. 현재 쓸 수 있는 지표는 <strong>Top-10 안의 서로 다른 그룹 수</strong>(30 쿼리 평균): 기본 2.5 → 클러스터 묶기 7.7 — 중복 억제 효과만 보여 주며 정답성은 말하지 않는다. 채택 판정에는 트랙 준정답(§2)이 필요하다.</li>
+</ul>
+</section>
+
+<section id="cluster">
+<h2><span class="num">5</span>클러스터링 (Person grouping)</h2>
+<p class="note"><strong>Leiden 탐색 (P3, 2026-09-28):</strong> tune 분할 30 trial (43k 점, trial당 ~2분) — pair_precision ≥ 0.90 제약 아래 B³F1 운영값 0.884 → 추천 <strong>0.936</strong> (knn 33 · threshold 0.950 · resolution 1.47 · mutual off · 최대 500). holdout 에서는 0.876 → 0.898 (+0.022, 잡음 0.002 초과, 부호 일치)이지만 <strong>쌍 정밀도가 0.959 → 0.840 으로 떨어져 제약이 깨지고 혼합 클러스터 28 → 69</strong> → 그대로 채택하지 않음(정밀 우선 원칙). 다음: 제약을 0.93 이상으로 올리거나 정밀도를 목적에 넣어 재탐색. <code>bench/studies/cluster_leiden_tune_*/report.md</code>.</p>
+<p class="note"><strong>조합 탐색 (P4, 2026-09-28) — 클러스터:</strong> 벡터 × 알고리즘 4조합(Leiden 탐색값 적용): leiden@solider 0.936, dbscan_v6@solider 0.784, leiden@irra 0.087, leiden@siglip2 0.185(NG). 운영 <code>leiden@solider</code> 가 1위(holdout 0.898); IRRA·SigLIP2 벡터는 Leiden 임계값(SOLIDER cosine 스케일)이 맞지 않아 벡터별 미세조정(<code>--refine-trials</code>) 없이는 불리 — 격자 비교는 미세조정과 함께 읽어야 한다. <code>cluster_grid_20260928T120142/leaderboard.md</code>.</p>
+<p class="note">정답: PRW 검출 43,343점 중 GT 인물 ID 가 붙은 30,919점(933명, IoU ≥ 0.5 매칭, pid −2 제외). 쌍 지표는 노이즈를 단독 클러스터로 본 값(재현율에 노이즈 손실 반영). 벡터는 SOLIDER, 이웃은 메모리 정확 kNN k=30 상호. 도구 <code>eval/prw_cluster_gt_eval.py --method 이름=assignments.jsonl</code>.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>방법 · 설정</th><th class="n">쌍 정밀도 (오병합↓)</th><th class="n">쌍 재현율 (과분할↓)</th><th class="n">쌍 F1</th><th class="n">B³ F1</th><th class="n">purity</th><th class="n">혼합 클러스터 수</th><th class="n">갈라진 인물 수</th><th class="n">노이즈 %</th></tr></thead>
+<tbody>
+<tr><td>Leiden thr 0.97 <em>(운영 기본, 정밀 우선)</em></td><td class="n best">0.921</td><td class="n">0.748</td><td class="n best">0.825</td><td class="n">0.851</td><td class="n">0.949</td><td class="n best">138</td><td class="n">413</td><td class="n">7.1</td></tr>
+<tr><td>Leiden thr 0.96 (균형)</td><td class="n">0.823</td><td class="n">0.799</td><td class="n">0.811</td><td class="n best">0.861</td><td class="n">0.888</td><td class="n">177</td><td class="n">345</td><td class="n">3.6</td></tr>
+<tr><td>Leiden thr 0.95 (재현 우선)</td><td class="n">0.671</td><td class="n best">0.815</td><td class="n">0.736</td><td class="n">0.821</td><td class="n">0.793</td><td class="n">197</td><td class="n best">294</td><td class="n">1.9</td></tr>
+<tr><td>DBSCAN v6 (eps 0.12, 결합 벡터)</td><td class="n">0.926</td><td class="n">0.361</td><td class="n">0.519</td><td class="n">0.754</td><td class="n">0.951</td><td class="n">356</td><td class="n">615</td><td class="n">0.4</td></tr>
+<tr><td>Leiden thr 0.95, HNSW 근사 이웃 <em>(이전 운영)</em></td><td class="n">0.648</td><td class="n">0.494</td><td class="n">0.561</td><td class="n">0.649</td><td class="n">0.806</td><td class="n">184</td><td class="n">247</td><td class="n">27.6</td></tr>
+</tbody></table></div>
+<div class="grid">
+  <div class="stat"><div class="k">재현성 (seed 42 / 1 / 777)</div><div class="v">Δ쌍 F1 ≤ 0.002</div><div class="s">0.8254 / 0.8235 / 0.8254 — 다른 사람이 돌려도 같은 결론</div></div>
+  <div class="stat"><div class="k">알고리즘 효과 (같은 벡터)</div><div class="v">Leiden &gt; DBSCAN</div><div class="s">B³ F1 0.862 vs 0.765; DBSCAN 은 eps 무관 쌍 재현율 ≤ 0.37 (greedy 배정 한계)</div></div>
+  <div class="stat"><div class="k">벡터 효과 (같은 알고리즘)</div><div class="v">SOLIDER 단독 &gt; 결합</div><div class="s">결합 벡터 cosine 의 78 % 가 SOLIDER, 나머지는 잡음 (B³ F1 −0.04)</div></div>
+  <div class="stat"><div class="k">이웃 검색 효과</div><div class="v">정확 kNN 필수</div><div class="s">HNSW+필터는 이웃 70 % 만 반환 → 노이즈 30 %, 쌍 F1 0.56→0.74</div></div>
+</div>
+<h3>채택 기준 (새 클러스터링 알고리즘 · 4b 플러그인)</h3>
+<ul>
+<li>같은 벡터(SOLIDER)·같은 점 집합에서 <strong>B³ F1 ≥ 0.85</strong> 이고 <strong>혼합 클러스터 수가 기존(138) 을 넘지 않을 것</strong> — 오병합이 늘어난 "개선"은 채택하지 않는다.</li>
+<li>쌍 정밀도 ≥ 0.90 을 유지한 채 쌍 재현율이 오르면 채택. 정밀도를 내주고 재현율을 얻는 결과는 임계값 조정으로 이미 가능하므로 알고리즘 교체 근거가 되지 않는다.</li>
+<li>노이즈 비율은 참고치. 노이즈만 줄어들고 혼합 클러스터가 늘면 나쁜 결과다.</li>
+<li>객체 클러스터링(DINOv2, thr 0.90)은 정답이 없어 임계값 근거가 없다 — §3 의 객체 identity 세트가 생기면 같은 표로 잰다.</li>
+</ul>
+</section>
+
+<section id="post">
+<h2><span class="num">6</span>Qwen 후처리 (재순위 · 검증)</h2>
+<p class="note">정확도 GT 없음 — <strong>미측정</strong>. 실측된 것은 속도뿐: 텍스트 검증 약 26 s/후보, crop 검증 약 35 s/후보 (Qwen3-VL-2B, 로드 17 s 별도).</p>
+<p class="note p6"><strong>P6 (09-28) 도구 준비</strong>: <code>eval/qwen_verify_eval.py sheet</code> 가 <code>eval/gt/qwen_queries.json</code> 의 자연어 30 쿼리를 GUI 경로로 검색해 상위 20 후보(600)를 GUI 가 Qwen 에 넘기는 형식 그대로 저장하고 판정 시트 <code>eval/gt/qwen/sheet.html</code> 을 만든다. <code>eval</code> 은 후보마다 <code>verifiers/qwen_stage.py</code> 를 별도 프로세스로 돌려(캐시) P@5/10/20 전·후, 오탈락률, UNKNOWN 비율, 후보당 초를 낸다 (원장 stage=qwen). 라벨링 대기. 600 후보 ≈ 4~5 시간(2B) → <code>--max-queries</code> 분할 + <code>--rescore</code>.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>지표</th><th>정의</th><th>정답 확보 방안</th><th>채택 기준</th></tr></thead>
+<tbody>
+<tr><td>Precision@K 변화</td><td>검증 전/후 상위 K 후보 중 실제 정답 비율</td><td>자연어 쿼리 30개 × 상위 20 후보를 사람이 정답/오답 표기 (600 판정)</td><td>P@10 이 검증 전보다 ≥ 10 %p 상승</td></tr>
+<tr><td>오탈락률</td><td>검증이 FAIL 로 판정한 것 중 실제 정답 비율</td><td>위와 동일</td><td>≤ 10 % (포렌식: 정답을 버리는 쪽이 더 위험)</td></tr>
+<tr><td>UNKNOWN 비율</td><td>판정 불능(저해상도 등) 비율</td><td>—</td><td>보고만 (모델 교체 시 비교)</td></tr>
+<tr><td>처리 시간 / 후보</td><td>후보 1건당 검증 시간</td><td>—</td><td>2B ≤ 30 s, 4B ≤ 60 s</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="perf">
+<h2><span class="num">7</span>속도 · 규모 (실측, RTX 5090)</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>단계</th><th>측정값</th><th>조건</th></tr></thead>
+<tbody>
+<tr><td>검출 (이미지)</td><td>YOLO26m 48.8 fps (20.5 ms) · RF-DETR-M 12.5 fps (80.1 ms)</td><td>PRW 1080p, fp16, 검출만 (crop 저장 제외)</td></tr>
+<tr><td>임베딩 4종 로드</td><td>약 50 s</td><td>SigLIP2 + IRRA + SOLIDER + DINOv2 첫 로드 (검색 첫 실행 지연의 원인)</td></tr>
+<tr><td>사진 1장 → crop → 검색</td><td>14 crop 137 s (로드 포함), crop 당 약 1.7 s</td><td><code>search/image_search.py</code></td></tr>
+<tr><td>클러스터링 43k 점</td><td>벡터 수집 30 s + 정확 kNN 12 s + Leiden 7 s</td><td>SOLIDER 1024-d, gRPC 스크롤, GPU kNN</td></tr>
+<tr><td>클러스터링 3k 점 (플러그인 driver)</td><td>Leiden 11 s · DBSCAN v6 3.5 s (+결합 벡터 수집 14 s)</td><td>같은 벡터 캐시 재사용</td></tr>
+<tr><td>Qwen 검증</td><td>26 s/후보 (텍스트), 35 s/후보 (crop)</td><td>Qwen3-VL-2B-Instruct</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="howto">
+<h2><span class="num">H</span>측정 명령 (프로젝트 루트, <code>.venv</code>)</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>단계</th><th>명령</th><th>산출물</th></tr></thead>
+<tbody>
+<tr><td>검출 (검출기 교체 비교)</td><td><code>python eval/detect_eval_prw.py --mode run --name yolo26m_test --detector-config pipeline_tracking_yolo26.yaml --split test --no-score</code> (RF-DETR 는 <code>pipeline_tracking.yaml</code>, 운영 DB 는 <code>--mode import-qdrant --name prod_db_test</code>) → <code>--mode score --method yolo26m_test=… rfdetr_medium_test=… prod_db_test=… [--operating-threshold 0.5]</code> (GUI 평가 3단계)</td><td><code>eval/results/detect_prw/detect_eval_prw.html</code>, <code>summary.csv</code>, <code>op050/</code></td></tr>
+<tr><td>러너 · verify · 검사</td><td><code>python bench/run.py detect|embed|search|cluster|e2e …</code> → <code>bench/runs/</code> + 원장 · <code>python bench/run.py verify &lt;run_id&gt;</code> 재현 판정 · <code>python bench/check.py --instantiate --db</code> 계약·DB 지문 (GUI 평가 5~8단계)</td><td><code>bench/runs/</code>, <code>bench/ledger.jsonl</code></td></tr>
+<tr><td>러너 · verify · 검사</td><td><code>python bench/run.py detect|embed|search|cluster|e2e …</code> → <code>bench/runs/</code> + 원장 · <code>python bench/run.py verify &lt;run_id&gt;</code> 재현 판정 · <code>python bench/check.py --instantiate --db</code> 계약·DB 지문 (GUI 평가 5~8단계)</td><td><code>bench/runs/</code>, <code>bench/ledger.jsonl</code></td></tr>
+<tr><td>원장 (모든 단계)</td><td>위 스크립트 4개가 자동 기록 (<code>--no-ledger</code> 로 끔). <code>python bench/ledger.py table --stage detect --latest</code> · <code>list --stage cluster</code> · <code>import</code> (기존 산출물 이관, GUI 평가 4단계)</td><td><code>bench/ledger.jsonl</code></td></tr>
+<tr><td>임베딩 단독</td><td><code>python eval/prw_eval.py --model solider --data-root ./data/PRW --save-result eval/results/embedding_solider.json</code> (또는 <code>eval/run_embedding_eval.ps1</code>)</td><td><code>eval/results/embedding_summary.csv</code></td></tr>
+<tr><td>통합 검색 조합</td><td><code>eval/run_unified_eval.ps1</code> (모델별 <code>--only-embed</code> 후 조합 평가)</td><td><code>eval/results/unified_eval.csv</code>, <code>unified_eval_report.md</code></td></tr>
+<tr><td>클러스터링 (알고리즘 교체)</td><td><code>python clustering/cluster_qdrant.py --target person --sources prw_image --method dbscan_v6 --vector-cache outputs/clustering/cache/plugin --output-dir outputs/clustering/plugin_image_prw</code><br>→ <code>python eval/prw_cluster_gt_eval.py --method Leiden=…/person_leiden_assignments.jsonl --method DBSCAN=…/person_dbscan_v6_assignments.jsonl</code></td><td><code>eval/results/cluster_gt_prw*/summary.csv</code>, <code>cluster_gt_prw.html</code></td></tr>
+<tr><td>클러스터링 재현성</td><td>같은 설정을 <code>--seed</code> 만 바꿔 3회 → 위 GT 평가에 <code>--method seed42=… --method seed1=…</code></td><td><code>eval/results/repro_check/report/summary.csv</code></td></tr>
+<tr><td>영상 검색 다양성</td><td><code>eval/run_clustering_dup_eval.ps1</code> → <code>eval/summarize_clustering_dup.ps1</code></td><td><code>eval/results/clustering_dup_summary.csv</code></td></tr>
+</tbody></table></div>
+</section>
+
+<hr class="rule">
+<footer>출처: <code>eval/results/</code> 의 detect_prw · embedding_summary · unified_eval · cluster_gt_prw_exact · cluster_ablation_prw · repro_check · clustering_dup_summary (2026-09-20 ~ 26 측정). 설계 배경: <code>outputs/audit/eval_framework_design_20260921.md</code>.</footer>
+</div>

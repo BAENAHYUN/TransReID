@@ -230,7 +230,7 @@ curl http://localhost:6333
 # GUI 파이프라인 정의 로드 (창 없이)
 $env:PYTHONIOENCODING='utf-8'
 .\.venv\Scripts\python.exe -c "from gui import pipeline_page as pp; print([(g['id'], len(g['stages'])) for g in pp.load_registry()])"
-# 기대 출력: [('video_pipeline', 6), ('image_pipeline', 11), ('evaluation', 11)]
+# 기대 출력: [('video_pipeline', 6), ('image_pipeline', 11), ('evaluation', 14)]
 
 # 단위 테스트 (Qdrant·네트워크 불필요, 약 20초)
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
@@ -435,6 +435,15 @@ GPU 메모리가 부족하면 `--workers 1` 로 낮추세요.
 # 새 모델 등록 — 어댑터 1개(또는 기존 어댑터 + 다른 가중치) → 계약 검사 → yaml → 단계 벤치 → 원장 순위 (GUI 평가 11단계, bench\REGISTER_GUIDE.md)
 .\.venv\Scripts\python.exe bench\register.py detector --name yolo26s --module detect.detectors.yolo26_detector --class YOLO26Detector --param weights=yolo26s.pt --limit 300
 .\.venv\Scripts\python.exe bench\register.py template embedder --name myemb --dim 768        # 어댑터 스켈레톤 생성
+
+# 사람 정답 3종 (P6, GUI 평가 12~14단계; 라벨 가이드 eval\gt\README.md) — sheet 로 시트를 만들고 브라우저에서 라벨 → labels.json → eval
+.\.venv\Scripts\python.exe eval\track_gt_eval.py sheet --videos Normal_Videos_048_x264 Normal_Videos_289_x264 Normal_Videos_100_x264   # 추적 준정답 시트
+.\.venv\Scripts\python.exe eval\track_gt_eval.py eval --name botsort_sushi                    # IDF1/HOTA/IDSW/과병합 (raw·before·after) → 원장 stage=track
+.\.venv\Scripts\python.exe eval\object_pair_eval.py sheet                                     # 객체 트랙 쌍 시트 (Qdrant)
+.\.venv\Scripts\python.exe eval\object_pair_eval.py eval --vector dinov2                      # 객체 임베더 mAP·쌍 AUC·클러스터 일치 → stage=object
+.\.venv\Scripts\python.exe eval\qwen_verify_eval.py sheet                                     # 자연어 30 쿼리 × 20 후보 판정 시트
+.\.venv\Scripts\python.exe eval\qwen_verify_eval.py eval --max-queries 5                      # Qwen 후처리 P@K 전·후·오탈락률 (캐시, --rescore) → stage=qwen
+.\.venv\Scripts\python.exe bench\run.py track --tracking-config pipeline_tracking_yolo26.yaml   # GT 영상을 다른 추적 yaml 로 재추적해 같은 정답으로 비교
 ```
 
 기준표(`outputs/audit/eval_criteria_20260926.md`)의 현재값은 원장에서 다시 뽑힌다. 러너·원장·검사·분할의 스키마와 사용법은 `bench/README.md`.
@@ -499,7 +508,8 @@ search/                       unified_search_4mode.py (통합 검색 CLI: crop /
                               image_search.py (사진 1장 → crop → 검색), query_translate.py (한→영), duplicate_grouping.py (Hybrid-C 중복 collapse)
 verifiers/                    qwen_stage.py / qwen_crop_stage.py (Qwen 재순위·검증), search_text_video.py
 report/                       build_image_db_html.py, build_leiden_gallery.py, build_leiden_gallery_track.py, build_image_review_index.py, inline_gallery_html.py
-eval/                         prw_eval.py, prw_eval_unified.py, prw_cluster_gt_eval.py, detect_eval_prw.py, cluster_ablation_prw.py, run_*.ps1
+eval/                         prw_eval.py, prw_eval_unified.py, prw_cluster_gt_eval.py, detect_eval_prw.py, prw_e2e_search_eval.py, cluster_ablation_prw.py, run_*.ps1
+                              track_gt_eval.py / object_pair_eval.py / qwen_verify_eval.py (P6 사람 정답 시트 + 평가), gt_sheet.py (시트 공용), gt/ (정답·시트·라벨 가이드)
 bench/                        자동 벤치마크 도구: ledger.py (실행 원장 — 평가 4종이 자동 기록, table/list/import) + ledger.jsonl (원장, git 추적); README.md
 tests/                        unittest 스위트
 third_party/SOLIDER, third_party/SUSHI, IRRA/     서드파티 모델 코드

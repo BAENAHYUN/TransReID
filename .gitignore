@@ -13,3 +13,5 @@ bench/cache/
 bench/studies/
 bench/combos/
 .venv/
+eval/gt/object_pairs/tracks_*.npz
+eval/results/qwen_verify/*/qwen/

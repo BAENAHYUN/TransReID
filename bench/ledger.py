@@ -55,7 +55,7 @@ if str(PROJECT_ROOT) not in sys.path:
 SCHEMA_VERSION = 1
 DEFAULT_LEDGER = PROJECT_ROOT / "bench" / "ledger.jsonl"
 # e2e = 전체 파이프라인(검출→crop→임베딩→DB→검색) 평가. 나머지는 단독 평가(고정 GT 입력).
-STAGES = ("detect", "embed", "search", "cluster", "e2e")
+STAGES = ("detect", "track", "embed", "search", "cluster", "e2e", "object", "qwen")
 
 # 단계별 표(기준표) 기본 열 — metrics 의 표준 이름
 METRIC_KEYS: Dict[str, List[str]] = {
@@ -66,6 +66,11 @@ METRIC_KEYS: Dict[str, List[str]] = {
     "cluster": ["pair_precision", "pair_recall", "pair_f1", "b3_precision", "b3_recall", "b3_f1", "purity",
                 "mixed_clusters", "pids_split", "noise_ratio"],
     "e2e": ["map", "map_db", "rank1", "rank5", "rank10", "recall_at_k", "det_ceiling", "distractor_ratio", "sec_per_query"],
+    "track": ["idf1", "hota", "deta", "assa", "mota", "idsw", "fragments", "splits", "over_merges", "idf1_before", "idsw_before", "idsw_ratio"],
+    "object": ["map", "rank1", "map_labeled", "pair_auc", "pair_f1", "pair_threshold", "pair_acc_at_threshold", "cluster_pair_precision",
+               "cluster_pair_recall", "queries", "pairs_same", "pairs_diff"],
+    "qwen": ["p10_before", "p10_after", "p10_gain_pp", "p5_before", "p5_after", "p20_before", "p20_after", "false_drop_rate", "unknown_ratio",
+             "sec_per_candidate", "queries", "candidates"],
 }
 
 # verify 허용 오차 (지표 이름 → 절대 오차). 없는 지표는 비교하지 않는다(정보용: fps, sec …).
@@ -77,6 +82,10 @@ VERIFY_TOLERANCES: Dict[str, Dict[str, float]] = {
     "cluster": {"pair_precision": 0.005, "pair_recall": 0.005, "pair_f1": 0.005, "b3_precision": 0.005, "b3_recall": 0.005,
                 "b3_f1": 0.005, "purity": 0.005, "noise_ratio": 0.005},
     "e2e": {"map": 0.1, "map_db": 0.1, "rank1": 0.2, "rank5": 0.2, "rank10": 0.2, "recall_at_k": 0.2, "det_ceiling": 0.001},
+    "track": {"idf1": 0.005, "hota": 0.005, "mota": 0.005, "idsw": 0, "over_merges": 0, "splits": 0},
+    "object": {"map": 0.1, "rank1": 0.2, "map_labeled": 0.1, "pair_auc": 0.005, "pair_f1": 0.005, "cluster_pair_precision": 0.005},
+    # Qwen 생성은 완전 결정적이지 않다 → 검증 전 P@K 만 엄격, 검증 후·오탈락은 느슨하게
+    "qwen": {"p10_before": 0.01, "p10_after": 5.0, "false_drop_rate": 0.1, "unknown_ratio": 0.1},
 }
 
 _BUCKET_KEYS = {"<50": "recall_h_lt50", "50–74": "recall_h50_74", "75–119": "recall_h75_119",
@@ -209,7 +218,7 @@ def _dumps(value: Any, **kw: Any) -> str:
     return json.dumps(value, ensure_ascii=False, default=_json_default, **kw)
 
 
-TIMING_METRICS = frozenset({"fps", "latency_ms_mean", "latency_ms_p50", "sec", "sec_per_query", "cluster_sec", "elapsed_sec",
+TIMING_METRICS = frozenset({"fps", "latency_ms_mean", "latency_ms_p50", "sec", "sec_per_query", "cluster_sec", "elapsed_sec", "sec_per_candidate", "wall_sec_per_candidate",
                             "load_sec", "search_sec"})
 
 
@@ -557,6 +566,47 @@ def entry_from_e2e_result(out: Dict[str, Any], report: Any = None, command: Opti
                       config=config, report=report, command=command, created_at=out.get("generated_at"), env=env)
 
 
+
+# ---------------------------------------------------------------- P6 정답(사람 라벨) 평가 3종
+def _p6_entry(stage: str, out: Dict[str, Any], component: Dict[str, Any], params: Dict[str, Any], gt_extra: Dict[str, Any],
+              report: Any, command: Optional[Sequence[str]], versions: Optional[Dict[str, Any]], env: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    m = out.get("metrics") or {}
+    gt = dict(out.get("gt") or {})
+    gt.update(gt_extra)
+    timing = {k: m[k] for k in ("elapsed_sec", "sec_per_candidate", "wall_sec_per_candidate") if m.get(k) is not None}
+    return make_entry(stage, out.get("producer") or stage, str(out.get("name")), component=component, params=params, gt=gt, metrics=m,
+                      timing=timing, versions=versions, report=report, command=command, created_at=out.get("generated_at"), env=env,
+                      note="pseudo GT" if out.get("pseudo_gt") else None)
+
+
+def entry_from_track_result(out: Dict[str, Any], report: Any = None, command: Optional[Sequence[str]] = None,
+                            env: Optional[Dict[str, Any]] = None, versions: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """track_gt_eval 의 결과 dict → 엔트리 (stage=track: 추적기 before / 스티처 after, metrics 는 after + *_before)."""
+    cfg = out.get("config") or {}
+    component = {"pipeline": "detect→track→stitch", "tracking_config": cfg.get("tracking_config"), "pred_file": cfg.get("pred_file"),
+                 "processed_root": cfg.get("processed_root")}
+    params = {"videos": cfg.get("videos"), "iou": cfg.get("iou")}
+    return _p6_entry("track", out, component, params, {"dataset": "semi-GT tracks"}, report, command, versions, env)
+
+
+def entry_from_object_result(out: Dict[str, Any], report: Any = None, command: Optional[Sequence[str]] = None,
+                             env: Optional[Dict[str, Any]] = None, versions: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """object_pair_eval 의 결과 dict → 엔트리 (stage=object: 객체 트랙 벡터의 검색 mAP·쌍 AUC·클러스터 일치)."""
+    cfg = out.get("config") or {}
+    component = {"vector": cfg.get("vector"), "collection": cfg.get("collection")}
+    params = {"threshold": cfg.get("threshold"), "assignments": cfg.get("assignments")}
+    return _p6_entry("object", out, component, params, {"dataset": "object pairs"}, report, command, versions, env)
+
+
+def entry_from_qwen_result(out: Dict[str, Any], report: Any = None, command: Optional[Sequence[str]] = None,
+                           env: Optional[Dict[str, Any]] = None, versions: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """qwen_verify_eval 의 결과 dict → 엔트리 (stage=qwen: P@K 전/후, 오탈락률, UNKNOWN, 후보당 초)."""
+    cfg = out.get("config") or {}
+    component = {"model_id": cfg.get("model_id"), "reranker": cfg.get("reranker_used"), "verify_mode": cfg.get("verify_mode")}
+    params = {k: cfg.get(k) for k in ("top_k", "alpha", "threshold", "no_reranker", "rescore")}
+    return _p6_entry("qwen", out, component, params, {"dataset": "qwen judgements"}, report, command, versions, env)
+
+
 # ---------------------------------------------------------------- 이관
 def _load_json(path: Path) -> Optional[Dict[str, Any]]:
     try:
@@ -607,6 +657,13 @@ def collect_results(results_dir: Any, log: Callable[[str], Any] = print) -> List
         if d and d.get("metrics") and d.get("name"):
             entries.append(entry_from_e2e_result(d, report=p, env=imported(p)))
             log(f"[import] e2e     {p} → 1")
+    for fname, builder, tag in (("track_eval.json", entry_from_track_result, "track"), ("object_pair_eval.json", entry_from_object_result, "object"),
+                                ("qwen_verify_eval.json", entry_from_qwen_result, "qwen")):
+        for p in sorted(root.rglob(fname)):
+            d = _load_json(p)
+            if d and d.get("metrics") and d.get("name") and not d.get("pseudo_gt") and not d.get("unlabeled_only"):
+                entries.append(builder(d, report=p, env=imported(p)))
+                log(f"[import] {tag:<7} {p} → 1")
     return entries
 
 

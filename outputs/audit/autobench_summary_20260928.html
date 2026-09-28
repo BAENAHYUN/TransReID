@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>자동 벤치마크 경과 요약</title>
+<meta name="description" content="TransReID 자동 벤치마크 도구 개발 경과 (2026-09-26 → 09-28): P0~P7 완료, P6 정답 라벨링 대기">
+<style>
+:root{--bg:#f6f7f9;--panel:#ffffff;--line:#d9dde3;--ink:#1c1f24;--muted:#5c6470;--acc:#1e66f5;--ok:#1a7f37;--okbg:#e6f4ea;--warn:#b26a00;--warnbg:#fff4d6;--bad:#b3261e;--code:#eef1f5}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#111418;--panel:#181c22;--line:#2b323c;--ink:#e6e8eb;--muted:#9aa3ad;--acc:#7aa7ff;--ok:#6fcf8a;--okbg:#17301f;--warn:#f0b64a;--warnbg:#332a12;--bad:#ff8a80;--code:#222831}}
+:root[data-theme="dark"]{--bg:#111418;--panel:#181c22;--line:#2b323c;--ink:#e6e8eb;--muted:#9aa3ad;--acc:#7aa7ff;--ok:#6fcf8a;--okbg:#17301f;--warn:#f0b64a;--warnbg:#332a12;--bad:#ff8a80;--code:#222831}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Malgun Gothic","Segoe UI",system-ui,sans-serif}
+main{max-width:1080px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:24px;margin:0 0 6px}h2{font-size:18px;margin:28px 0 10px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.sub{color:var(--muted);margin-bottom:14px}
+.lead{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:8px;padding:12px 14px}
+table{border-collapse:collapse;width:100%;background:var(--panel);font-size:14px;margin:8px 0 12px}
+th,td{border:1px solid var(--line);padding:7px 9px;vertical-align:top;text-align:left}th{background:var(--code)}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:13px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow:auto;font-size:12.5px;line-height:1.45}
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600}
+.done{background:var(--okbg);color:var(--ok)}.wait{background:var(--warnbg);color:var(--warn)}
+ol li,ul li{margin:4px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.card b{display:block;margin-bottom:4px}
+@media (max-width:640px){table{font-size:12.5px}th,td{padding:5px 6px}}
+</style>
+</head>
+<body>
+<main>
+<h1>TransReID 자동 벤치마크 도구 — 개발 경과 요약</h1>
+<div class="sub">2026-09-26 → 09-28 · 로드맵 P0~P7 완료 <span class="pill done">도구 완료</span> · P6 정답 라벨링 <span class="pill wait">사람 대기</span></div>
+
+<div class="lead">"AI 모델을 정량으로 비교하고, 자유롭게 갈아 끼우고, 하이퍼파라미터를 자동으로 찾고, 남이 재현할 수 있고, 새 모델이 오면 최적 조합을 다시 찾는" 도구를 3일에 걸쳐 만들었다. 남은 것은 사람 손이 필요한 정답 라벨링(P6) 하나이며, 그 라벨을 읽는 시트와 평가 스크립트는 이미 준비돼 있다. 테스트 350개 통과.</div>
+
+<h2>요구 → 답</h2>
+<table>
+<tr><th>요구</th><th>답</th><th>어디서</th></tr>
+<tr><td>정량 비교</td><td>검출·임베딩·검색·클러스터링·전체 파이프라인(e2e) 5단계는 GT 로 측정되어 원장에 쌓이고, 추적·객체·Qwen 3단계는 정답 시트가 준비됨</td><td><code>bench/ledger.jsonl</code>, GUI 벤치마크 탭</td></tr>
+<tr><td>자유 교체</td><td>검출기·클러스터러·임베더는 yaml 블록 하나(module/class/params)로 교체. 새 모델 등록은 명령 1줄</td><td><code>bench/register.py</code>, 드롭다운(pipeline*.yaml)</td></tr>
+<tr><td>하이퍼파라미터 자동</td><td>Optuna(TPE) + 격자 조합 탐색. tune 으로 찾고 holdout 으로 검증</td><td><code>bench/optimize.py</code>, <code>bench/combos.py</code></td></tr>
+<tr><td>재현</td><td>원장 행마다 git·yaml·가중치 sha·하드웨어·명령이 남고 <code>verify</code> 가 같은 설정으로 재실행해 허용 오차 판정</td><td><code>bench/run.py verify</code></td></tr>
+<tr><td>새 모델 → 최적 조합</td><td>등록 → 계약 검사 → 단계 벤치 → 원장 순위 → 조합 탐색</td><td><code>register.py</code> → <code>combos.py</code></td></tr>
+</table>
+
+<h2>단계별 경과</h2>
+<table>
+<tr><th>단계</th><th>한 일</th><th>결과 (실측)</th></tr>
+<tr><td><b>P0</b> 검출 재측정</td><td>PRW test 6,112 프레임 전체로 YOLO26m vs RF-DETR-M vs 운영 DB 검출</td><td>AP@0.5 0.876 동률. YOLO26m 은 임계 0.5 에서 작은 사람 재현율 −0.10 → <b>미채택</b> (속도 2.5× 는 참고)</td></tr>
+<tr><td><b>P1</b> 실행 원장</td><td>모든 평가 결과를 한 JSONL 에 append-only 기록 (run_id·fingerprint·component·params·GT·metrics·timing·버전·git·yaml sha·명령)</td><td>기존 결과 이관, 평가 스크립트 자동 기록, GUI 평가 4단계</td></tr>
+<tr><td><b>P2</b> 러너·검사·분할·e2e</td><td><code>run.py</code>(한 명령 → 실행 폴더 + 원장, verify) · <code>check.py</code>(플러그인 계약 + DB 임베딩 지문) · <code>splits.py</code>(pid 단위 tune 135 / holdout 315) · <code>prw_e2e_search_eval.py</code>(운영 DB 전체 파이프라인)</td><td>외부 검토 4개 보완점 반영, Codex Astra 리뷰 수정. e2e 운영 조합 mAP 58.3 / R1 92.0 / 검출 상한 0.908</td></tr>
+<tr><td><b>P3</b> 탐색</td><td>Optuna 검색·클러스터 스터디, 검출 임계값 스윕, 제약·Pareto·tune/holdout</td><td>검색: 3-RRF+SOLIDER 재발견 (tune 89.4 / holdout 88.9 vs 70.6). 검출: YOLO 0.42 ≈ RF-DETR 0.54 (F1 0.831). Leiden 추천값은 holdout 쌍 정밀도 0.84 &lt; 0.90 → <b>거부</b></td></tr>
+<tr><td><b>P4</b> 조합</td><td>임베더 부분집합×재정렬×후보 수(50) / 벡터×클러스터러 격자 → 리더보드 → 상위 미세조정 → <code>pipeline_best.yaml</code></td><td>운영 검색 조합 34/50위, 최선 <code>solider→none@1000</code> mAP 89.36 (holdout 88.91). 클러스터: 운영 leiden@solider 1위</td></tr>
+<tr><td><b>P5</b> GUI</td><td>벤치마크 탭(원장 리더보드·채택 기준 색·상세·verify·그래프·PR 곡선) + "채택 → yaml"</td><td>채택 기준 = 기준표 운영값(<code>bench/criteria.py</code>)</td></tr>
+<tr><td><b>P7</b> 등록기</td><td>어댑터 스켈레톤 → 계약 검사(정적 + 실제 생성) → yaml 등록(원본 불변) → 단계 벤치 → 원장 순위</td><td>YOLO26-small 을 코드 수정 없이 등록: AP@0.5 0.874, 원장 5/10</td></tr>
+<tr><td><b>P6</b> 사람 정답</td><td>정답 시트 3종(HTML, 썸네일 내장, 자동 저장 → labels.json) + 평가 3종 + 원장/러너/GUI 연결</td><td>시트 준비: 추적 3편(구간 116) · 객체 쌍 75 · Qwen 30×20. <span class="pill wait">라벨링 대기</span></td></tr>
+</table>
+
+<h2>도구 구조</h2>
+<pre>평가 스크립트 (GT → metrics)                 벤치 도구 (bench/)                       GUI
+ eval/detect_eval_prw.py   ─┐                ledger.py   원장 기록·조회·이관            평가 탭 1~14
+ eval/prw_eval.py           │ 자동 기록      run.py      한 명령 실행 + verify           벤치마크 탭 (리더보드·그래프·채택)
+ eval/prw_eval_unified.py   ├──────────────▶ check.py    계약·DB 지문 검사               드롭다운 = pipeline*.yaml glob
+ eval/prw_cluster_gt_eval.py│                splits.py   tune/holdout 분할
+ eval/prw_e2e_search_eval.py│                optimize.py Optuna·스윕
+ eval/track_gt_eval.py      │ (P6)           combos.py   조합 격자 → pipeline_best.yaml
+ eval/object_pair_eval.py   │                criteria.py 채택 기준·채택→yaml
+ eval/qwen_verify_eval.py  ─┘                register.py 새 모델 등록기</pre>
+<div class="grid">
+<div class="card"><b>규칙 ①</b>평가 스크립트는 자기 결과를 원장에 직접 쓴다 — 러너를 안 거쳐도 남는다.</div>
+<div class="card"><b>규칙 ②</b><code>pipeline.yaml</code> 원본은 바꾸지 않고 사본 yaml 로 교체한다 (운영 DB 임베딩 sha 와 묶여 있음).</div>
+<div class="card"><b>규칙 ③</b>탐색은 tune, 최종 비교는 holdout. 라벨 없는 평가(pseudo)는 원장에 쓰지 않는다.</div>
+</div>
+
+<h2>남은 일</h2>
+<ol>
+<li><b>라벨링 (사람, 2~3일)</b> — <code>eval/gt/README.md</code> 절차대로 추적 시트 3편 → 객체 쌍 75 → Qwen 600 판정. 각각 <code>labels.json</code> 을 시트 폴더에 두고 GUI 평가 12·13·14 의 eval 실행. 그러면 기준표 §2·§3(객체)·§5(객체)·§6 의 "도구 준비" 가 실측으로 바뀐다.</li>
+<li><b>채택 결정</b> — 검색 가중치 <code>pipeline_best.yaml</code>(mAP +1.3, 운영 조합과 차이 작음), Leiden 추천값(정밀도 미달로 권장 안 함).</li>
+<li><b>Qwen 실측</b> — 판정 시트 라벨 후 <code>eval/qwen_verify_eval.py eval --max-queries 5</code> 부터 (2B, 후보당 약 26 s; GPU 가 잡히는 인터프리터에서).</li>
+<li><b>git</b> — P0~P7 커밋됨(원격 이력과 병합 완료). P6 파일은 별도 커밋.</li>
+</ol>
+
+<h2>알아둘 한계·발견</h2>
+<ul>
+<li><b>SUSHI 는 512 프레임 창을 독립 처리</b>해 같은 사람이 창마다 다른 긴 트랙 id 를 받는다 (048 영상의 정지 박스 하나가 L1·L8·L18·L28). 추적기 id 도 시간이 지나면 재사용된다(한 id 가 5 명). 그래서 추적 정답의 단위를 "구간"으로 잡았고, 라벨이 붙으면 이 단절이 splits/IDSW 로 정량화된다.</li>
+<li><b>Qwen 평가 데모 미완</b>: 이 작업 세션의 프로세스에서는 GPU 가 보이지 않았다(<code>torch.cuda.is_available()</code> False, <code>nvidia-smi</code> 권한 오류) → <code>qwen_stage.py</code> 가 CPU float32 로 모델을 올리다 죽었다. 시트·후보·평가 코드는 준비돼 있으니 GPU 가 잡히는 사용자 터미널에서 <code>eval/qwen_verify_eval.py eval --allow-unlabeled --max-queries 1 --top-k 5</code> 로 배관을 확인한 뒤 라벨링 후 본 실행을 하면 된다.</li>
+<li>임베더 교체는 단독 Re-ID 평가까지 자동, 운영 DB 적재(<code>ingest/build_db.py</code>)는 수동. 검출기 드롭다운은 class 로 중복을 없애므로 같은 class 변형은 경로 지정.</li>
+<li>객체 재출현 pseudo 실행에서 최적 쌍 임계값이 0.74 로 나와 운영 Leiden 0.97 과 차이가 크다 — 라벨 후 재확인 대상.</li>
+</ul>
+
+<h2>문서·산출물</h2>
+<ul>
+<li>기준표 <code>outputs/audit/eval_criteria_20260926.md</code> · 로드맵 <code>outputs/audit/autobench_roadmap_20260926.md</code> (둘 다 HTML 아티팩트 갱신)</li>
+<li>도구 설명 <code>bench/README.md</code>, 새 모델 등록 <code>bench/REGISTER_GUIDE.md</code>, 정답 라벨 <code>eval/gt/README.md</code>, 프로젝트 <code>README.md</code> 5.1·6.4</li>
+</ul>
+</main>
+</body>
+</html>
