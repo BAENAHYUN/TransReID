@@ -166,7 +166,7 @@ e2e 는 `--rerank none` 이 실제로 재정렬을 끄며, 같은 GT 의 중복 
 받으며, 실행 폴더에 고유 접미사를 붙이고 원장 append 는 파일 잠금 아래 직렬화된다. 원장 fingerprint 는 fps/sec 같은 시간 계열을 뺀다.
 `check.py --db` 는 매니페스트에 없는 retriever(missing)도 FAIL 로 보고, 정적 계약 검사는 base 의 메서드를 재정의하지 않은 클래스를 잡는다.
 단독 임베딩 평가(`eval/prw_eval.py`)는 CLI 로 checkpoint 를 덮어쓰지 않으면 yaml 의 module/class 그대로(registry) 만든다 — 원장 `params.loader`.
-분할 파일은 로드할 때 겹침·digest 를 검사한다. 남은 한계: 클러스터 벡터 캐시는 DB 빌드 id 를 추적하지 않는다(파일명 지문 = yaml 임베더),
+분할 파일은 로드할 때 겹침·digest 를 검사한다. 클러스터 벡터 캐시 파일명 = yaml 임베더 지문 + DB 적재 회차(embedding_build_id 뒤 8자, `_b…`)라 DB 를 다시 적재하면 옛 캐시를 쓰지 않는다. 남은 한계:
 `gallery=test` 는 "전체 DB 에서 검색한 뒤 test 프레임만 채점" 하는 혼합 프로토콜(운영 동작에 가깝지만 사전 제한 gallery 와는 다름), 클러스터 분할
 평가는 전체를 군집화한 뒤 일부만 채점하는 전이적 평가다.
 

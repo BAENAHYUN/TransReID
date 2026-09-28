@@ -87,11 +87,11 @@ pre{background:var(--code);border:1px solid var(--line);border-radius:8px;paddin
  <div class="card"><div class="t">⑦-c Qwen 모드·임계 결정</div><div class="m">1시간 · 도구</div><div class="d">본 실행 결과로 flag vs filter, threshold 를 <code>--rescore</code>(Qwen 재호출 없이) 로 스윕해 P@10 +10 %p · 오탈락 ≤10 % 를 만족하는 값 선택.</div></div>
 </div>
 <div class="lane l3"><h3><span class="badge b3">3순위</span> 도구 보완 (급하지 않음)</h3>
- <div class="card"><div class="t">임베더 교체 시 운영 DB 적재 자동화</div><div class="m">1일 · 도구</div><div class="d">지금은 단독 Re-ID 평가까지 자동, <code>ingest/build_db.py</code> 새 prefix 적재는 수동. 등록기에 소규모 적재 단계 추가.</div></div>
- <div class="card"><div class="t">검출기 드롭다운 중복 제거 개선</div><div class="m">반나절</div><div class="d">같은 class 변형(yolo26s 등)은 경로 지정해야 함 → 라벨을 파일명으로 바꾸면 해결.</div></div>
- <div class="card"><div class="t">클러스터 조합 공정 비교 재실행</div><div class="m">2시간 GPU</div><div class="d"><code>bench/combos.py cluster --refine-trials 20</code> 로 벡터별 미세조정 후 순위(현재는 solider 외 벡터가 불리).</div></div>
- <div class="card"><div class="t">yolo26s 전체 프레임 벤치</div><div class="m">10분 GPU</div><div class="d"><code>bench/run.py detect --config pipeline_tracking_yolo26s.yaml --limit 0</code> → 원장 순위를 같은 GT 크기로 비교.</div></div>
- <div class="card"><div class="t">Astra 지적 중 남긴 한계</div><div class="m">반나절</div><div class="d">클러스터 벡터 캐시에 DB build id 없음, e2e gallery=test 혼합 프로토콜, 통합 검색 eval 모델 3개 고정.</div></div>
+ <div class="card"><div class="t">임베더 교체 시 운영 DB 적재 자동화 <span class="badge b3">완료 17:10</span></div><div class="m">도구</div><div class="d"><code>bench/register.py embedder --ingest-frames N</code> — 별도 컬렉션 bench_&lt;이름&gt;_* 에 PRW 표본 적재 + 같은 표본에서 e2e 비교(새 임베더 단독 vs 운영 조합). 전체 적재는 여전히 수동.</div></div>
+ <div class="card"><div class="t">검출기 드롭다운 중복 제거 개선 <span class="badge b3">완료 16:50</span></div><div class="m">도구</div><div class="d">검출기 블록이 통째로 같은 사본만 합침 → yolo26s 와 스티처 변형(sushi_link)이 드롭다운에 보임.</div></div>
+ <div class="card"><div class="t">클러스터 조합 공정 비교 재실행 <span class="badge b3">완료 16:36</span></div><div class="m">도구</div><div class="d">leiden@solider 1위 유지(미세조정 B³F1 0.937 / holdout 0.876). siglip2·irra 벡터는 클러스터링에 부적합(잡음 92 %).</div></div>
+ <div class="card"><div class="t">yolo26s 전체 프레임 벤치 <span class="badge b3">완료 16:16</span></div><div class="m">도구</div><div class="d">AP@0.5 0.870 / 최대 재현율 0.944 / 34.8 fps — yolo26m 0.876·39 fps, RF-DETR 0.876·15.6 fps 대비 미채택.</div></div>
+ <div class="card"><div class="t">Astra 지적 중 남긴 한계</div><div class="m">반나절</div><div class="d">해결(17:30~17:40): 클러스터 벡터 캐시 이름에 embedding_build_id, 통합 검색 eval 은 yaml 의 person retriever 전부. 남음: e2e gallery=test 혼합 프로토콜(문서화된 한계).</div></div>
  <div class="card"><div class="t">저장소 정리</div><div class="m">30분 · 사람</div><div class="d"><code>github_upload/</code>(별도 .git, 이제 불필요), 루트 <code>.bak</code>·로그·임시 json 삭제 여부, <code>outputs/</code> 를 .gitignore 에 넣을지 결정.</div></div>
 </div>
 </div>

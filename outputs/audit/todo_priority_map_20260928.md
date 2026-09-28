@@ -25,11 +25,11 @@
 
 ## 3순위 — 도구 보완 (급하지 않음)
 
-- 임베더 교체 시 운영 DB 적재 자동화 (1일) — 지금은 `ingest/build_db.py` 수동
-- 검출기 드롭다운 중복 제거 개선 (반나절) — 같은 class 변형은 경로 지정 중
-- 클러스터 조합 공정 비교 재실행 `bench/combos.py cluster --refine-trials 20` (2시간 GPU)
-- yolo26s 전체 프레임 벤치 `bench/run.py detect --config pipeline_tracking_yolo26s.yaml --limit 0` (10분 GPU)
-- Astra 지적 중 남긴 한계: 클러스터 벡터 캐시 DB build id, e2e gallery=test 혼합, 통합 검색 eval 모델 3개 고정 (반나절)
+- ~~임베더 교체 시 운영 DB 적재 자동화~~ (17:10 완료: `bench/register.py embedder --ingest-frames N` → 별도 컬렉션 bench_<이름>_* 표본 적재 + e2e 비교; 전체 적재는 여전히 수동)
+- ~~검출기 드롭다운 중복 제거 개선~~ (16:50 완료: 검출기 블록이 같은 사본만 합침 → yolo26s·sushi_link 변형이 보임)
+- ~~클러스터 조합 공정 비교 재실행~~ (16:36 완료: leiden@solider 1위 유지, 미세조정 B³F1 0.937 / holdout 0.876; siglip2·irra 벡터는 클러스터링에 부적합 — 잡음 92 %)
+- ~~yolo26s 전체 프레임 벤치~~ (16:16 완료: AP@0.5 0.870 / 최대 재현율 0.944 / 34.8 fps — yolo26m 0.876·39 fps, RF-DETR 0.876·15.6 fps 대비 미채택)
+- Astra 지적 중 남긴 한계: ~~클러스터 벡터 캐시 DB build id~~(17:40 해결: 캐시 이름에 embedding_build_id), ~~통합 검색 eval 모델 3개 고정~~(17:30 해결: yaml person retriever 전부), e2e gallery=test 혼합 프로토콜(문서화된 한계)
 - 저장소 정리: `github_upload/` 삭제 여부, 루트 `.bak`·로그·임시 json, `outputs/` gitignore (30분)
 
 ## 한 줄 판단
