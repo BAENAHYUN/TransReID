@@ -2162,6 +2162,20 @@ class MainWindow(QMainWindow):
         video_page = VideoSearchPage(str(self.config_path), self.path_resolver)
         shell.add_page("image_search", "사진에서 찾기", "search", image_page)
         shell.add_page("video_search", "영상에서 찾기", "video", video_page)
+        # 인물 분류 (Immich People): 묶음 결과를 사람별 카드 / 파일별로 보고, '이 사람으로 검색' 은 사진에서 찾기로 넘긴다
+        try:
+            from gui.people_page import PeoplePage
+
+            people_page = PeoplePage()
+
+            def _search_person(path: str) -> None:
+                image_page._use_result_as_query(path)
+                shell.select("image_search")
+
+            people_page.searchRequested.connect(_search_person)
+            shell.add_page("people", "인물 분류", "people", people_page)
+        except Exception as exc:  # noqa: BLE001
+            self.statusBar().showMessage(f"인물 분류 페이지 로드 실패: {exc}")
 
         # ------------------------------------------------------------------
         # DB 구축 / 클러스터링 / 평가 페이지.
@@ -2208,6 +2222,14 @@ class MainWindow(QMainWindow):
                 shell.add_page(g["id"], PIPELINE_NAV_LABELS.get(g["id"], g["title"]), "chart", PipelinePage(g["id"]))
             except Exception as exc:  # noqa: BLE001
                 pipeline_note += f"  ·  평가 탭 로드 실패: {exc}"
+
+        # 정답 라벨링 (P6, 사람이 할 일): 시트 3종과 labels.json 진행 상태
+        try:
+            from gui.reports_page import LabelingPage
+
+            shell.add_page("labeling", "정답 라벨링", "gear", LabelingPage())
+        except Exception as exc:  # noqa: BLE001
+            pipeline_note += f"  ·  정답 라벨링 로드 실패: {exc}"
 
         # 벤치마크 (P5): 원장 리더보드 · 채택 기준 색 · verify · 채택→yaml · 그래프. 실패해도 검색 GUI 는 떠야 한다.
         try:

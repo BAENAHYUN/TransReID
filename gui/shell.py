@@ -77,6 +77,11 @@ def _paint_icon(kind: str, color: str, size: int = ICON_SIZE) -> QPixmap:
         p.setBrush(QColor(color))
         for x, y in ((3, 15), (7.5, 10), (11, 12.5), (17, 5)):
             p.drawEllipse(R(x - 1.3, y - 1.3, 2.6, 2.6))
+    elif kind == "people":
+        p.drawEllipse(R(4, 3, 6, 6))
+        p.drawEllipse(R(11.5, 5, 5, 5))
+        p.drawPolyline(QPolygonF([P(2, 17), P(2, 13.5), P(4, 11), P(10, 11), P(12, 13.5), P(12, 17)]))
+        p.drawPolyline(QPolygonF([P(13, 17), P(13, 14), P(14.5, 12.5), P(17, 12.5), P(18, 14), P(18, 17)]))
     elif kind == "folder":
         p.drawPolyline(QPolygonF([P(2, 6), P(2, 16), P(18, 16), P(18, 7), P(9, 7), P(7.5, 5), P(2, 5), P(2, 6)]))
         p.drawLine(P(2, 9), P(18, 9))

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""gui/reports_page.py — '결과 보기': 사람이 할 라벨링 시트와 생성된 리포트 HTML 을 한 곳에서 연다 (Immich 의 앨범 격).
+"""gui/reports_page.py — '결과 보기'(사진 처리·영상 처리가 만든 산출물만) 와 '정답 라벨링'(평가용 시트) 페이지.
 
-- 라벨링 시트: eval/gt/tracks/<영상>/sheet.html · eval/gt/object_pairs/sheet.html · eval/gt/qwen/sheet.html
-  각 시트의 항목 수(proposals.json)와 labels.json 유무·검토 수·manifest 일치 여부를 보여 준다.
-- 리포트: outputs/image_review, outputs/image_db_html, outputs/clustering/**/gallery, outputs/audit 의 HTML (수정 시각순).
-열기는 기본 브라우저(QDesktopServices). 파일을 읽기만 하고 아무것도 바꾸지 않는다.
+결과 보기: outputs/image_review(결과창 인덱스) · outputs/image_db_html(DB 리포트) · outputs/clustering/<실행>/<대상>/gallery*/(묶음 갤러리)
+  를 사진/영상 구분·실행 이름·수정 시각으로 나열한다. 개발 문서(outputs/audit)나 평가 시트는 여기 넣지 않는다.
+정답 라벨링: eval/gt 의 시트 3종과 labels.json 진행 상태 — 사람이 할 일이라 '평가' 섹션에 둔다.
+열기는 GUI 안 뷰어(HtmlView), '브라우저' 는 외부 브라우저. 파일을 읽기만 한다.
 """
 from __future__ import annotations
 
@@ -34,15 +34,9 @@ from gui.html_view import HtmlView
 ROOT = Path(__file__).resolve().parents[1]
 
 SHEET_KINDS = {"track_labels": "추적 (구간 → 사람 id)", "object_pair_labels": "객체 재출현 (같은 개체?)", "qwen_labels": "Qwen 판정 (설명에 맞는 사람?)"}
-REPORT_GLOBS = [
-    ("결과 인덱스", "outputs/image_review/*.html"),
-    ("DB 리포트", "outputs/image_db_html/*.html"),
-    ("클러스터 갤러리", "outputs/clustering/*/*/gallery/*.html"),
-    ("클러스터 갤러리", "outputs/clustering/*/gallery/*.html"),
-    ("문서 (기준표·로드맵·요약)", "outputs/audit/*.html"),
-]
 
 
+# ---------------------------------------------------------------- 공용
 def _load_json(path: Path) -> Optional[Dict[str, Any]]:
     try:
         d = json.loads(path.read_text(encoding="utf-8"))
@@ -51,6 +45,156 @@ def _load_json(path: Path) -> Optional[Dict[str, Any]]:
     return d if isinstance(d, dict) else None
 
 
+def _open(path: Path) -> None:
+    QDesktopServices.openUrl(QUrl.fromLocalFile(str(path.resolve())))
+
+
+# ---------------------------------------------------------------- 결과 보기: 사진/영상 처리 산출물
+def _run_media(run_dir: Path, target_dir: Path) -> str:
+    """클러스터 실행이 사진인지 영상인지: 실행 이름(video/track) → report.json 설정(media_type video / video_tracks) → 기본 사진."""
+    name = run_dir.name.lower()
+    if "video" in name or "track" in name:
+        return "영상"
+    for rp in sorted(target_dir.glob("*_report.json")):
+        d = _load_json(rp) or {}
+        cfg = d.get("config") if isinstance(d.get("config"), dict) else {}
+        blob = json.dumps(cfg, ensure_ascii=False).lower()
+        if '"media_type": "video"' in blob or "video_tracks" in blob or "track_centroid" in blob:
+            return "영상"
+    return "사진"
+
+
+def scan_reports(root: Path, limit: int = 80) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+
+    def add(path: Path, media: str, kind: str, name: str) -> None:
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            return
+        rows.append({"media": media, "kind": kind, "name": name, "path": path, "folder": path.parent, "mtime": mtime,
+                     "rel": path.relative_to(root).as_posix()})
+
+    for p in (root / "outputs" / "image_review").glob("*.html"):
+        # 결과창은 DB 리포트(image_db_*.html)도 같은 폴더에 만든다
+        add(p, "사진", "DB 리포트" if p.stem.startswith("image_db_") else "결과창 인덱스", p.stem)
+    for p in (root / "outputs" / "image_db_html").glob("*.html"):
+        add(p, "사진", "DB 리포트", p.stem)
+    cl = root / "outputs" / "clustering"
+    if cl.is_dir():
+        for run in cl.iterdir():
+            if not run.is_dir():
+                continue
+            for target in ("person", "object"):
+                tdir = run / target
+                if not tdir.is_dir():
+                    continue
+                htmls = [p for g in tdir.glob("gallery*") if g.is_dir() for p in g.glob("*.html")]
+                if not htmls:
+                    continue
+                media = _run_media(run, tdir)
+                for p in htmls:
+                    add(p, media, f"{'사람' if target == 'person' else '물건'} 묶음 갤러리", f"{run.name} · {p.stem}")
+    rows.sort(key=lambda r: r["mtime"], reverse=True)
+    return rows[:limit]
+
+
+class _TablePage(QWidget):
+    """표 + 내장 뷰어 스택 공용 뼈대."""
+
+    def __init__(self, root: Optional[Path], title: str, intro: str, headers: List[str], stretch_col: int, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+        self.root = Path(root) if root is not None else ROOT
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        self.stack = QStackedWidget()
+        outer.addWidget(self.stack)
+        list_page = QWidget()
+        self.stack.addWidget(list_page)
+        self.viewer = HtmlView(back_label="← 목록")
+        self.viewer.back_btn.clicked.connect(lambda: self.stack.setCurrentIndex(0))
+        viewer_page = QWidget()
+        vl = QVBoxLayout(viewer_page)
+        vl.setContentsMargins(16, 12, 16, 12)
+        vl.addWidget(self.viewer)
+        self.stack.addWidget(viewer_page)
+
+        layout = QVBoxLayout(list_page)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(10)
+        head = QHBoxLayout()
+        t = QLabel(title)
+        t.setObjectName("resultsTitle")
+        head.addWidget(t)
+        head.addStretch(1)
+        self.refresh_btn = QPushButton("새로고침")
+        self.refresh_btn.clicked.connect(self.refresh)
+        head.addWidget(self.refresh_btn)
+        layout.addLayout(head)
+        lab = QLabel(intro)
+        lab.setObjectName("subtleLabel")
+        lab.setWordWrap(True)
+        layout.addWidget(lab)
+        self.table = QTableWidget(0, len(headers))
+        self.table.setHorizontalHeaderLabels(headers)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setShowGrid(False)
+        self.table.horizontalHeader().setStretchLastSection(False)
+        self.stretch_col = stretch_col
+        layout.addWidget(self.table, 1)
+
+    def _fill(self, rows: List[List[Any]], buttons: List[List[Any]]) -> None:
+        table = self.table
+        table.setRowCount(0)
+        for r, (cells, btns) in enumerate(zip(rows, buttons)):
+            table.insertRow(r)
+            for c, text in enumerate(cells):
+                item = QTableWidgetItem("" if text is None else str(text))
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                table.setItem(r, c, item)
+            for c, (label, path) in enumerate(btns, start=len(cells)):
+                b = QPushButton(label)
+                b.setFixedHeight(26)
+                if label in ("열기", "시트 열기"):
+                    b.clicked.connect(lambda _=False, p=path: self.show(p))          # GUI 안에서
+                else:
+                    b.clicked.connect(lambda _=False, p=path: _open(p))              # 브라우저 / 폴더
+                table.setCellWidget(r, c, b)
+        table.resizeColumnsToContents()
+        for c in range(table.columnCount()):
+            table.horizontalHeader().setSectionResizeMode(c, QHeaderView.Stretch if c == self.stretch_col else QHeaderView.ResizeToContents)
+
+    def show(self, path: Path) -> None:
+        self.viewer.load(path)
+        self.stack.setCurrentIndex(1)
+
+    def refresh(self) -> None:  # pragma: no cover - 하위 클래스가 채운다
+        raise NotImplementedError
+
+
+class ReportsPage(_TablePage):
+    def __init__(self, root: Optional[Path] = None, parent: Optional[QWidget] = None):
+        super().__init__(root, "결과 보기",
+                         "사진 처리·영상 처리가 만든 결과 (최근 수정순): 결과창 인덱스 · DB 리포트 · 사람/물건 묶음 갤러리. '열기' 는 여기서, '브라우저' 는 밖에서 봅니다.",
+                         ["구분", "종류", "실행 · 파일", "수정", "", "", ""], stretch_col=2, parent=parent)
+        self.refresh()
+
+    def refresh(self) -> None:
+        self.report_rows = scan_reports(self.root)
+        self._fill([[r["media"], r["kind"], r["name"], datetime.fromtimestamp(r["mtime"]).strftime("%m-%d %H:%M")] for r in self.report_rows],
+                   [[("열기", r["path"]), ("브라우저", r["path"]), ("폴더", r["folder"])] for r in self.report_rows])
+        for r, row in enumerate(self.report_rows):
+            self.table.item(r, 2).setToolTip(row["rel"])
+
+    # 호환: 예전 이름
+    @property
+    def reports(self) -> QTableWidget:
+        return self.table
+
+
+# ---------------------------------------------------------------- 정답 라벨링 (평가)
 def sheet_items(proposals: Dict[str, Any]) -> Optional[int]:
     kind = proposals.get("kind")
     if kind == "track_labels":
@@ -101,116 +245,18 @@ def scan_sheets(root: Path) -> List[Dict[str, Any]]:
     return out
 
 
-def scan_reports(root: Path, limit: int = 60) -> List[Dict[str, Any]]:
-    seen: set = set()
-    rows: List[Dict[str, Any]] = []
-    for kind, pattern in REPORT_GLOBS:
-        for p in root.glob(pattern):
-            if not p.is_file() or p in seen:
-                continue
-            seen.add(p)
-            try:
-                mtime = p.stat().st_mtime
-            except OSError:
-                continue
-            rows.append({"kind": kind, "name": p.relative_to(root).as_posix(), "mtime": mtime, "path": p, "folder": p.parent})
-    rows.sort(key=lambda r: r["mtime"], reverse=True)
-    return rows[:limit]
-
-
-def _open(path: Path) -> None:
-    QDesktopServices.openUrl(QUrl.fromLocalFile(str(path.resolve())))
-
-
-class ReportsPage(QWidget):
+class LabelingPage(_TablePage):
     def __init__(self, root: Optional[Path] = None, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        self.root = Path(root) if root is not None else ROOT
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-        # 목록(0) ↔ 내장 뷰어(1): '열기' 는 GUI 안에서 보여 주고 '← 목록' 으로 돌아온다
-        self.stack = QStackedWidget()
-        outer.addWidget(self.stack)
-        list_page = QWidget()
-        self.stack.addWidget(list_page)
-        self.viewer = HtmlView(back_label="← 목록")
-        self.viewer.back_btn.clicked.connect(lambda: self.stack.setCurrentIndex(0))
-        viewer_page = QWidget()
-        vl = QVBoxLayout(viewer_page)
-        vl.setContentsMargins(16, 12, 16, 12)
-        vl.addWidget(self.viewer)
-        self.stack.addWidget(viewer_page)
-        layout = QVBoxLayout(list_page)
-        layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(10)
-
-        head = QHBoxLayout()
-        title = QLabel("결과 보기")
-        title.setObjectName("resultsTitle")
-        head.addWidget(title)
-        head.addStretch(1)
-        self.refresh_btn = QPushButton("새로고침")
-        self.refresh_btn.clicked.connect(self.refresh)
-        head.addWidget(self.refresh_btn)
-        layout.addLayout(head)
-
-        lab1 = QLabel("정답 라벨링 시트 — 사람이 할 일. 시트를 열어 판정하고 내려받은 labels.json 을 같은 폴더에 두면 평가(평가 / 비교 12·13·14)가 읽습니다.")
-        lab1.setObjectName("subtleLabel")
-        lab1.setWordWrap(True)
-        layout.addWidget(lab1)
-        self.sheets = self._table(["종류", "이름", "항목", "상태", "", "", ""], stretch_col=3)
-        layout.addWidget(self.sheets, 1)
-
-        lab2 = QLabel("생성된 리포트 — 결과창·갤러리·DB 리포트·문서 (최근 수정순)")
-        lab2.setObjectName("subtleLabel")
-        layout.addWidget(lab2)
-        self.reports = self._table(["종류", "파일", "수정", "", "", ""], stretch_col=1)
-        layout.addWidget(self.reports, 2)
+        super().__init__(root, "정답 라벨링",
+                         "사람이 할 일: 시트를 열어 판정하고 내려받은 labels.json 을 같은 폴더에 두면 평가(평가 / 비교 12·13·14)가 읽습니다. 순서는 추적 → 객체 → Qwen.",
+                         ["종류", "이름", "항목", "상태", "", "", ""], stretch_col=3, parent=parent)
         self.refresh()
-
-    @staticmethod
-    def _table(headers: List[str], stretch_col: int) -> QTableWidget:
-        t = QTableWidget(0, len(headers))
-        t.setHorizontalHeaderLabels(headers)
-        t.verticalHeader().setVisible(False)
-        t.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        t.setSelectionBehavior(QAbstractItemView.SelectRows)
-        t.setShowGrid(False)
-        t.horizontalHeader().setStretchLastSection(False)
-        t.setProperty("stretchCol", stretch_col)
-        return t
-
-    def _fill(self, table: QTableWidget, rows: List[List[Any]], buttons: List[List[Any]]) -> None:
-        table.setRowCount(0)
-        for r, (cells, btns) in enumerate(zip(rows, buttons)):
-            table.insertRow(r)
-            for c, text in enumerate(cells):
-                item = QTableWidgetItem("" if text is None else str(text))
-                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-                table.setItem(r, c, item)
-            for c, (label, path) in enumerate(btns, start=len(cells)):
-                b = QPushButton(label)
-                b.setFixedHeight(26)
-                if label in ("열기", "시트 열기"):
-                    b.clicked.connect(lambda _=False, p=path: self.show(p))          # GUI 안에서
-                else:
-                    b.clicked.connect(lambda _=False, p=path: _open(p))              # 브라우저 / 폴더
-                table.setCellWidget(r, c, b)
-        # 이름/파일은 내용 폭대로, 긴 설명 열(상태 / 파일) 하나만 늘어난다
-        table.resizeColumnsToContents()
-        stretch = int(table.property("stretchCol") or 1)
-        for c in range(table.columnCount()):
-            table.horizontalHeader().setSectionResizeMode(c, QHeaderView.Stretch if c == stretch else QHeaderView.ResizeToContents)
-
-    def show(self, path: Path) -> None:
-        """결과 HTML 을 GUI 안 뷰어로 보여 준다."""
-        self.viewer.load(path)
-        self.stack.setCurrentIndex(1)
 
     def refresh(self) -> None:
         self.sheet_rows = scan_sheets(self.root)
-        self._fill(self.sheets, [[s["kind"], s["name"], s["items"], s["status"]] for s in self.sheet_rows],
+        self._fill([[s["kind"], s["name"], s["items"], s["status"]] for s in self.sheet_rows],
                    [[("시트 열기", s["path"]), ("브라우저", s["path"]), ("폴더", s["folder"])] for s in self.sheet_rows])
-        self.report_rows = scan_reports(self.root)
-        self._fill(self.reports, [[r["kind"], r["name"], datetime.fromtimestamp(r["mtime"]).strftime("%m-%d %H:%M")] for r in self.report_rows],
-                   [[("열기", r["path"]), ("브라우저", r["path"]), ("폴더", r["folder"])] for r in self.report_rows])
+
+    @property
+    def sheets(self) -> QTableWidget:
+        return self.table
