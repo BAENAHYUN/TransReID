@@ -57,6 +57,16 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def db_build_tag(q, collection: str) -> str:
+    """컬렉션 point 의 embedding_build_id(적재 회차) 뒤 8자 → 캐시 태그 "_b<8자>". legacy(id 없음)·조회 실패면 ''."""
+    try:
+        pts, _ = q.scroll(collection, limit=1, with_payload=["embedding_build_id"], with_vectors=False)
+        bid = str((pts[0].payload or {}).get("embedding_build_id") or "") if pts else ""
+        return f"_b{bid[-8:]}" if bid else ""
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 def fetch_all_vectors(q, collection: str, sources: Optional[List[str]], scroll_batch: int, ids: Sequence[Any],
                       names: Sequence[str], cache_prefix: Optional[str], target: str, log=print,
                       config_path: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
@@ -64,6 +74,7 @@ def fetch_all_vectors(q, collection: str, sources: Optional[List[str]], scroll_b
     재사용하지 않는다 (bench.ledger.retriever_fingerprint_sha). 지문을 못 구하면 옛 이름 그대로."""
     from clustering.cluster_leiden_qdrant import fetch_vectors_for
     out: Dict[str, Dict[str, Any]] = {}
+    db_tag = db_build_tag(q, collection) if cache_prefix else ""
     for name in dict.fromkeys(names):
         cfg = SimpleNamespace(collection=collection, vector=name, sources=sources, scroll_batch_size=scroll_batch)
         tag = ""
@@ -71,6 +82,7 @@ def fetch_all_vectors(q, collection: str, sources: Optional[List[str]], scroll_b
             from bench.ledger import retriever_fingerprint_sha
             fp = retriever_fingerprint_sha(config_path, name, log)
             tag = f"_{fp[:8]}" if fp else ""
+        tag += db_tag                      # DB 가 다시 적재되면(embedding_build_id 변경) 캐시 이름도 바뀐다
         cache = f"{cache_prefix}_{target}_{name}{tag}.npz" if cache_prefix else None
         matrix, stats = fetch_vectors_for(q, cfg, ids, cache, log=log)
         stats.pop("missing_rows", None)
