@@ -26,6 +26,7 @@ DESTRUCTIVE_FLAGS 에 있는 인자는 JSON 에 적혀 있어도 실행 직전�
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import os
 import re
@@ -386,6 +387,29 @@ def _block_label(block: Any, label_key: Optional[str], value: str) -> str:
     return f"{name}  ({value})" if name else value
 
 
+def _glob_dirs(base: Path, pattern: str, exclude: List[str]) -> List[str]:
+    """pattern(예 data/*/*) 에 맞는 폴더의 상대경로 목록. 제외 패턴(폴더 이름 또는 상대경로 fnmatch)에 걸린 폴더는
+    그 아래를 아예 훑지 않는다 — crops 처럼 파일이 수십만 개인 폴더를 glob 으로 나열하면 GUI 기동이 멈춘다.
+    단계마다 os.scandir 로 폴더만 보고, 부모 순서 → 이름(대소문자 무시) 순으로 정렬한다."""
+    parts = [x for x in pattern.replace("\\", "/").split("/") if x]
+    level: List[Path] = [base]
+    for part in parts:
+        nxt: List[Path] = []
+        for d in level:
+            try:
+                with os.scandir(d) as it:
+                    ents = [e for e in it if e.is_dir(follow_symlinks=False) and fnmatch.fnmatch(e.name, part)]
+            except OSError:
+                continue
+            for e in sorted(ents, key=lambda e: e.name.lower()):
+                rel = Path(e.path).relative_to(base).as_posix()
+                if any(fnmatch.fnmatch(e.name, x) or fnmatch.fnmatch(rel, x) for x in exclude):
+                    continue
+                nxt.append(Path(e.path))
+        level = nxt
+    return [p.relative_to(base).as_posix() for p in level]
+
+
 def _choice_values(spec: Dict[str, Any], root: Optional[Path] = None) -> List[Tuple[str, str]]:
     """드롭다운 항목 [(값, 표시 이름)].
     choices 에 적힌 값 + choices_glob(프로젝트 루트 기준 glob, 문자열 또는 목록) 으로 찾은 파일의 상대경로.
@@ -421,6 +445,13 @@ def _choice_values(spec: Dict[str, Any], root: Optional[Path] = None) -> List[Tu
                     continue
                 seen.add(ident)
             items.append((value, _block_label(block, label_key, value) if key else value))
+    dirs = spec.get("choices_dirs")
+    if dirs:
+        # 폴더 드롭다운 (프로젝트 루트 기준 glob; choices_exclude 는 폴더 이름/상대경로 fnmatch 패턴)
+        excl = [str(x) for x in (spec.get("choices_exclude") or [])]
+        for pattern in ([dirs] if isinstance(dirs, str) else list(dirs)):
+            for rel in _glob_dirs(base, str(pattern), excl):
+                items.append((rel, rel))
     if default not in (None, "") and str(default) not in {v for v, _ in items}:
         items.insert(0, (str(default), str(default)))
     out: List[Tuple[str, str]] = []
@@ -430,6 +461,23 @@ def _choice_values(spec: Dict[str, Any], root: Optional[Path] = None) -> List[Tu
             known.add(value)
             out.append((value, label))
     return out
+
+
+def resolve_default(spec: Dict[str, Any], root: Optional[Path] = None) -> Any:
+    """필드 기본값. default 가 비어 있으면 default_prefer(존재하는 첫 경로) → default_first_choice(드롭다운 첫 항목) 순으로 채운다.
+    빈 칸을 보고 사용자가 뭘 넣어야 할지 몰라 멈추지 않게 하려는 것이다."""
+    base = Path(root) if root is not None else ROOT
+    default = spec.get("default")
+    if default not in (None, ""):
+        return default
+    for cand in (spec.get("default_prefer") or []):
+        if (base / str(cand)).exists():
+            return str(cand)
+    if spec.get("default_first_choice"):
+        items = _choice_values(spec, base)
+        if items:
+            return items[0][0]
+    return default
 
 
 class ArgField:
@@ -500,7 +548,21 @@ class ArgField:
             row.addStretch(1)
 
         else:  # str / list / path / dir
-            self.widget = QLineEdit(str(default if default is not None else ""))
+            default = resolve_default(spec)
+            if spec.get("choices") or spec.get("choices_glob") or spec.get("choices_dirs"):
+                # 고를 수도 직접 칠 수도 있는 콤보 — 값은 표시 문자열 그대로 (currentText)
+                self.widget = QComboBox()
+                self.widget.setEditable(True)
+                self.widget.setInsertPolicy(QComboBox.NoInsert)
+                for value, _label in _choice_values(spec):
+                    self.widget.addItem(str(value), str(value))
+                self.widget.setEditText(str(default if default is not None else ""))
+                line = self.widget.lineEdit()
+            else:
+                self.widget = QLineEdit(str(default if default is not None else ""))
+                line = self.widget
+            if spec.get("placeholder") is not None and line is not None:
+                line.setPlaceholderText(str(spec.get("placeholder")))
             row.addWidget(self.widget, 1)
             if self.type in ("path", "dir"):
                 btn = QPushButton("찾기")
@@ -522,7 +584,16 @@ class ArgField:
                 self.container, "파일 선택", str(ROOT)
             )
         if got:
-            self.widget.setText(got)
+            self._set_text(got)
+
+    def _text(self) -> str:
+        return self.widget.currentText() if isinstance(self.widget, QComboBox) else self.widget.text()
+
+    def _set_text(self, s: str) -> None:
+        if isinstance(self.widget, QComboBox):
+            self.widget.setEditText(s)
+        else:
+            self.widget.setText(s)
 
     def set_value(self, v: Any) -> None:
         """기억해 둔 값을 위젯에 되돌린다. 타입이 안 맞으면 조용히 건너뛴다."""
@@ -539,7 +610,7 @@ class ArgField:
                 if idx >= 0:
                     self.widget.setCurrentIndex(idx)
             else:
-                self.widget.setText(str(v))
+                self._set_text(str(v))
         except (TypeError, ValueError):
             pass
 
@@ -553,7 +624,7 @@ class ArgField:
         if self.type == "choice":
             data = self.widget.currentData()
             return str(data) if data is not None else self.widget.currentText()
-        return self.widget.text().strip()
+        return self._text().strip()
 
     def to_argv(self) -> List[str]:
         """이 필드를 커맨드라인 조각으로 바꾼다. 빈 값은 생략한다."""
@@ -642,6 +713,11 @@ class StagePanel(QWidget):
         scroll.setWidget(form_host)
         box = QGroupBox("실행 옵션")
         bl = QVBoxLayout(box)
+        # 핵심 단계는 "basic" 으로 표시된 필드만 먼저 보이고 나머지는 이 체크박스로 편다 (JSON 의 basic 플래그)
+        self.adv_check = QCheckBox("고급 옵션 보기")
+        self.adv_check.setVisible(False)
+        self.adv_check.toggled.connect(self._apply_advanced)
+        bl.addWidget(self.adv_check)
         bl.addWidget(scroll)
         split.addWidget(box)
 
@@ -730,12 +806,13 @@ class StagePanel(QWidget):
             self.preview_btn.setEnabled(False)
             return
 
-        self.title.setText(str(stage.get("title", stage.get("id"))))
+        core_title = stage.get("core_title")
+        self.title.setText(str(core_title or stage.get("title", stage.get("id"))))
         self.desc.setText(str(stage.get("description", "")))
         script = ROOT / str(stage["script"])
         exists = script.is_file()
         self.script_label.setText(
-            f"{stage['script']}" + ("" if exists else "   ← 파일 없음")
+            f"{stage['script']}" + (f"   ·   {stage.get('title')}" if core_title else "") + ("" if exists else "   ← 파일 없음")
         )
         self.run_btn.setEnabled(exists)
         self.preview_btn.setEnabled(exists)
@@ -746,7 +823,10 @@ class StagePanel(QWidget):
             )
 
         saved = self._saved_values.get(str(stage.get("id")), {})
-        for spec in stage.get("args", []):
+        specs = list(stage.get("args", []))
+        has_basic = any(s.get("basic") for s in specs)
+        n_adv = 0
+        for spec in specs:
             field = ArgField(spec, self)
             key = self._field_key(field)
             if key in saved:
@@ -756,8 +836,24 @@ class StagePanel(QWidget):
             if spec.get("required"):
                 label += " *"
             self.form.addRow(label, field.container)
+            # basic 이 하나라도 있으면 basic/required 가 아닌 필드는 고급으로 접는다
+            field.advanced = bool(has_basic and not spec.get("basic") and not spec.get("required"))
+            n_adv += int(field.advanced)
+        self.adv_check.setVisible(has_basic)
+        self.adv_check.setText(f"고급 옵션 보기 ({n_adv})")
+        self._apply_advanced()
 
         self._preview()
+
+    def _apply_advanced(self, *_args: Any) -> None:
+        show = self.adv_check.isChecked()
+        for field in self.fields:
+            if not getattr(field, "advanced", False):
+                continue
+            lab = self.form.labelForField(field.container)
+            if lab is not None:
+                lab.setVisible(show)
+            field.container.setVisible(show)
 
     # ------------------------------------------------------------------
     @staticmethod
@@ -964,15 +1060,32 @@ class PipelineGroupPage(QWidget):
         head.setStyleSheet("color:#5a6673; padding:2px 4px 8px 4px;")
         ll.addWidget(head)
 
+        # 핵심 단계(core) 가 있으면 그것만 먼저 보이고, 나머지는 '추가 작업 보기' 로 편다.
+        stages = list(group.get("stages", []))
+        core = [st for st in stages if st.get("core")]
+        rest = [st for st in stages if not st.get("core")]
         self.listw = QListWidget()
-        for st in group.get("stages", []):
-            item = QListWidgetItem(str(st.get("title", st.get("id"))))
+        self.listw.setWordWrap(True)
+        self._extra_items: List[QListWidgetItem] = []
+        for st in (core + rest) if core else stages:
+            item = QListWidgetItem(str(st.get("core_title") or st.get("title", st.get("id"))))
             item.setData(Qt.UserRole, st)
             if not (ROOT / str(st.get("script", ""))).is_file():
                 item.setForeground(Qt.red)
                 item.setToolTip(f"스크립트 없음: {st.get('script')}")
+            elif st.get("core") and st.get("title"):
+                item.setToolTip(str(st.get("title")))
             self.listw.addItem(item)
+            if core and not st.get("core"):
+                item.setHidden(True)
+                self._extra_items.append(item)
         ll.addWidget(self.listw, 1)
+        self.more_check: Optional[QCheckBox] = None
+        if core and rest:
+            self.more_check = QCheckBox(f"추가 작업 보기 ({len(rest)})")
+            self.more_check.setToolTip("개별 리포트·라벨·내보내기 등 세부 단계")
+            self.more_check.toggled.connect(self._toggle_extra)
+            ll.addWidget(self.more_check)
         layout.addWidget(left)
 
         self.panel = StagePanel(self)
@@ -984,6 +1097,16 @@ class PipelineGroupPage(QWidget):
 
     def _on_select(self, cur: Optional[QListWidgetItem], _prev) -> None:
         self.panel.set_stage(cur.data(Qt.UserRole) if cur else None)
+
+    def _toggle_extra(self, on: bool) -> None:
+        for item in self._extra_items:
+            item.setHidden(not on)
+        cur = self.listw.currentItem()
+        if not on and cur is not None and cur.isHidden() and self.listw.count():
+            self.listw.setCurrentRow(0)
+
+    def visible_titles(self) -> List[str]:
+        return [self.listw.item(i).text() for i in range(self.listw.count()) if not self.listw.item(i).isHidden()]
 
 
 class PipelinePage(QWidget):

@@ -179,6 +179,7 @@ def run_qwen_subprocess(
     threshold: float,
     verify_mode: str,
     script_path: Optional[Path] = None,
+    batch_size: int = 1,
 ) -> Dict[str, Any]:
     """Run a Qwen post-process script only as an external process.
 
@@ -212,6 +213,9 @@ def run_qwen_subprocess(
             "--max-pixels", str(768 * 768),
             "--show", str(top_k),
         ]
+        # 관찰 배치(>1): 후보당 시간이 크게 줄지만 판정이 일부 달라질 수 있다 (qwen_stage --batch-size 참고)
+        if int(batch_size or 1) > 1:
+            cmd += ["--batch-size", str(int(batch_size))]
 
         env = os.environ.copy()
         env.setdefault("PYTHONIOENCODING", "utf-8")

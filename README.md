@@ -230,7 +230,7 @@ curl http://localhost:6333
 # GUI 파이프라인 정의 로드 (창 없이)
 $env:PYTHONIOENCODING='utf-8'
 .\.venv\Scripts\python.exe -c "from gui import pipeline_page as pp; print([(g['id'], len(g['stages'])) for g in pp.load_registry()])"
-# 기대 출력: [('video_pipeline', 6), ('image_pipeline', 11), ('evaluation', 14)]
+# 기대 출력: [('video_pipeline', 6), ('image_pipeline', 12), ('evaluation', 14)]
 
 # 단위 테스트 (Qdrant·네트워크 불필요, 약 20초)
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
@@ -252,7 +252,7 @@ $env:PYTHONIOENCODING='utf-8'
 | 이미지 검색 | 1 Crop 기반 검색 / 2 자연어 검색 / 3 Qwen 검증 — 이미지 DB(`media_type=image`) 대상 |
 | 영상 검색 | 같은 3개 하위 탭 — 영상 track 그룹(`media_type=video`) 대상, 결과에서 영상 재생 |
 | 영상 파이프라인 | 1 전처리+트래킹 → 2 Qdrant 적재 → 3 Person Leiden → 4 Object Leiden → 5·6 군집 갤러리 |
-| 이미지 파이프라인 | 1 배치 검출/crop (RF-DETR · YOLO26) → 2 임베딩+Qdrant 구축 → 3 DB HTML 리포트 → 4 Leiden(crop 단위) · 4b 클러스터링 플러그인 교체 → 5·6 클러스터 갤러리 → 7 결과 인덱스 HTML → 8 색상 라벨 → 9 Qwen 라벨 → 10 클러스터 폴더 내보내기 |
+| 이미지 파이프라인 | 핵심 4단계만 먼저 보임: **1 검출**(사진 → crop) → **2 임베딩**(crop → Qdrant) → **3 클러스터**(Leiden) → **4 결과창**(`report/build_image_results.py`: DB 리포트 + 갤러리 + 인덱스 한 번에). '추가 작업 보기' 를 켜면 개별 단계(DB HTML 리포트 · 클러스터링 플러그인 · person/object 갤러리 · 결과 인덱스 · 색상 라벨 · Qwen 라벨 · 폴더 내보내기)가 나온다. 핵심 단계 폼은 basic 필드만 보이고 '고급 옵션 보기' 로 나머지를 편다; 빈 칸 대신 기본값·폴더/값 드롭다운·플레이스홀더 |
 | 평가 / 비교 | 1 PRW Person Re-ID 평가 → 2 retriever 조합 비교 |
 
 동작 특성:

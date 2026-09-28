@@ -29,11 +29,11 @@
   "_groups": {
     "video_pipeline": {
       "title": "영상 파이프라인",
-      "description": "영상 → 전처리/트래킹 → Qdrant 적재 → Leiden 클러스터링(person/object) → 검수 갤러리"
+      "description": "영상 → 검출·추적 → 임베딩 → 클러스터 → 결과창. object 군집·갤러리는 '추가 작업 보기'"
     },
     "image_pipeline": {
       "title": "이미지 파이프라인",
-      "description": "사진 → RF-DETR 검출 → filter_stats.json → 임베딩 → Qdrant → DB 리포트 → Leiden → 갤러리 → 결과 인덱스"
+      "description": "사진 → 검출 → 임베딩 → 클러스터 → 결과창. 개별 리포트·라벨·내보내기는 '추가 작업 보기'"
     },
     "evaluation": {
       "title": "평가 / 비교",
@@ -43,6 +43,8 @@
   "video_pipeline": [
     {
       "id": "video_preprocess",
+      "core": true,
+      "core_title": "1. 검출·추적 — 영상 → track",
       "title": "1. 전처리 + 트래킹",
       "script": "video/batch_preprocess_videos_parallel.py",
       "description": "data/videos 의 영상을 검출기(yaml 의 detector: RF-DETR 또는 YOLO26) + BoT-SORT + SUSHI 로 처리해 outputs/processed_videos 를 만든다. 가장 오래 걸리는 단계이며 --resume 으로 이어서 할 수 있다.",
@@ -93,6 +95,7 @@
           "label": "파일 패턴",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 전부",
           "help": "비우면 전체. 예: *.mp4"
         },
         {
@@ -119,6 +122,8 @@
     },
     {
       "id": "video_ingest",
+      "core": true,
+      "core_title": "2. 임베딩 — track crop → 벡터 DB",
       "title": "2. Qdrant 적재",
       "script": "ingest/batch_ingest_all_videos.py",
       "description": "처리된 영상의 track 별 대표 crop 을 임베딩해 forensic_person / forensic_object 에 넣는다. deterministic point ID 라 재실행해도 중복이 쌓이지 않고 덮어쓴다.",
@@ -175,6 +180,8 @@
     },
     {
       "id": "video_cluster_person",
+      "core": true,
+      "core_title": "3. 클러스터 — 같은 사람 묶기",
       "title": "3. Person Leiden 클러스터링",
       "script": "clustering/cluster_leiden_track_centroid.py",
       "description": "person track centroid 를 노드로 mutual-kNN 그래프를 만들고 Leiden 으로 군집화한다. 기본값은 마지막 실행 리포트와 같다 (knn 15 / threshold 0.88 → 1,354 tracks → 24 clusters). --dry-run 을 끄면 payload 의 cluster_id 를 덮어쓴다.",
@@ -347,6 +354,8 @@
     },
     {
       "id": "video_gallery_person",
+      "core": true,
+      "core_title": "4. 결과창 — 사람 군집 갤러리",
       "title": "5. Person 군집 갤러리",
       "script": "report/build_leiden_gallery_track.py",
       "description": "person 클러스터링 결과를 눈으로 검수할 HTML 갤러리를 만든다. 큰 / 중간 / 작은 군집과 noise 를 표본으로 보여준다.",
@@ -485,6 +494,8 @@
   "image_pipeline": [
     {
       "id": "image_detect",
+      "core": true,
+      "core_title": "1. 검출 — 사진 → 사람·물건 crop",
       "title": "1. 배치 검출 / crop (RF-DETR · YOLO26)",
       "script": "detect/RF-DETR_batch.py",
       "description": "입력 폴더의 이미지를 검출기 플러그인(기본 RF-DETR Medium; '검출기 yaml' 로 YOLO26 등으로 교체) 으로 일괄 검출해 crop 을 출력 폴더에 쓰고, 마지막에 filter_stats.json 을 재생성한다. 2단계가 바로 이 파일을 읽는다. 중단해도 checkpoint 로 이어서 진행되며, 검출기·임계값이 바뀌면 checkpoint 불일치로 멈춘다.",
@@ -495,13 +506,19 @@
           "type": "dir",
           "default": "",
           "required": true,
+          "basic": true,
+          "choices_dirs": ["data/*", "data/*/*"],
+          "choices_exclude": ["crops*", "*crop*", "embedding_checkpoint", "build_manifests", "videos", "processed*", "annotations", "__pycache__", "*.lock"],
+          "default_prefer": ["data/coco/train2017", "data/coco/val2017", "data/coco", "data/PRW/frames"],
+          "default_first_choice": true,
           "help": "데이터셋 프레임 폴더. 기본값 없음 — 실수로 COCO 경로가 들어가지 않게 매번 지정한다 (COCO 재개: C:/datasets/coco/train2017)"
         },
         {
           "flag": "--output-dir",
           "label": "crop 출력 폴더 *",
           "type": "dir",
-          "default": "",
+          "default": "data/crops",
+          "basic": true,
           "required": true,
           "help": "데이터셋마다 새 폴더 (예 data/prw_crops_v2; COCO 재개: data/crops). 다른 데이터셋의 crop 폴더를 재사용하면 checkpoint 불일치 또는 합본 filter_stats 가 생긴다. 2단계 --stats 는 이 폴더/filter_stats.json"
         },
@@ -509,7 +526,9 @@
           "flag": "--dataset-id",
           "label": "dataset_id *",
           "type": "str",
-          "default": "",
+          "default": "coco_train2017",
+          "choices": ["coco_train2017", "coco_val2017", "PRW"],
+          "basic": true,
           "required": true,
           "help": "image_id = <dataset_id>/<파일명> → detection_id → Qdrant point ID. 기존 PRW point 는 PRW, COCO 는 coco_train2017"
         },
@@ -517,7 +536,9 @@
           "flag": "--source",
           "label": "source *",
           "type": "str",
-          "default": "",
+          "default": "COCO",
+          "choices": ["COCO", "prw_image"],
+          "basic": true,
           "required": true,
           "help": "payload source 라벨. 3·4단계 source 필터와 같은 문자열이어야 한다 (기존: prw_image / COCO)"
         },
@@ -530,6 +551,7 @@
         },
         {
           "flag": "--detector-config",
+          "basic": true,
           "label": "검출기",
           "type": "choice",
           "default": "pipeline.yaml",
@@ -541,6 +563,7 @@
         },
         {
           "flag": "--conf-threshold",
+          "basic": true,
           "label": "검출 임계값",
           "type": "float",
           "optional": true,
@@ -552,6 +575,7 @@
         },
         {
           "flag": "--all",
+          "basic": true,
           "label": "폴더 전체 처리",
           "type": "bool",
           "default": true,
@@ -607,12 +631,15 @@
     },
     {
       "id": "image_build",
+      "core": true,
+      "core_title": "2. 임베딩 — crop → 벡터 DB",
       "title": "2. 임베딩 + Qdrant 구축",
       "script": "ingest/build_db.py",
       "description": "filter_stats.json 의 crop 을 SigLIP2 / IRRA / SOLIDER / DINOv2 로 임베딩해 person·object 컬렉션에 적재한다. checkpoint 가 있어 중단해도 이어서 진행된다.",
       "args": [
         {
           "flag": "--stats",
+          "basic": true,
           "label": "filter_stats.json",
           "type": "path",
           "default": "data/crops/filter_stats.json",
@@ -620,6 +647,7 @@
         },
         {
           "flag": "--config",
+          "basic": true,
           "label": "임베더 구성",
           "type": "choice",
           "default": "pipeline.yaml",
@@ -700,6 +728,7 @@
           "label": "Qdrant URL",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml (http://localhost:6333)",
           "help": "비우면 pipeline.yaml 의 qdrant.url"
         },
         {
@@ -712,6 +741,8 @@
     },
     {
       "id": "image_cluster",
+      "core": true,
+      "core_title": "3. 클러스터 — 같은 사람·물건 묶기",
       "title": "4. Leiden 클러스터링 (crop 단위)",
       "script": "clustering/cluster_leiden_qdrant.py",
       "description": "이미지 crop 하나를 노드로 Qdrant ANN kNN 그래프를 만들고 Leiden 으로 군집화한다. person 은 solider, object 는 dinov2. kNN 질의는 같은 source 안에서만 이웃을 찾는다. dry-run 이 켜져 있으면 assignments jsonl 만 쓰고 Qdrant payload 는 건드리지 않는다 — 갤러리는 jsonl 만 있으면 된다.",
@@ -725,6 +756,7 @@
         },
         {
           "flag": "--target",
+          "basic": true,
           "label": "대상",
           "type": "choice",
           "choices": [
@@ -739,6 +771,7 @@
           "label": "person 컬렉션",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml",
           "help": "비우면 yaml collection_prefix + _person"
         },
         {
@@ -746,6 +779,7 @@
           "label": "object 컬렉션",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml",
           "help": "비우면 yaml collection_prefix + _object"
         },
         {
@@ -753,6 +787,7 @@
           "label": "person 벡터",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml",
           "help": "비우면 yaml clustering.person.vector (없으면 solider 추론)"
         },
         {
@@ -760,16 +795,21 @@
           "label": "object 벡터",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml",
           "help": "비우면 yaml clustering.object.vector (없으면 dinov2 추론)"
         },
         {
           "flag": "--sources",
           "label": "source 필터 (쉼표 구분)",
           "type": "str",
-          "default": "prw_image"
+          "default": "prw_image",
+          "choices": ["prw_image", "COCO", "prw_image,COCO"],
+          "basic": true,
+          "help": "1. 검출 단계의 source 와 같은 값 (여러 개면 쉼표)"
         },
         {
           "flag": "--person-threshold",
+          "basic": true,
           "label": "person 유사도 임계값",
           "type": "float",
           "optional": true,
@@ -781,6 +821,7 @@
         },
         {
           "flag": "--object-threshold",
+          "basic": true,
           "label": "object 유사도 임계값",
           "type": "float",
           "optional": true,
@@ -870,16 +911,19 @@
           "label": "Qdrant URL",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml (http://localhost:6333)",
           "help": "비우면 pipeline.yaml 의 qdrant.url"
         },
         {
           "flag": "--output-dir",
+          "basic": true,
           "label": "출력 폴더",
           "type": "dir",
           "default": "outputs/clustering/leiden_image_prw"
         },
         {
           "flag": "--dry-run",
+          "basic": true,
           "label": "payload 쓰지 않음 (dry-run)",
           "type": "bool",
           "default": true,
@@ -958,6 +1002,7 @@
           "label": "primary 벡터",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml",
           "help": "비우면 yaml clustering.<target>.vector"
         },
         {
@@ -1032,6 +1077,7 @@
           "label": "컬렉션",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml 의 대상 컬렉션",
           "help": "비우면 yaml collection_prefix + _person"
         },
         {
@@ -1106,6 +1152,7 @@
           "label": "Qdrant URL",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml (http://localhost:6333)",
           "help": "비우면 pipeline.yaml 의 qdrant.url"
         },
         {
@@ -1150,6 +1197,7 @@
           "label": "컬렉션",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml 의 대상 컬렉션",
           "help": "비우면 yaml collection_prefix + _object"
         },
         {
@@ -1224,6 +1272,7 @@
           "label": "Qdrant URL",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml (http://localhost:6333)",
           "help": "비우면 pipeline.yaml 의 qdrant.url"
         },
         {
@@ -1275,6 +1324,80 @@
       ]
     },
     {
+      "id": "image_results",
+      "core": true,
+      "core_title": "4. 결과창 — 리포트 만들고 열기",
+      "title": "4c. 결과창 (DB 리포트 + 갤러리 + 인덱스 한 번에)",
+      "script": "report/build_image_results.py",
+      "description": "3·5·6·7 단계를 한 번에: DB HTML 리포트 → person/object 클러스터 갤러리(assignments 가 있는 쪽만) → 결과 인덱스 HTML. 끝나면 '결과 열기' 로 인덱스가 열린다. 개별 단계는 '추가 작업 보기' 에 있다.",
+      "args": [
+        {
+          "flag": "--source",
+          "label": "source (검출 단계와 같은 값)",
+          "type": "str",
+          "default": "prw_image",
+          "choices": ["prw_image", "COCO"],
+          "basic": true
+        },
+        {
+          "flag": "--cluster-dir",
+          "label": "클러스터 출력 폴더 (3단계)",
+          "type": "dir",
+          "default": "outputs/clustering/leiden_image_prw",
+          "choices_dirs": ["outputs/clustering/*"],
+          "choices_exclude": ["cache", "plugin*"],
+          "basic": true
+        },
+        {
+          "flag": "--out-dir",
+          "label": "결과 폴더",
+          "type": "dir",
+          "default": "outputs/image_review",
+          "basic": true
+        },
+        {
+          "flag": "--reuse",
+          "label": "이미 있는 리포트·갤러리 재사용 (빠름)",
+          "type": "bool",
+          "default": false,
+          "basic": true
+        },
+        {
+          "flag": "--config",
+          "label": "pipeline.yaml",
+          "type": "path",
+          "default": "pipeline.yaml"
+        },
+        {
+          "flag": "--title",
+          "label": "HTML 제목",
+          "type": "str",
+          "default": "이미지 DB · 클러스터 결과"
+        },
+        {
+          "flag": "--samples",
+          "label": "DB 썸네일 표본 수",
+          "type": "int",
+          "default": 2000,
+          "min": 0
+        },
+        {
+          "flag": "--images-per-cluster",
+          "label": "갤러리 군집당 이미지",
+          "type": "int",
+          "default": 40,
+          "min": 1
+        },
+        {
+          "flag": "--qdrant-url",
+          "label": "Qdrant URL",
+          "type": "str",
+          "default": "",
+          "placeholder": "비우면 pipeline.yaml (http://localhost:6333)"
+        }
+      ]
+    },
+    {
       "id": "image_cluster_color_labels",
       "title": "8. 군집 색상 라벨 (DB SigLIP2 벡터)",
       "script": "clustering/label_clusters_from_vectors.py",
@@ -1309,6 +1432,7 @@
           "label": "컬렉션",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml 의 대상 컬렉션",
           "help": "비우면 yaml collection_prefix + _person"
         },
         {
@@ -1376,6 +1500,7 @@
           "label": "Qdrant URL",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml (http://localhost:6333)",
           "help": "비우면 pipeline.yaml 의 qdrant.url"
         }
       ]
@@ -1414,6 +1539,7 @@
           "label": "컬렉션",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml 의 대상 컬렉션",
           "help": "비우면 yaml collection_prefix + _person"
         },
         {
@@ -1494,6 +1620,7 @@
           "label": "Qdrant URL",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml (http://localhost:6333)",
           "help": "비우면 pipeline.yaml 의 qdrant.url"
         }
       ]
@@ -1533,6 +1660,7 @@
           "label": "컬렉션",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml 의 대상 컬렉션",
           "help": "비우면 yaml collection_prefix + _person"
         },
         {
@@ -1632,6 +1760,7 @@
           "label": "Qdrant URL",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 pipeline.yaml (http://localhost:6333)",
           "help": "비우면 pipeline.yaml 의 qdrant.url"
         }
       ]
@@ -1672,6 +1801,7 @@
           "label": "device",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 자동 (cuda)",
           "help": "비우면 자동"
         },
         {
@@ -2040,6 +2170,7 @@
           "label": "결과 이름",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 자동",
           "help": "원장 name. 비우면 단계별 기본"
         },
         {
@@ -2282,7 +2413,8 @@
           "flag": "--name",
           "label": "결과 이름",
           "type": "str",
-          "default": ""
+          "default": "",
+          "placeholder": "비우면 자동"
         },
         {
           "flag": "--data-root",
@@ -2734,6 +2866,7 @@
           "label": "eval: 결과·원장 이름",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 자동 (설정에서 만든 이름)",
           "optional": true
         },
         {
@@ -2833,6 +2966,7 @@
           "label": "eval: 결과·원장 이름",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 자동 (설정에서 만든 이름)",
           "optional": true
         },
         {
@@ -2937,7 +3071,15 @@
           "label": "eval: Instruct 모델 id (비우면 기본 2B)",
           "type": "str",
           "default": "",
+          "placeholder": "Qwen/Qwen3-VL-2B-Instruct",
           "optional": true
+        },
+        {
+          "flag": "--batch-size",
+          "label": "eval: 관찰 배치 크기 (1 = 단건 = GUI 기본; 크면 빠르지만 판정 일부 달라짐 → 이름 _bN 별도 변형)",
+          "type": "int",
+          "default": 1,
+          "min": 1
         },
         {
           "flag": "--rerun",
@@ -2962,6 +3104,7 @@
           "label": "eval: 결과·원장 이름",
           "type": "str",
           "default": "",
+          "placeholder": "비우면 자동 (설정에서 만든 이름)",
           "optional": true
         },
         {

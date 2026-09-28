@@ -149,10 +149,15 @@ def cmd_sheet(args: argparse.Namespace) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------- Qwen 실행 · 캐시 계약
+def _batch_size(args: argparse.Namespace) -> int:
+    """관찰 배치 크기. 단건(1)과 배치는 판정이 일부 다르므로 캐시 계약·이름·원장 구성에 들어간다."""
+    return max(1, int(getattr(args, "batch_size", 1) or 1))
+
+
 def cache_key(inp: Path, args: argparse.Namespace) -> str:
     parts = {"candidates_sha1": S.file_sha1(inp), "model_id": args.model_id, "no_reranker": bool(args.no_reranker),
              "reranker_model_id": args.reranker_model_id, "top_k": int(args.top_k), "dtype": args.dtype, "max_pixels": int(args.max_pixels),
-             "device": args.device}
+             "device": args.device, "batch_size": _batch_size(args)}
     return hashlib.sha1(json.dumps(parts, sort_keys=True).encode("utf-8")).hexdigest()[:12]
 
 
@@ -169,6 +174,8 @@ def qwen_command(python: str, inp: Path, out: Path, args: argparse.Namespace) ->
         cmd += ["--reranker-model-id", args.reranker_model_id]
     if args.device:
         cmd += ["--device", args.device]
+    if _batch_size(args) > 1:
+        cmd += ["--batch-size", str(_batch_size(args))]
     return cmd
 
 
@@ -308,7 +315,7 @@ def cmd_eval(args: argparse.Namespace) -> Dict[str, Any]:
     labels, lmeta = S.read_labels_meta(gt_dir / "labels.json")
     if labels:
         S.check_manifest(lmeta, proposals.get("manifest"), "qwen", args.ignore_manifest, kind=KIND)
-    name = args.name or f"qwen_{args.verify_mode}{'_norerank' if args.no_reranker else ''}"
+    name = args.name or f"qwen_{args.verify_mode}{'_norerank' if args.no_reranker else ''}{f'_b{_batch_size(args)}' if _batch_size(args) > 1 else ''}"
     out_dir = Path(args.output_dir).resolve() / name
     qwen_dir = Path(args.qwen_dir).resolve() if args.qwen_dir else out_dir / "qwen"
     qwen_dir.mkdir(parents=True, exist_ok=True)
@@ -369,7 +376,7 @@ def cmd_eval(args: argparse.Namespace) -> Dict[str, Any]:
     out = {"producer": PRODUCER, "generated_at": S.now_iso(), "name": name, "labeled_queries": len(labeled), "unlabeled_only": not labeled,
            "config": {"gt_dir": str(gt_dir), "top_k": args.top_k, "alpha": args.alpha, "threshold": args.threshold, "verify_mode": args.verify_mode,
                       "no_reranker": args.no_reranker, "model_id": args.model_id or model_id, "reranker_model_id": args.reranker_model_id,
-                      "reranker_used": reranker_used, "dtype": args.dtype, "max_pixels": args.max_pixels, "rescore": args.rescore,
+                      "reranker_used": reranker_used, "dtype": args.dtype, "max_pixels": args.max_pixels, "batch_size": _batch_size(args), "rescore": args.rescore,
                       "qwen_dir": str(qwen_dir), "qwen_runs": n_run, "qwen_cached": n_cached, "qwen_rescored": n_rescored},
            "gt": {"queries": len(per), "labeled_queries": len(labeled), "judged": metrics.get("judged"), "candidates": metrics.get("candidates"), "coverage": coverage,
                   "protocol": "자연어 쿼리 × 상위 K 후보 사람 판정(맞다/아니다/모름; 불변 후보 id 로 연결); 모름 제외; P@K 전·후는 paired 평균; filter 는 평가기가 재현"},
@@ -394,7 +401,7 @@ def report_md(out: Dict[str, Any]) -> str:
     m = out["metrics"]
     c = out["config"]
     lines = [f"# Qwen 후처리 평가 — {out['name']} ({out['generated_at']})", "",
-             f"- 모델 {c.get('model_id')} · 재랭커 {'사용' if c.get('reranker_used') else '미사용'} · mode {c['verify_mode']} (평가기 재현) · alpha {c['alpha']} · threshold {c['threshold']} · K {c['top_k']}",
+             f"- 모델 {c.get('model_id')} · 재랭커 {'사용' if c.get('reranker_used') else '미사용'} · mode {c['verify_mode']} (평가기 재현) · alpha {c['alpha']} · threshold {c['threshold']} · K {c['top_k']} · 배치 {c.get('batch_size') or 1}",
              f"- 쿼리 {out['gt']['queries']} (라벨 {out['gt']['labeled_queries']}) · 후보 {out['gt'].get('candidates')} · 판정 {out['gt'].get('judged')} · 검토율 {out['gt'].get('coverage')}"
              + (" — **라벨 없음: 시간·UNKNOWN 만**" if out["unlabeled_only"] else ""), "",
              "| 지표 | 검증 전 | 검증 후 | 변화(%p) | 쿼리 |", "|---|---|---|---|---|"]
@@ -432,6 +439,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dtype", default="bfloat16")
     p.add_argument("--device", default=None)
     p.add_argument("--max-pixels", type=int, default=768 * 768)
+    p.add_argument("--batch-size", type=int, default=1, help="Qwen 관찰 배치 크기 (1 = 단건 = GUI 기본). >1 은 left padding 배치로 후보당 시간이 크게 줄지만 판정이 일부 달라져 캐시 계약·이름(_bN)·원장에 별도 변형으로 기록된다")
     p.add_argument("--python", default=None, help="qwen_stage 를 돌릴 python (기본 현재 인터프리터)")
     p.add_argument("--qwen-dir", default=None, help="Qwen 결과 캐시 폴더 (기본 <output-dir>/<name>/qwen)")
     p.add_argument("--rerun", action="store_true", help="캐시된 Qwen 결과가 있어도 다시 실행")

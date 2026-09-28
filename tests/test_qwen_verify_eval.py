@@ -90,7 +90,7 @@ class ScoreTests(unittest.TestCase):
 class PlumbingTests(unittest.TestCase):
     def args(self, **kw):
         base = dict(top_k=7, alpha=0.5, threshold=0.4, verify_mode="filter", dtype="bfloat16", max_pixels=1000, no_reranker=True,
-                    model_id="Qwen/X", reranker_model_id=None, device=None)
+                    model_id="Qwen/X", reranker_model_id=None, device=None, batch_size=1)
         base.update(kw)
         return SimpleNamespace(**base)
 
@@ -98,6 +98,9 @@ class PlumbingTests(unittest.TestCase):
         cmd = Q.qwen_command("py", Path("in.json"), Path("out.json"), self.args())
         self.assertEqual(cmd[:3], ["py", "-u", str(Q.QWEN_SCRIPT)])
         self.assertEqual(cmd[cmd.index("--verify-mode") + 1], "flag")       # filter 는 평가기가 재현
+        self.assertNotIn("--batch-size", cmd)                                # 단건(1) 은 기본이라 생략
+        cmd8 = Q.qwen_command("py", Path("in.json"), Path("out.json"), self.args(batch_size=8))
+        self.assertEqual(cmd8[cmd8.index("--batch-size") + 1], "8")
         self.assertIn("--no-reranker", cmd)
         self.assertEqual(cmd[cmd.index("--model-id") + 1], "Qwen/X")
         self.assertEqual(cmd[cmd.index("--top-k") + 1], "7")
@@ -114,6 +117,8 @@ class PlumbingTests(unittest.TestCase):
             self.assertNotEqual(k1, Q.cache_key(inp, self.args(top_k=5)))
             self.assertNotEqual(k1, Q.cache_key(inp, self.args(model_id="Qwen/Y")))
             self.assertNotEqual(k1, Q.cache_key(inp, self.args(no_reranker=False)))
+            self.assertNotEqual(k1, Q.cache_key(inp, self.args(batch_size=8)))    # 배치 관찰은 판정이 일부 달라지므로 계약에 포함
+            self.assertEqual(k1, Q.cache_key(inp, self.args(batch_size=None)))    # None/누락 = 1
             inp.write_text('{"a": 2}', encoding="utf-8")
             self.assertNotEqual(k1, Q.cache_key(inp, self.args()))            # 후보가 바뀌면 계약도 바뀐다
 

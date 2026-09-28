@@ -44,7 +44,7 @@ D=.claude/skills/run-transreid/driver.py
 | `status` | 창 목록: pid, hwnd, rect, 제목. 없으면 `not running`. |
 | `ss OUT.png` | `PrintWindow` 캡처. 다른 창에 가려져 있어도 GUI 내용이 찍힌다. |
 | `tab NAME [--ss]` | 상단 탭 전환. NAME ∈ `이미지 검색` `영상 검색` `영상 파이프라인` `이미지 파이프라인` `평가 / 비교`. |
-| `step N [--tab NAME] [--ss]` | 파이프라인 탭 왼쪽 단계 목록의 N 번째 선택 (영상 1~6, 이미지 1~11). `--tab` 으로 먼저 탭 전환 — 이미지 파이프라인은 탭 설명이 3줄이라 목록 시작 y 가 다르므로(`STEP_Y0_BY_TAB`) `--tab` 을 꼭 준다. |
+| `step N [--tab NAME] [--ss]` | 파이프라인 탭 왼쪽 단계 목록의 N 번째 **보이는** 항목 선택 (기본은 핵심 4단계만 보임 — 검출/임베딩/클러스터/결과창; '추가 작업 보기' 를 켜면 영상 6, 이미지 12). `--tab` 으로 먼저 탭 전환 — 이미지 파이프라인은 탭 설명이 3줄이라 목록 시작 y 가 다르므로(`STEP_Y0_BY_TAB`) `--tab` 을 꼭 준다. |
 | `click X Y [--ss]` | 임의 **창 좌표**(프레임 포함, 캡처 PNG 의 픽셀 좌표와 동일) 클릭. |
 | `quit [--wait 10]` | `WM_CLOSE` 로 정상 종료(실측 0.3초). 무응답이면 `taskkill /F`. |
 
@@ -70,7 +70,7 @@ for g in pp.load_registry():
 "
 ```
 
-기대 출력: `video_pipeline 6 …`, `image_pipeline 11 …`, `evaluation 14 …`.
+기대 출력: `video_pipeline 6 …`, `image_pipeline 12 …`, `evaluation 14 …` (2026-09-28: 이미지 12 = 핵심 4 `core` 단계 + 추가 8; 핵심 단계는 `core_title`, 폼은 `basic` 필드만 기본 표시).
 (2026-09-26 재배치: `pipeline_page.py`/`gui_theme.py` 는 `gui/` 패키지, 단계 스크립트는
 `detect/ video/ ingest/ clustering/ search/ verifiers/ report/` 아래에 있고 `gui_pipelines.json` 의
 `script` 값이 그 상대경로다.)

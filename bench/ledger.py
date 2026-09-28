@@ -608,7 +608,8 @@ def entry_from_qwen_result(out: Dict[str, Any], report: Any = None, command: Opt
     """qwen_verify_eval 의 결과 dict → 엔트리 (stage=qwen: P@K 전/후, 오탈락률, UNKNOWN, 후보당 초)."""
     cfg = out.get("config") or {}
     component = {"model_id": cfg.get("model_id"), "reranker": cfg.get("reranker_used"), "reranker_model_id": cfg.get("reranker_model_id"),
-                 "verify_mode": cfg.get("verify_mode"), "dtype": cfg.get("dtype"), "max_pixels": cfg.get("max_pixels")}
+                 "verify_mode": cfg.get("verify_mode"), "dtype": cfg.get("dtype"), "max_pixels": cfg.get("max_pixels"),
+                 "batch_size": cfg.get("batch_size") or 1}
     params = {k: cfg.get(k) for k in ("top_k", "alpha", "threshold", "no_reranker", "rescore", "gt_dir")}
     return _p6_entry("qwen", out, component, params, {"dataset": "qwen judgements"}, report, command, versions, env)
 

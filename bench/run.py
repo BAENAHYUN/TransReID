@@ -373,7 +373,7 @@ class Stage:
         cmd = [PY, "eval/qwen_verify_eval.py", "eval", "--output-dir", str(self.run_dir), "--ledger", str(self.part_ledger), "--name", name, "--record-pseudo"]
         if a.get("allow_unlabeled"):
             cmd.append("--allow-unlabeled")
-        for k in ("gt_dir", "top_k", "alpha", "threshold", "verify_mode", "model_id", "max_queries", "qwen_dir", "reranker_model_id", "dtype", "max_pixels", "min_coverage"):
+        for k in ("gt_dir", "top_k", "alpha", "threshold", "verify_mode", "model_id", "max_queries", "qwen_dir", "reranker_model_id", "dtype", "max_pixels", "min_coverage", "batch_size"):
             if not _empty(a.get(k)):
                 cmd += [f"--{k.replace('_', '-')}", str(a[k])]
         if a.get("no_reranker"):
@@ -473,7 +473,8 @@ def args_from_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
             out.update({"model_id": comp.get("model_id"), "verify_mode": comp.get("verify_mode"), "top_k": params.get("top_k"),
                         "alpha": params.get("alpha"), "threshold": params.get("threshold"), "no_reranker": bool(params.get("no_reranker")),
                         "gt_dir": params.get("gt_dir"), "reranker_model_id": comp.get("reranker_model_id"), "dtype": comp.get("dtype"),
-                        "max_pixels": comp.get("max_pixels"), "rescore": bool(params.get("rescore"))})
+                        "max_pixels": comp.get("max_pixels"), "rescore": bool(params.get("rescore")),
+                        "batch_size": comp.get("batch_size") if (comp.get("batch_size") or 1) > 1 else None})
         return {k: v for k, v in out.items() if not _empty(v)}
     raise ValueError(f"알 수 없는 stage: {stage}")
 
@@ -667,7 +668,7 @@ STAGE_KEYS = {
               "iou", "max_gap", "min_coverage", "data_root"},
     "object": {"name", "gt_dir", "vector", "collection", "threshold", "assignments", "min_coverage", "data_root"},
     "qwen": {"name", "gt_dir", "top_k", "alpha", "threshold", "verify_mode", "no_reranker", "model_id", "max_queries", "qwen_dir", "allow_unlabeled",
-             "reranker_model_id", "dtype", "max_pixels", "rescore", "min_coverage", "data_root"},
+             "reranker_model_id", "dtype", "max_pixels", "rescore", "min_coverage", "batch_size", "data_root"},
 }
 
 
@@ -745,7 +746,8 @@ def default_name(stage: str, a: Dict[str, Any]) -> str:
     if stage == "object":
         return slug(a.get("vector") or "object")
     if stage == "qwen":
-        return slug("qwen_" + str(a.get("verify_mode") or "flag"))
+        bs = int(a.get("batch_size") or 1)
+        return slug("qwen_" + str(a.get("verify_mode") or "flag") + (f"_b{bs}" if bs > 1 else ""))
     return stage
 
 

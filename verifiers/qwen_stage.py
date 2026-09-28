@@ -1109,6 +1109,79 @@ class QwenVL:
             out[:, prompt_len:], skip_special_tokens=True
         )[0].strip()
 
+    def generate_batch(
+        self,
+        prompts: Sequence[str],
+        image_paths: Sequence[Optional[str]],
+    ) -> List[str]:
+        """여러 (prompt, image) 를 한 번의 generate 로 처리한다 (left padding).
+
+        단건 generate 와 모델·프롬프트는 같지만 padding 과 batch 수치 차이로 greedy 경로가
+        갈릴 수 있어(관찰 결과가 일부 달라짐) 배치 크기는 캐시 계약·원장 구성에 기록한다.
+        """
+        import torch
+
+        if self._model is None or self._processor is None:
+            raise RuntimeError("Qwen 모델/프로세서가 로드되지 않았습니다.")
+        if len(prompts) != len(image_paths):
+            raise ValueError("prompts 와 image_paths 길이가 다릅니다")
+        if not prompts:
+            return []
+
+        from PIL import Image
+
+        texts: List[str] = []
+        images = []
+        for prompt, image_path in zip(prompts, image_paths):
+            content: List[Dict[str, Any]] = []
+            if image_path:
+                with Image.open(image_path) as im:
+                    images.append(im.convert("RGB").copy())
+                content.append({"type": "image"})
+            content.append({"type": "text", "text": prompt})
+            texts.append(self._processor.apply_chat_template(
+                [{"role": "user", "content": content}],
+                tokenize=False, add_generation_prompt=True,
+            ))
+
+        proc_kwargs: Dict[str, Any] = {
+            "text": texts, "return_tensors": "pt", "padding": True, "padding_side": "left",
+        }
+        if images:
+            proc_kwargs["images"] = images
+        try:
+            inputs = self._processor(**proc_kwargs)
+        except TypeError:
+            # padding_side 를 processor 호출에서 받지 않는 transformers: tokenizer 설정으로 대신한다.
+            proc_kwargs.pop("padding_side")
+            tok = getattr(self._processor, "tokenizer", None)
+            old = getattr(tok, "padding_side", None)
+            if tok is not None:
+                tok.padding_side = "left"
+            try:
+                inputs = self._processor(**proc_kwargs)
+            finally:
+                if tok is not None and old is not None:
+                    tok.padding_side = old
+        mask = inputs.get("attention_mask")
+        if mask is not None and not bool((mask[:, -1] == 1).all()):
+            raise RuntimeError("배치 생성은 left padding 이어야 합니다 (attention_mask 마지막 열에 0)")
+        inputs = {
+            k: (v.to(self.device) if isinstance(v, torch.Tensor) else v)
+            for k, v in dict(inputs).items()
+        }
+        with torch.inference_mode():
+            out = self._model.generate(
+                **inputs,
+                max_new_tokens=self.max_new_tokens,
+                do_sample=False,
+            )
+        prompt_len = inputs["input_ids"].shape[1]
+        return [
+            s.strip()
+            for s in self._processor.batch_decode(out[:, prompt_len:], skip_special_tokens=True)
+        ]
+
     # ---- 쿼리 해석 ----
 
     def parse_query(self, query: str) -> List[Constraint]:
@@ -1135,6 +1208,20 @@ class QwenVL:
         prompt = OBSERVE_PROMPT.format(checks="\n".join(lines))
         raw = self.generate(prompt, image_path=image_path)
         return parse_observation(raw)
+
+    def observe_batch(
+        self,
+        image_paths: Sequence[str],
+        constraints: List[Constraint],
+    ) -> List[Dict[str, Any]]:
+        """observe 의 배치판: 같은 checks 프롬프트로 여러 crop 을 한 번에 관찰한다."""
+        lines = [
+            f"- object: {c.object}, attribute: {c.attribute}"
+            for c in constraints
+        ]
+        prompt = OBSERVE_PROMPT.format(checks="\n".join(lines))
+        raws = self.generate_batch([prompt] * len(image_paths), list(image_paths))
+        return [parse_observation(raw) for raw in raws]
 
     def release(self) -> None:
         self._model = None
@@ -1630,6 +1717,50 @@ def rank_shift(rows: List[Dict[str, Any]]) -> Dict[str, int]:
     }
 
 
+def _observe_in_batches(
+    qwen: "QwenVL",
+    head: List[Dict[str, Any]],
+    constraints: List[Constraint],
+    batch_size: int,
+    t0: Optional[float] = None,
+) -> Dict[int, Any]:
+    """head 의 후보 중 crop 파일이 있는 것을 batch_size 씩 묶어 관찰한다.
+
+    반환: head 인덱스 → 관찰 dict, 또는 그 후보에서 난 예외(호출자가 단건 실패와 같이 다룬다).
+    배치 하나가 통째로 실패하면 그 묶음은 단건 observe 로 되돌아간다.
+    """
+    todo = [
+        (i, str(row.get("crop_path")))
+        for i, row in enumerate(head)
+        if row.get("crop_path") and Path(str(row.get("crop_path"))).is_file()
+    ]
+    out: Dict[int, Any] = {}
+    t0 = t0 if t0 is not None else time.time()
+    n_batches = (len(todo) + batch_size - 1) // batch_size
+    for b in range(n_batches):
+        chunk = todo[b * batch_size:(b + 1) * batch_size]
+        try:
+            obs = qwen.observe_batch([p for _, p in chunk], constraints)
+            if len(obs) != len(chunk):
+                raise RuntimeError(f"배치 결과 수 불일치 {len(obs)} != {len(chunk)}")
+            for (i, _), o in zip(chunk, obs):
+                out[i] = o
+        except Exception as e:  # noqa: BLE001 — 배치 실패는 단건으로 재시도
+            logger.warning("배치 관찰 실패 (%d건) → 단건으로 재시도: %s", len(chunk), e)
+            for i, p in chunk:
+                try:
+                    out[i] = qwen.observe(p, constraints)
+                except Exception as e2:  # noqa: BLE001
+                    out[i] = e2
+        done = min(len(todo), (b + 1) * batch_size)
+        per = (time.time() - t0) / max(1, done)
+        logger.info(
+            "  배치 %d/%d · %d/%d (%.2fs/건, 남음 %.0fs)",
+            b + 1, n_batches, done, len(todo), per, per * (len(todo) - done),
+        )
+    return out
+
+
 def process_item(
     item: Dict[str, Any],
     qwen: Optional[QwenVL],
@@ -1639,6 +1770,7 @@ def process_item(
     threshold: float,
     verify_mode: str,
     rescore_only: bool,
+    batch_size: int = 1,
 ) -> Dict[str, Any]:
     rows = item.get("results") or []
     if not rows:
@@ -1677,6 +1809,10 @@ def process_item(
     unresolved: List[Dict[str, Any]] = []
 
     t0 = time.time()
+    # 배치 관찰: batch_size > 1 이면 crop 이 있는 후보를 묶어 먼저 관찰해 두고, 아래 루프는 그 결과를 쓴다.
+    pre_obs: Dict[int, Any] = {}
+    if not rescore_only and qwen is not None and int(batch_size or 1) > 1:
+        pre_obs = _observe_in_batches(qwen, head, constraints, int(batch_size), t0)
     for i, row in enumerate(head, 1):
         path = row.get("crop_path")
 
@@ -1698,7 +1834,12 @@ def process_item(
                 unresolved.append(row)
                 continue
             try:
-                observation = qwen.observe(path, constraints)
+                if (i - 1) in pre_obs:
+                    observation = pre_obs[i - 1]
+                    if isinstance(observation, BaseException):
+                        raise observation
+                else:
+                    observation = qwen.observe(path, constraints)
             except Exception as e:  # noqa: BLE001 — 후보 하나 실패해도 계속
                 logger.warning("관찰 실패 (%s): %s", path, e)
                 row.update(
@@ -2705,6 +2846,7 @@ def run(
     reranker_instruction: str = DEFAULT_RERANKER_INSTRUCTION,
     reranker_max_pixels: int = RERANKER_MAX_PIXELS,
     qwen_instance: Optional["QwenVL"] = None,
+    batch_size: int = 1,
 ) -> Dict[str, Any]:
     """qwen_instance: 호출자가 이미 로드해 둔 Instruct 모델. 주면 run() 은 그것을 쓰고 release 하지 않는다.
 
@@ -2968,6 +3110,7 @@ def run(
                 threshold=threshold,
                 verify_mode=verify_mode,
                 rescore_only=rescore_only,
+                batch_size=batch_size,
             )
             # Hybrid-C:
             # Reranker + verifier final_score까지 모두 계산한 뒤
@@ -3007,6 +3150,7 @@ def run(
     payload["verify_threshold"] = threshold
     payload["verify_mode"] = verify_mode
     payload["rescore_only"] = rescore_only
+    payload["qwen_batch_size"] = int(batch_size or 1)
     payload["qwen_elapsed_sec"] = round(elapsed, 3)
     payload["qwen_rank_shift"] = shifts[0] if len(shifts) == 1 else shifts
     payload["pipeline_mode"] = (
@@ -3261,6 +3405,10 @@ def main() -> int:
                     help="Reranker task instruction (영어 권장)")
     ap.add_argument("--dtype", default="bfloat16")
     ap.add_argument("--device", default=None, help="cuda | cpu")
+    ap.add_argument("--batch-size", type=int, default=1,
+                    help="관찰(observe)을 몇 후보씩 묶어 생성할지. 1 = 단건(기본). "
+                         "크면 후보당 시간이 크게 줄지만(2B 기준 22 s → 4 s) left padding 배치라 "
+                         "판정이 일부 달라질 수 있어 결과 payload(qwen_batch_size)와 평가 캐시 계약에 기록된다")
 
     # Instruct 관찰기도 Qwen3-VL 공식 README 예시와 같은 1280 visual-token
     # 상한을 사용한다. 종횡비는 유지되고, 필요한 경우에만 이 상한까지 활용한다.
@@ -3339,6 +3487,7 @@ def main() -> int:
         device=args.device,
         max_pixels=args.max_pixels,
         reranker_max_pixels=args.reranker_max_pixels,
+        batch_size=max(1, int(args.batch_size or 1)),
     )
 
     if args.json:
