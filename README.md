@@ -443,7 +443,8 @@ GPU 메모리가 부족하면 `--workers 1` 로 낮추세요.
 .\.venv\Scripts\python.exe eval\object_pair_eval.py eval --vector dinov2                      # 객체 임베더 mAP·쌍 AUC·클러스터 일치 → stage=object
 .\.venv\Scripts\python.exe eval\qwen_verify_eval.py sheet                                     # 자연어 30 쿼리 × 20 후보 판정 시트
 .\.venv\Scripts\python.exe eval\qwen_verify_eval.py eval --max-queries 5                      # Qwen 후처리 P@K 전·후·오탈락률 (캐시, --rescore) → stage=qwen
-.\.venv\Scripts\python.exe bench\run.py track --tracking-config pipeline_tracking_yolo26.yaml   # GT 영상을 다른 추적 yaml 로 재추적해 같은 정답으로 비교
+.\.venv\Scripts\python.exe bench\run.py track --tracking-config pipeline_tracking_sushi_link.yaml --restitch   # 같은 검출·추적 출력 위에서 스티처(창 경계 연결)만 바꿔 비교
+.\.venv\Scripts\python.exe bench\register.py embedder --name myemb --module ... --class ... --dim 768 --ingest-frames 300   # 임베더 등록 + PRW 표본을 bench_myemb_* 컬렉션에 적재 + e2e 비교
 ```
 
 기준표(`outputs/audit/eval_criteria_20260926.md`)의 현재값은 원장에서 다시 뽑힌다. 러너·원장·검사·분할의 스키마와 사용법은 `bench/README.md`.

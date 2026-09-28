@@ -55,10 +55,11 @@
 
 - **SUSHI 는 512 프레임 창을 독립 처리**해 같은 사람이 창마다 다른 긴 트랙 id 를 받는다(048 영상의 정지 박스 하나가 L1·L8·L18·L28). 추적기 id 도 시간이 지나면 재사용된다(한 id 가 5 명). 그래서 추적 정답의 단위를 "구간"으로 잡았고, 라벨이 붙으면 이 단절이 `splits`/IDSW 로 정량화된다.
 - **Qwen 배관 확인 완료 (16:03)**: 처음엔 RTX 5090 이 장치 오류 상태(Status=Error, CUDA 불가)라 `qwen_stage.py` 가 CPU 로 올라가다 죽었고, GPU 복구 뒤 1쿼리·5후보 데모가 통과했다 — CUDA 적재 15 s, 후보당 21.7 s(문서의 26 s 와 일치), UNKNOWN 1/5, 재랭커는 미설치(qwen-vl-utils)로 건너뜀. 관찰하지 않은 꼬리 후보를 UNKNOWN 으로 세던 집계도 고쳤다. 시트·후보 파일·평가 코드는 준비돼 있으니 GPU 가 잡히는 사용자 터미널에서 `eval/qwen_verify_eval.py eval --allow-unlabeled --max-queries 1 --top-k 5` 로 배관을 확인한 뒤 라벨링 후 본 실행을 하면 된다 (`--python` 으로 인터프리터 지정 가능).
-- 임베더 교체는 단독 Re-ID 평가까지 자동이고 운영 DB 적재(`ingest/build_db.py`)는 수동. 검출기 드롭다운은 검출기 블록이 같은 사본만 합치므로 yolo26s 같은 변형도 항목으로 보인다(09-28 16:50 수정).
+- 임베더 교체는 단독 Re-ID 평가 + 표본 적재·e2e 비교까지 자동(`--ingest-frames`)이고 운영 DB 전체 적재(`ingest/build_db.py`)는 수동. 검출기 드롭다운은 검출기 블록이 같은 사본만 합치므로 yolo26s 같은 변형도 항목으로 보인다(09-28 16:50 수정).
 - 객체 재출현 pseudo 실행에서 최적 쌍 임계값이 0.74 로 나와 운영 Leiden 0.97 과 차이가 크다 — 라벨 후 재확인 대상.
 - **외부 검토 2회 반영(09-28 16:09 / 16:41)**: 추적 지표를 TrackEval 정의로 재구현하고(HOTA·CLEAR·MOT ignore), 라벨 유효성(검토 체크·manifest·검토율·중복/모순 차단)과 Qwen 평가의 후보 연결·filter 재현·캐시 계약, 채택 판정의 `incomplete`(확인 불가)를 넣었다. **Astra 2차(16:41) 반영**: 정식 평가에서 검토 안 된 구간은 ignore(제안값 승격 없음), reviewed 는 bool true 만, manifest·kind 필수, 같은 프레임 같은 gt_id 중복·객체 라벨 모순은 중단, CLEAR 를 TrackEval 의 빈 프레임 건너뛰기·직전 프레임 대응 규칙으로, Qwen 은 쿼리 단위 검토율과 재채점 캐시의 원본 결속, 객체는 assignments 대응률·캐시 검증 강화, 창 연결 근거 기록(`links`), 러너 `track --restitch`(스티처만 재실행, SUSHI 입력 없으면 어댑터 재생성), 벤치마크 탭 그래프의 incomplete·미정 기준선 처리와 채택 버튼은 pass 에서만.
-- **SUSHI 창 경계 연결**: `pipeline_tracking_sushi_link.yaml`(stitcher link_windows) + `bench/run.py track --restitch` 로 같은 검출 위에서 비교. 048 영상 실측: 긴 트랙 34 → 16 (연결 18, 거절 2).
+- **SUSHI 창 경계 연결**: `pipeline_tracking_sushi_link.yaml`(stitcher link_windows) + `bench/run.py track --restitch` 로 같은 검출 위에서 비교. 창 경계 연결(restitch, 같은 검출·추적 출력, 3편 pseudo GT = 추적기 연속성 기준): 원 스티처 after IDF1 0.619 / IDSW 41 / 갈라짐 32 / 과병합 8 → 연결 후 IDF1 0.937 / IDSW 19 / 갈라짐 10 / 과병합 7 (048 긴 트랙 34→16, 289 26→18, 100 16→12; 거절된 후보는 간격 6·15·31 프레임). 사람 라벨이 붙어야 '같은 사람' 여부가 확정된다.
+- **임베더 표본 적재 자동화(17:10)**: `bench/register.py embedder … --ingest-frames N` — 사본 yaml 의 collection_prefix 를 `bench_<이름>` 으로 바꿔 PRW test 프레임 N 개의 crop 을 별도 컬렉션에 적재하고, 같은 표본에서 e2e 검색을 새 임베더 단독 vs 운영 조합으로 원장에 남긴다(운영 컬렉션 불변, 표본 목록 고정으로 임베더 간 비교 가능).
 
 ## 5. 문서·산출물
 

@@ -52,6 +52,8 @@ GUI: 평가 탭 **11. 새 모델 등록**.
 
 - 검출기: 드롭다운은 검출기 블록이 통째로 같은 사본만 합친다 — 같은 class 라도 가중치·임계값이 다르면(yolo26 / yolo26s) 별도 항목으로 보인다. 영상 1단계는 `pipeline_tracking*.yaml` 을 파일마다 한 항목으로 보여 스티처 변형도 고를 수 있다.
   전체 프레임 벤치는 `bench/run.py detect --config pipeline_tracking_<이름>.yaml --name <이름>`.
-- 임베더: 단독 Re-ID 평가(GT crop)까지 자동. 검색·클러스터링에 쓰려면 운영 DB 에 새 named vector 를 적재해야 한다
-  (`ingest/build_db.py --config pipeline_<이름>.yaml`, README 6.1) — 시간이 걸리므로 수동. 통합 검색 단독 평가(`eval/prw_eval_unified.py`)의 MODELS 는 아직 3종 고정.
+- 임베더: 단독 Re-ID 평가(GT crop) 뒤 `--ingest-frames N` 을 주면 PRW test 프레임 N 개의 crop 을 **별도 컬렉션** `bench_<이름>_person/_object` 에 적재하고
+  (사본 yaml 의 `collection_prefix` 를 `bench_<이름>` 으로 바꿈; 운영 `forensic_*` 은 건드리지 않음; checkpoint/manifest 는 `bench/ingest/<이름>/`), 같은 표본에서 e2e 검색을 두 번 돌려
+  원장 stage e2e 에 `<이름>__sampleN`(새 임베더 단독) 과 `prod__sampleN`(운영 조합 siglip2+irra→solider) 을 남긴다. 표본 프레임 목록은 `bench/ingest/samples/prw_test_N.json` 으로 고정되어
+  다른 임베더도 같은 표본으로 비교된다. 운영 DB 전체 적재는 여전히 수동(`ingest/build_db.py --config pipeline_<이름>.yaml`, README 6.1). 통합 검색 단독 평가(`eval/prw_eval_unified.py`)의 MODELS 는 아직 3종 고정.
 - 클러스터러: 이미지 4b 단계의 `--method-config clusterer_<이름>.yaml`, 탐색은 `bench/optimize.py cluster --method-config …`.

@@ -505,10 +505,14 @@ def merge_results(original_tracks, person_df, det_to_long_id, method: str = "sus
         keyed[key] = int(r["detection_id"])
         loose.setdefault((int(r["frame"]), int(r["source_track_id"])), []).append((key[2:], int(r["detection_id"])))
 
-    def loose_lookup(frame, tid, bbox, min_iou=0.85):
-        """정확한 키가 없을 때(어댑터의 화면 경계 클리핑·반올림 차이) 같은 (frame, track) 에서 IoU 가 가장 큰 검출 (min_iou 이상)."""
+    def loose_lookup(frame, tid, bbox, min_iou=0.5):
+        """정확한 키가 없을 때(어댑터의 화면 경계 클리핑·반올림 차이) 같은 (frame, track) 의 검출로 대응.
+        그 (frame, track) 에 검출이 하나뿐이면 그것(경계에서 잘린 좁은 박스는 IoU 가 크게 떨어질 수 있음), 여럿이면 IoU 최대(min_iou 이상)."""
+        cands = loose.get((frame, tid), [])
+        if len(cands) == 1:
+            return cands[0][1]
         best = None
-        for cand_box, did in loose.get((frame, tid), []):
+        for cand_box, did in cands:
             iou = box_iou(cand_box, bbox)
             if iou >= min_iou and (best is None or iou > best[0]):
                 best = (iou, did)

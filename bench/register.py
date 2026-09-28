@@ -154,6 +154,118 @@ def bench_command(kind: str, name: str, yaml_path: Path, limit: Optional[int] = 
     return cmd
 
 
+# ---------------------------------------------------------------- 임베더: 소규모 운영 DB 적재 + e2e 비교 (별도 collection prefix, 운영 컬렉션은 건드리지 않음)
+INGEST_ROOT = PROJECT_ROOT / "bench" / "ingest"
+DEFAULT_PRW_STATS = [PROJECT_ROOT / "data" / "prw_crops_p25h75" / "filter_stats_dedup.json",
+                     PROJECT_ROOT / "data" / "prw_crops_p25h75" / "filter_stats.json"]
+PROD_STAGE1 = ("siglip2", "irra")
+PROD_RERANK = "solider"
+
+
+def set_collection_prefix(yaml_path: Path, prefix: str) -> str:
+    """pipeline 사본의 최상위 collection_prefix 를 바꾼다(없으면 맨 앞에 넣는다) → 적재가 <prefix>_person/_object 새 컬렉션으로 간다. 로더로 검증."""
+    text = yaml_path.read_text(encoding="utf-8-sig")
+    lines = text.splitlines(keepends=True)
+    nl = "\r\n" if lines and lines[0].endswith("\r\n") else "\n"
+    done = False
+    for i, ln in enumerate(lines):
+        if re.match(r"^collection_prefix\s*:", ln):
+            lines[i] = f"collection_prefix: {prefix}{nl}"
+            done = True
+            break
+    if not done:
+        lines.insert(0, f"collection_prefix: {prefix}   # bench/register.py — 표본 적재용 별도 컬렉션{nl}")
+    yaml_path.write_text("".join(lines), encoding="utf-8", newline="")
+    from config import PipelineConfig
+    cfg = PipelineConfig.load(yaml_path)
+    if cfg.collection_prefix != prefix:
+        raise ValueError(f"{yaml_path}: collection_prefix 를 {prefix} 로 바꾸지 못했습니다 (로더가 읽은 값 {cfg.collection_prefix})")
+    return cfg.person_collection()
+
+
+def sample_prw_frames(stats_path: Path, n_frames: int, frames: Sequence[str], out_dir: Path, sample_file: Optional[Path] = None) -> Tuple[Path, Dict[str, Any]]:
+    """PRW test 프레임 목록에서 고르게 n_frames 개를 뽑아(결정적; 같은 n 이면 같은 표본 → 임베더끼리 비교 가능) 그 프레임의 crop 만 남긴 stats JSON 을 만든다."""
+    frames = sorted(frames)
+    n = max(1, min(int(n_frames), len(frames)))
+    sample_file = sample_file or (INGEST_ROOT / "samples" / f"prw_test_{n}.json")
+    if sample_file.is_file():
+        chosen = set(json.loads(sample_file.read_text(encoding="utf-8"))["frames"])
+    else:
+        step = len(frames) / n
+        chosen = {frames[int(i * step)] for i in range(n)}
+        sample_file.parent.mkdir(parents=True, exist_ok=True)
+        sample_file.write_text(json.dumps({"n": n, "of": len(frames), "frames": sorted(chosen)}, ensure_ascii=False, indent=1), encoding="utf-8")
+    data = json.loads(Path(stats_path).read_text(encoding="utf-8"))
+    keep = [c for c in data.get("crops", []) if Path(str(c.get("image_id", ""))).stem in chosen]
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / "filter_stats_sample.json"
+    out.write_text(json.dumps({"crops": keep, "filtered": [], "sample": {"source_stats": str(stats_path), "frames": len(chosen), "sample_file": str(sample_file)}},
+                              ensure_ascii=False), encoding="utf-8")
+    return out, {"frames": len(chosen), "crops": len(keep), "sample_file": str(sample_file), "source_stats": str(stats_path)}
+
+
+def ingest_commands(name: str, yaml_path: Path, sample_stats: Path, work_dir: Path, n_frames: int, max_queries: int = 0,
+                    ledger_path: Optional[str] = None) -> Dict[str, List[str]]:
+    """① build_db 로 표본 적재(별도 checkpoint/manifest) ② 같은 컬렉션에서 e2e 검색: 새 임베더 단독 vs 운영 조합(siglip2+irra→solider)."""
+    build = [PY, "ingest/build_db.py", "--config", str(yaml_path), "--stats", str(sample_stats), "--checkpoint-dir", str(work_dir / "checkpoint"),
+             "--manifest-dir", str(work_dir / "manifests")]
+    common = [PY, "eval/prw_e2e_search_eval.py", "--config", str(yaml_path), "--matches-cache", str(work_dir / "prw_gt_matches.jsonl"),
+              "--output-dir", str(work_dir / "e2e"), "--gallery", "test"]
+    if max_queries:
+        common += ["--max-queries", str(max_queries)]
+    if ledger_path:
+        common += ["--ledger", str(ledger_path)]
+    e2e_new = common + ["--stage1", name, "--rerank", "none", "--name", f"{name}__sample{n_frames}"]
+    e2e_prod = common + ["--stage1", *PROD_STAGE1, "--rerank", PROD_RERANK, "--name", f"prod__sample{n_frames}"]
+    return {"build": build, "e2e_new": e2e_new, "e2e_prod": e2e_prod}
+
+
+def _run_logged(cmd: List[str], root: Path, log, tail_lines: int = 8) -> Tuple[int, float, str]:
+    log("[register] $ " + " ".join(cmd))
+    t0 = time.time()
+    proc = subprocess.run(cmd, cwd=str(root), text=True, encoding="utf-8", errors="replace", capture_output=True)
+    tail = "\n".join((proc.stdout or "").splitlines()[-tail_lines:])
+    log(tail)
+    if proc.returncode != 0:
+        log((proc.stderr or "")[-800:])
+    return proc.returncode, round(time.time() - t0, 1), tail
+
+
+def ingest_and_compare(name: str, yaml_path: Path, n_frames: int, *, root: Path = PROJECT_ROOT, stats_path: Optional[Path] = None,
+                       max_queries: int = 0, ledger_path: Optional[Path] = None, data_root: Optional[Path] = None, log=print) -> Dict[str, Any]:
+    """임베더 등록 뒤: 별도 prefix 로 표본 적재 → e2e 검색 비교. 결과 dict (원장에는 e2e 행 2개가 남는다: <name>__sampleN, prod__sampleN)."""
+    stats = stats_path or next((p for p in DEFAULT_PRW_STATS if p.is_file()), None)
+    if stats is None or not Path(stats).is_file():
+        raise FileNotFoundError("PRW crop stats 가 없습니다 (data/prw_crops_p25h75/filter_stats*.json) — --stats 로 지정")
+    from eval import prw_eval
+    data_root = data_root or (root / "data" / "PRW")
+    frames = prw_eval.load_frame_list(data_root / "frame_test.mat")
+    work = INGEST_ROOT / slug(name)
+    work.mkdir(parents=True, exist_ok=True)
+    collection = set_collection_prefix(yaml_path, f"bench_{slug(name)}")
+    sample_stats, info = sample_prw_frames(Path(stats), n_frames, frames, work)
+    log(f"[register] 표본 적재: PRW test 프레임 {info['frames']} / crop {info['crops']} → 컬렉션 {collection} (운영 forensic_* 은 건드리지 않음)")
+    cmds = ingest_commands(name, yaml_path, sample_stats, work, info["frames"], max_queries, str(ledger_path) if ledger_path else None)
+    out: Dict[str, Any] = {"collection": collection, "yaml": str(yaml_path), "sample": info, "commands": cmds, "steps": {}}
+    for step in ("build", "e2e_new", "e2e_prod"):
+        code, sec, tail = _run_logged(cmds[step], root, log)
+        out["steps"][step] = {"exit": code, "sec": sec}
+        if code != 0:
+            out["error"] = f"{step} 실패 (exit {code})"
+            log(f"[register] {out['error']}")
+            return out
+    entries = ledger.read_entries(ledger_path or ledger.DEFAULT_LEDGER)
+    latest = ledger.latest_by_name(ledger.filter_entries(entries, stage="e2e"))
+    rows = {}
+    for key in (f"{name}__sample{info['frames']}", f"prod__sample{info['frames']}"):
+        e = latest.get(key)
+        rows[key] = {k: (e.get("metrics") or {}).get(k) for k in ("map", "map_db", "rank1", "det_ceiling")} if e else None
+    out["e2e"] = rows
+    log(f"[register] e2e 비교 (같은 표본 컬렉션 {collection}): " + " · ".join(f"{k}: mAP {ledger.fmt((v or {}).get('map'))} / R1 {ledger.fmt((v or {}).get('rank1'))}" for k, v in rows.items()))
+    return out
+
+
+
 def rank_in_ledger(stage: str, name: str, ledger_path: Optional[Path] = None) -> Dict[str, Any]:
     entries = ledger.read_entries(ledger_path or ledger.DEFAULT_LEDGER)
     latest = ledger.latest_by_name(ledger.filter_entries(entries, stage=stage))
@@ -318,7 +430,7 @@ def register(kind: str, name: str, spec: Dict[str, Any], *, root: Path = PROJECT
              supports_text: bool = False, weight: float = 1.0, limit: Optional[int] = None, max_points: Optional[int] = None,
              check_only: bool = False, no_bench: bool = False, overwrite: bool = False, instantiate: bool = True,
              tracking_template: Optional[Path] = None, pipeline_path: Optional[Path] = None, ledger_path: Optional[Path] = None,
-             log=print) -> Dict[str, Any]:
+             ingest_frames: int = 0, stats_path: Optional[Path] = None, e2e_max_queries: int = 0, log=print) -> Dict[str, Any]:
     result: Dict[str, Any] = {"kind": kind, "name": name, "spec": spec, "checks": [], "yaml": None, "bench": None, "rank": None}
     log(f"[register] {kind} '{name}' = {spec['module']}.{spec['class']} params={json.dumps(spec.get('params') or {}, ensure_ascii=False)}")
     rows = run_checks(kind, spec, dim, supports_text, instantiate)
@@ -365,6 +477,13 @@ def register(kind: str, name: str, spec: Dict[str, Any], *, root: Path = PROJECT
         log("[register] GUI 벤치마크 탭에서 같은 표를 볼 수 있습니다.")
     else:
         log("[register] 원장에서 이름을 찾지 못했습니다 (벤치 로그 확인)")
+    if kind == "embedder" and ingest_frames:
+        try:
+            result["ingest"] = ingest_and_compare(name, out, int(ingest_frames), root=root, stats_path=stats_path, max_queries=e2e_max_queries,
+                                                  ledger_path=ledger_path, log=log)
+        except Exception as exc:  # noqa: BLE001
+            result["ingest"] = {"error": f"{type(exc).__name__}: {exc}"}
+            log(f"[register] 표본 적재/e2e 실패: {result['ingest']['error']}")
     return result
 
 
@@ -398,6 +517,9 @@ def build_parser() -> argparse.ArgumentParser:
         s.add_argument("--supports-text", action="store_true")
         s.add_argument("--weight", type=float, default=1.0)
         s.add_argument("--pipeline", default=None, help="embedder: 사본의 원본 pipeline.yaml (기본 프로젝트 것)")
+        s.add_argument("--ingest-frames", type=int, default=0, help="embedder: PRW test 프레임 N 개의 crop 을 별도 컬렉션(bench_<이름>_*)에 적재하고 e2e 검색을 운영 조합과 비교 (0 = 생략)")
+        s.add_argument("--stats", default=None, help="embedder --ingest-frames: crop stats JSON (기본 data/prw_crops_p25h75/filter_stats_dedup.json)")
+        s.add_argument("--e2e-max-queries", type=int, default=0, help="embedder --ingest-frames: e2e 쿼리 수 제한 (0 = 전부)")
     return p
 
 
@@ -416,7 +538,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                    weight=args.weight, limit=args.limit or None, max_points=args.max_points or None, check_only=args.check_only,
                    no_bench=args.no_bench, overwrite=args.overwrite, instantiate=not args.no_instantiate,
                    tracking_template=Path(args.tracking_template) if args.tracking_template else None,
-                   pipeline_path=Path(args.pipeline) if args.pipeline else None, ledger_path=Path(args.ledger) if args.ledger else None)
+                   pipeline_path=Path(args.pipeline) if args.pipeline else None, ledger_path=Path(args.ledger) if args.ledger else None,
+                   ingest_frames=int(getattr(args, "ingest_frames", 0) or 0), stats_path=Path(args.stats) if getattr(args, "stats", None) else None,
+                   e2e_max_queries=int(getattr(args, "e2e_max_queries", 0) or 0))
     if res.get("yaml"):
         print(f"RESULT_SUMMARY: {res['yaml']}")
     return 1 if res.get("error") else 0

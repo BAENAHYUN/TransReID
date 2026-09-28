@@ -2544,7 +2544,7 @@
       "id": "bench_register",
       "title": "11. 새 모델 등록 (어댑터 + yaml → 계약 검사 → 단계 벤치 → 원장 순위)",
       "script": "bench/register.py",
-      "description": "새 검출기/클러스터러/임베더를 등록한다. 계약 검사(import·base 상속·메서드 재정의·생성자 인자·실제 생성해 출력 규격) → FAIL 이면 중단 → yaml 등록(검출기 pipeline_tracking_<이름>.yaml, 클러스터러 clusterer_<이름>.yaml, 임베더 pipeline_<이름>.yaml — 원본 불변) → 단계 벤치(bench/run.py) → 같은 단계 원장에서 순위·채택 기준. 코드 수정 없이 되는 예: YOLO26Detector + weights=yolo26s.pt, SigLIP2Embedder + 다른 model_id. 새 라이브러리는 bench/REGISTER_GUIDE.md 의 template 명령으로 스켈레톤을 만든 뒤 TODO 를 채운다.",
+      "description": "새 검출기/클러스터러/임베더를 등록한다. 계약 검사(import·base 상속·메서드 재정의·생성자 인자·실제 생성해 출력 규격) → FAIL 이면 중단 → yaml 등록(검출기 pipeline_tracking_<이름>.yaml, 클러스터러 clusterer_<이름>.yaml, 임베더 pipeline_<이름>.yaml — 원본 불변) → 단계 벤치(bench/run.py) → 같은 단계 원장에서 순위·채택 기준. 임베더는 --ingest-frames N 을 주면 PRW test 프레임 N 개의 crop 을 별도 컬렉션(bench_<이름>_person/_object)에 적재하고 같은 표본에서 e2e 검색(새 임베더 단독 vs 운영 조합)을 원장에 남긴다(운영 forensic_* 은 건드리지 않음). 코드 수정 없이 되는 예: YOLO26Detector + weights=yolo26s.pt, SigLIP2Embedder + 다른 model_id. 새 라이브러리는 bench/REGISTER_GUIDE.md 의 template 명령으로 스켈레톤을 만든 뒤 TODO 를 채운다.",
       "args": [
         {
           "flag": "",
@@ -2630,6 +2630,22 @@
           "type": "float",
           "default": 1.0,
           "min": 0
+        },
+        {
+          "flag": "--ingest-frames",
+          "label": "embedder: 표본 적재 프레임 수 (0 = 생략) → bench_<이름>_* 컬렉션 + e2e 비교",
+          "type": "int",
+          "default": 0,
+          "min": 0,
+          "omit_if_zero": true
+        },
+        {
+          "flag": "--e2e-max-queries",
+          "label": "embedder: e2e 쿼리 수 (0 = 전부)",
+          "type": "int",
+          "default": 0,
+          "min": 0,
+          "omit_if_zero": true
         },
         {
           "flag": "--check-only",
