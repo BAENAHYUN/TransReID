@@ -142,6 +142,16 @@ class IndexTests(unittest.TestCase):
         fresh = PI.auto_label_command(dict(run, method="dbscan_v6"), "qwen", python="py", root=self.root)
         self.assertEqual(fresh[-1], str(run["folder"] / "labels_qwen_dbscan_v6"))         # 결과가 없으면 처음부터
         self.assertEqual(PI.label_output_dir(dict(run, method="dbscan_v6"), "vec"), run["folder"] / "labels_vec_dbscan_v6")
+        # 접미 없는 옛 폴더에 같은 방법의 라벨이 있으면 그 폴더를 계속 쓴다 (09-21 8b 단계가 dbscan 에도 labels_qwen/ 을 썼다)
+        with tempfile.TemporaryDirectory() as td:
+            f = Path(td)
+            _jsonl(f / "labels_qwen" / "cluster_labels.jsonl", [{"cluster_id": "dbscan:person:1", "cluster_name": "x", "status": "labeled"}])
+            drun = dict(run, method="dbscan", folder=f)
+            self.assertEqual(PI.label_output_dir(drun, "qwen"), f / "labels_qwen")
+            self.assertEqual(PI.label_output_dir(drun, "vec"), f / "labels_vec_dbscan")              # 옛 색상 폴더 없음
+            self.assertEqual(PI.label_output_dir(dict(drun, method="dbscan_v6"), "qwen"), f / "labels_qwen_dbscan_v6")  # 다른 방법
+            _jsonl(f / "labels_qwen_dbscan" / "cluster_labels.jsonl", [{"cluster_id": "dbscan:person:1", "cluster_name": "y", "status": "labeled"}])
+            self.assertEqual(PI.label_output_dir(drun, "qwen"), f / "labels_qwen_dbscan")           # 접미 폴더가 있으면 그쪽
         with self.assertRaises(ValueError):
             PI.auto_label_command(run, "nope")
 

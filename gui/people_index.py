@@ -408,11 +408,32 @@ def label_line(entry: Optional[Dict[str, Any]]) -> str:
     return " · ".join(parts)
 
 
+def _labels_method(path: Path) -> Optional[str]:
+    """cluster_labels.jsonl 첫 기록의 cluster_id 앞부분('dbscan:person:…' → 'dbscan'). 읽을 수 없으면 None."""
+    try:
+        with Path(path).open("r", encoding="utf-8") as fh:
+            for line in fh:
+                if line.strip():
+                    return str(json.loads(line).get("cluster_id") or "").split(":")[0] or None
+    except (OSError, ValueError):
+        return None
+    return None
+
+
 def label_output_dir(run: Dict[str, Any], tool: str) -> Path:
-    """자동 라벨 출력 폴더: leiden 은 8/8b 단계와 같은 labels_vec / labels_qwen, 다른 방법은 labels_vec_<method> (같은 폴더의 두 방법이 서로 덮어쓰지 않게)."""
+    """자동 라벨 출력 폴더: leiden 은 8/8b 단계와 같은 labels_vec / labels_qwen, 다른 방법은 labels_vec_<method>
+    (같은 폴더의 두 방법이 서로 덮어쓰지 않게). 단, 접미 없는 폴더에 이미 **같은 방법**의 라벨이 있으면 그 폴더를 계속 쓴다
+    — 09-21 의 사진 처리 8·8b 단계가 dbscan 결과에도 labels_qwen/ 을 썼고, 새 폴더를 따로 만들면 인물 분류가 옛 폴더를 먼저 읽었다."""
     prefix = LABEL_TOOLS[tool]
     method = str(run.get("method") or "")
-    return Path(run["folder"]) / (prefix if method in ("", "leiden") else f"{prefix}_{method}")
+    folder = Path(run["folder"])
+    if method in ("", "leiden"):
+        return folder / prefix
+    suffixed = folder / f"{prefix}_{method}"
+    legacy = folder / prefix / "cluster_labels.jsonl"
+    if not (suffixed / "cluster_labels.jsonl").is_file() and legacy.is_file() and _labels_method(legacy) == method:
+        return folder / prefix
+    return suffixed
 
 
 def auto_label_command(run: Dict[str, Any], tool: str = "vec", python: Optional[str] = None, root: Path = ROOT) -> List[str]:
