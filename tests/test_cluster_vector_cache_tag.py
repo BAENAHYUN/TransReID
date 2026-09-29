@@ -50,7 +50,12 @@ class CacheTagTests(unittest.TestCase):
             CL.fetch_vectors_for = orig
         name = seen["solider"]
         self.assertTrue(name.endswith("_b866abdad.npz"), name)
-        self.assertRegex(name, r"_solider_[0-9a-f]{8}_b866abdad\.npz$")
+        # 지문에는 가중치 파일의 sha256 이 들어간다 — 가중치가 없는 곳(배포 zip 을 막 푼 PC, CI)에서는 지문 없이 빌드 id 만 붙는다
+        from bench.ledger import retriever_fingerprint_sha
+        if retriever_fingerprint_sha(str(ROOT / "pipeline.yaml"), "solider", log=lambda *_: None):
+            self.assertRegex(name, r"_solider_[0-9a-f]{8}_b866abdad\.npz$")
+        else:
+            self.assertTrue(name.endswith("_person_solider_b866abdad.npz"), name)
         self.assertEqual(out["solider"]["matrix"].shape, (2, 4))
         CL.fetch_vectors_for = fake_fetch
         try:

@@ -232,8 +232,12 @@ class BenchPage(QWidget):
         if not self._charts:
             return
         try:
+            import matplotlib
             from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
             from matplotlib.figure import Figure
+            # 기본 글꼴(DejaVu Sans)에는 한글이 없어 제목·축 이름이 □ 로 나왔다 — Windows 한글 글꼴을 먼저 쓴다
+            matplotlib.rcParams["font.family"] = ["Malgun Gothic", "AppleGothic", "NanumGothic", "DejaVu Sans"]
+            matplotlib.rcParams["axes.unicode_minus"] = False
         except Exception as exc:  # noqa: BLE001
             if self.canvas is None:
                 lbl = QLabel(f"matplotlib 을 불러오지 못해 그래프를 그릴 수 없습니다: {exc}")
