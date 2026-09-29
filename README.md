@@ -1,5 +1,7 @@
 # TransReID — 디지털 포렌식 이미지·영상 통합 검색 도구
 
+*모듈 조합형 파이프라인 기반 이미지·영상 통합 포렌식 검색 프레임워크*
+
 이미지와 영상에서 사람·객체를 검출하고, 여러 임베딩 모델과 Qdrant 벡터 DB로
 동일·유사 대상을 검색하는 도구입니다. 검색·DB 구축·클러스터링·평가를 하나의
 PySide6 GUI(`search_gui.py`)에서 실행할 수 있고, 모든 단계는 CLI 로도 실행됩니다.
@@ -7,7 +9,7 @@ PySide6 GUI(`search_gui.py`)에서 실행할 수 있고, 모든 단계는 CLI �
 ```text
 입력 (이미지 / 영상 / 자연어)
   │
-  ├─ 검출        RF-DETR (Medium)            영상: + BoT-SORT 추적 + SUSHI 스티칭
+  ├─ 검출        RF-DETR (Medium) · YOLO26 (yaml 로 교체)   영상: + BoT-SORT 추적 + SUSHI 스티칭
   │
   ├─ 임베딩      person : SigLIP2 · IRRA · SOLIDER
   │              object : SigLIP2 · DINOv2 (giant, registers)
@@ -20,11 +22,28 @@ PySide6 GUI(`search_gui.py`)에서 실행할 수 있고, 모든 단계는 CLI �
   │              자연어        : (한→영 번역) → SigLIP2 (+ IRRA)
   │              선택          : Qwen3-VL 재순위 / 검증 (별도 프로세스)
   │
-  └─ 클러스터링  Leiden (crop 단위 / 영상 track centroid) → 검수 갤러리 HTML
+  └─ 클러스터링  Leiden · DBSCAN v6 (플러그인) → 인물 분류(자동 라벨) · 검수 갤러리 HTML · 폴더 내보내기
 ```
 
 설계 문서: `TransReID_Forensic_Search_Tool.md` (별도 보관), 개별 스크립트의 docstring 에
 상세 동작이 적혀 있습니다.
+
+---
+
+## 0. 빠른 시작 (배포본)
+
+새 PC 에서 처음부터 실행까지의 순서입니다. 각 단계의 자세한 설명은 2장에 있습니다.
+
+1. **코드 받기**: 배포 zip 을 풀거나 `git clone https://github.com/BAENAHYUN/TransReID.git`.
+2. **설치**: PowerShell 에서 `powershell -ExecutionPolicy Bypass -File scripts\setup.ps1`.
+   `.venv`(Python 3.11)를 만들고 CUDA 12.8 PyTorch 와 `requirements.lock.txt`(검증 환경 그대로)를 설치합니다. 약 10~20분.
+3. **Qdrant**: Docker Desktop 을 켠 뒤 `docker compose -f docker-compose.qdrant.yml up -d`.
+4. **가중치**: 2.4 표대로 `weights\` 와 `third_party\SUSHI\` 를 채웁니다. SigLIP2·DINOv2·Qwen 은 첫 실행 때 자동으로 받습니다.
+5. **점검**: `powershell -ExecutionPolicy Bypass -File scripts\check_install.ps1`. 모든 줄이 `[OK]` 이면 준비된 것입니다.
+6. **실행**: `run_gui.bat` 을 두 번 누르거나 명령창에서 실행합니다.
+
+처음 쓰는 PC 에는 검색할 DB 가 비어 있습니다. GUI 의 **사진 처리** 또는 **영상 처리** 핵심 4단계로 DB 를 먼저 만드세요.
+배포 zip 은 개발 PC 에서 `scripts\make_release.ps1` 로 만듭니다. 커밋된 코드만 담고 가중치·데이터·DB·실험 산출물은 넣지 않습니다.
 
 ---
 
@@ -56,16 +75,17 @@ git clone https://github.com/BAENAHYUN/TransReID.git
 cd TransReID
 ```
 
-> **주의 — 현재 git 저장소만으로는 실행이 안 됩니다.** 실행에 필요한 다수의 파일이
-> 아직 커밋되지 않았습니다 (`gui_pipelines.json`, `gui/`, `detect/`, `video/`, `ingest/`,
-> `clustering/`, `report/`, `tests/`, `eval/` 대부분, `third_party/SUSHI/` 등). 다른 PC 로 옮길 때는
-> **프로젝트 폴더를 통째로 복사**하거나, 먼저 이 파일들을 커밋하세요.
-> 자세한 목록은 [11. 저장소 상태 주의](#11-저장소-상태-주의) 참고.
-
-`weights/`, `data/`, `storage/`(Qdrant 데이터), `.venv/` 는 git 에 포함되지 않으므로
-아래 절차대로 따로 준비합니다.
+실행 코드와 GUI 정의(`gui_pipelines.json`)는 모두 저장소에 들어 있습니다. `weights/`, `data/`,
+`storage/`(Qdrant 데이터), `.venv/`, `third_party/SUSHI/` 는 git 에 포함되지 않으므로 아래 절차대로 따로 준비합니다
+(`scripts\setup.ps1` 이 `.venv` 와 빈 폴더를 만들어 줍니다).
 
 ### 2.2 Python 가상환경
+
+**권장: `scripts\setup.ps1`** 이 아래 과정을 한 번에 합니다. 검증 환경의 `pip freeze` 인 `requirements.lock.txt`
+(232개 패키지, 정확한 버전)로 설치하므로 아래의 "빠져 있는 필수 패키지" 를 따로 깔 필요가 없습니다.
+잠금 파일 설치가 실패하면 `scripts\setup.ps1 -NoLock` 이 아래의 수동 절차와 같은 방식으로 설치합니다.
+
+수동 설치:
 
 ```powershell
 py -3.11 -m venv .venv
@@ -160,11 +180,20 @@ Qdrant 는 Docker 컨테이너로 띄우고, 데이터는 프로젝트의 `stora
 사용하지 않습니다.**)
 
 ```powershell
+docker compose -f docker-compose.qdrant.yml up -d      # 권장: 같은 설정이 파일로 고정돼 있음
+```
+
+또는 직접:
+
+```powershell
 docker run -d --name qdrant_server --restart unless-stopped `
   -p 6333:6333 -p 6334:6334 `
   -v "${PWD}\storage:/qdrant/storage" `
   qdrant/qdrant:v1.19.0
 ```
+
+PC 를 다시 켜면 Docker Desktop 이 먼저 떠야 Qdrant 도 올라옵니다 (컨테이너는 `restart: unless-stopped`).
+큰 DB 는 올라온 뒤 컬렉션을 읽는 데 1~2분 걸리니, 그동안 검색·라벨러가 `Connection refused` 를 내면 잠시 뒤 다시 하세요.
 
 확인:
 
@@ -217,6 +246,10 @@ storage/                   Qdrant 데이터 (Docker 바인드 마운트)
 
 ## 4. 설치 확인
 
+한 번에 점검하려면 `powershell -ExecutionPolicy Bypass -File scripts\check_install.ps1` (`-Tests` 를 붙이면 단위 테스트까지).
+Python·GPU, 핵심 패키지, 가중치·서드파티, Qdrant, GUI 파이프라인 정의를 항목마다 `[OK]`/`[없음]` 으로 보여 줍니다.
+아래는 같은 점검을 손으로 하는 명령입니다.
+
 ```powershell
 # CUDA 인식
 .\.venv\Scripts\python.exe -c "import torch; print(torch.__version__, torch.cuda.is_available())"
@@ -230,7 +263,7 @@ curl http://localhost:6333
 # GUI 파이프라인 정의 로드 (창 없이)
 $env:PYTHONIOENCODING='utf-8'
 .\.venv\Scripts\python.exe -c "from gui import pipeline_page as pp; print([(g['id'], len(g['stages'])) for g in pp.load_registry()])"
-# 기대 출력: [('video_pipeline', 6), ('image_pipeline', 12), ('evaluation', 14)]
+# 기대 출력: [('video_pipeline', 9), ('image_pipeline', 12), ('evaluation', 14)]
 
 # 단위 테스트 (Qdrant·네트워크 불필요, 약 20초)
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
@@ -251,8 +284,8 @@ $env:PYTHONIOENCODING='utf-8'
 |---|---|
 | 이미지 검색 | 1 Crop 기반 검색 / 2 자연어 검색 / 3 Qwen 검증 — 이미지 DB(`media_type=image`) 대상 |
 | 영상 검색 | 같은 3개 하위 탭 — 영상 track 그룹(`media_type=video`) 대상, 결과에서 영상 재생 |
-| 영상 파이프라인 | 1 전처리+트래킹 → 2 Qdrant 적재 → 3 Person Leiden → 4 Object Leiden → 5·6 군집 갤러리 |
-| 화면 구조 (2026-09-28) | Immich 식 셸 `gui/shell.py`: 왼쪽 사이드바 **검색**(사진에서 찾기 · 영상에서 찾기 · 인물 분류 `gui/people_page.py`: 묶음 결과를 사람별 카드/파일별로, 이름 붙이기, 이 사람으로 검색) / **자료 만들기**(영상 처리 · 사진 처리 · 도구 `gui/tools_page.py`: 단계별 도구 후보와 원장 성적, ★ 최고가 기본값, 고르면 `gui_tool_choice.json` 에 저장돼 파이프라인 폼·검색 기본값에 적용) / **결과**(결과 보기: 라벨링 시트 상태·리포트 HTML 을 GUI 안 뷰어로 열기, `gui/reports_page.py`) / **평가**(평가·비교 · 벤치마크). 검색 페이지 = 상단 카드(자연어·사진 모드, 대상, 큰 검색창, AI 재확인, 고급 설정) + 썸네일 격자 + 오른쪽 상세('이 결과로 다시 찾기'). 핵심 단계에는 **도구** 드롭다운(클러스터: Leiden / DBSCAN v6 / 커스텀 yaml; 영상 클러스터·갤러리: 사람 / 물건) |
+| 영상 파이프라인 | 1 전처리+트래킹 → 2 Qdrant 적재 → 3 Person Leiden → 4 Object Leiden → 5·6 군집 갤러리 → 7·7b 군집 라벨(색상 / Qwen 문장, 인물 분류 카드 이름으로 쓰임 — 5.2) → 8 군집 폴더 내보내기 |
+| 화면 구조 (2026-09-28) | Immich 식 셸 `gui/shell.py`: 왼쪽 사이드바 **검색**(사진에서 찾기 · 영상에서 찾기 · 인물 분류 `gui/people_page.py`: 묶음 결과를 사람별 카드/파일별로, 이름 붙이기, 이 사람으로 검색, 옷차림 **자동 라벨** — 사용법은 **5.2**) / **자료 만들기**(영상 처리 · 사진 처리 · 도구 `gui/tools_page.py`: 단계별 도구 후보와 원장 성적, ★ 최고가 기본값, 고르면 `gui_tool_choice.json` 에 저장돼 파이프라인 폼·검색 기본값에 적용) / **결과**(결과 보기: 라벨링 시트 상태·리포트 HTML 을 GUI 안 뷰어로 열기, `gui/reports_page.py`) / **평가**(평가·비교 · 벤치마크). 검색 페이지 = 상단 카드(자연어·사진 모드, 대상, 큰 검색창, AI 재확인, 고급 설정) + 썸네일 격자 + 오른쪽 상세('이 결과로 다시 찾기'). 핵심 단계에는 **도구** 드롭다운(클러스터: Leiden / DBSCAN v6 / 커스텀 yaml; 영상 클러스터·갤러리: 사람 / 물건) |
 | 이미지 파이프라인 | 핵심 4단계만 먼저 보임: **1 검출**(사진 → crop) → **2 임베딩**(crop → Qdrant) → **3 클러스터**(Leiden) → **4 결과창**(`report/build_image_results.py`: DB 리포트 + 갤러리 + 인덱스 한 번에). '추가 작업 보기' 를 켜면 개별 단계(DB HTML 리포트 · 클러스터링 플러그인 · person/object 갤러리 · 결과 인덱스 · 색상 라벨 · Qwen 라벨 · 폴더 내보내기)가 나온다. 핵심 단계 폼은 basic 필드만 보이고 '고급 옵션 보기' 로 나머지를 편다; 빈 칸 대신 기본값·폴더/값 드롭다운·플레이스홀더. 실행이 RESULT_HTML 을 남기면 결과가 아래 **'결과' 탭에 GUI 안에서** 표시된다(QtWebEngine, 없으면 QTextBrowser; `gui/html_view.py`) |
 | 평가 / 비교 | 1 PRW Person Re-ID 평가 → 2 retriever 조합 비교 |
 
@@ -272,6 +305,115 @@ $env:PYTHONIOENCODING='utf-8'
 ### 5.1 벤치마크 탭 (P5)
 
 원장(`bench/ledger.jsonl`)의 모든 평가 실행을 한 표로 비교합니다. 단계·이름·최근만·통과만 필터, 숫자 정렬, 행 색 = 채택 기준(`bench/criteria.py`, 기준표 운영값) 통과 여부. 행을 고르면 상세 JSON · 그래프(목적 vs 제약 산점도, 검출 PR 곡선) · **verify 실행**(재현 검증) · **재현 명령**(클립보드) · **채택 → yaml**(검출기 `pipeline_tracking_<이름>.yaml`, 클러스터 `clusterer_<이름>.yaml`, 검색 조합 `pipeline_<이름>.yaml` + `.search.json` — 드롭다운에 자동 등장) · 결과 폴더 열기. 새 실행은 평가 탭 5(러너)·9(탐색)·10(조합)에서 돌리고 새로고침합니다.
+
+### 5.2 인물 분류 — 사람·물건별 카드와 자동 라벨
+
+클러스터 단계가 묶은 결과를 Immich 의 '사람' 화면처럼 군집별 카드로 봅니다. 사진·영상 결과, 사람·물건 군집 모두 됩니다.
+카드 이름은 직접 붙이거나, "노란 반팔에 검은 바지" · "빨간색 자동차" 같은 라벨이 자동으로 붙습니다.
+
+**빠른 시작**
+
+1. 사이드바 **검색 › 인물 분류** 를 엽니다.
+2. 둘째 줄 맨 앞의 **대상** 에서 사람 또는 물건을 고릅니다.
+3. **묶음 결과** 에서 클러스터 실행을 고릅니다. 사진 처리·영상 처리의 클러스터 단계가 만든
+   `outputs/clustering/<실행>/<대상>/<대상>_<방법>_assignments.jsonl` 이 목록에 나오고, 마지막으로 연 결과가 기본으로 골라져 있습니다.
+4. **불러오기** 를 누릅니다. 처음 한 번은 DB 페이로드를 읽어 캐시하느라 수십 초 걸리고, 다음부터는 몇 초입니다.
+5. 라벨 파일이 없는 결과면 **색상 라벨이 저절로 만들어집니다**. 헤더 아래 파란 막대가 움직이는 동안(30초~3분) 기다리면 카드 이름이 바뀝니다.
+6. 더 구체적인 이름이 필요하면 라벨 도구에서 **문장 라벨 (Qwen3-VL · GPU · 느림)** 을 고르고 **자동 라벨 붙이기** 를 누릅니다.
+7. 맞는 이름은 카드를 두 번 누르거나 **이름 붙이기** 로 확정합니다. 입력칸에 이어받은 이름이나 자동 라벨이 미리 채워져 있어 확인만 눌러도 됩니다.
+8. **이 사람으로 검색** 을 누르면 그 사람의 대표 사진으로 바로 검색합니다.
+
+**화면 요소** — 모든 버튼·목록에 마우스를 올리면 설명(툴팁)이 나옵니다
+
+| 요소 | 하는 일 |
+|---|---|
+| 묶음 결과 | 항목 = `실행 · 방법 · 만든 시각 · 캐시 · 라벨: 문장·색상`(또는 `라벨 없음`). 마지막으로 연 결과가 기본 선택입니다 |
+| 폴더 | 사진은 image_id 의 앞 경로(예 `PRW`, `coco`), 영상은 `videos` 로 거릅니다. 괄호 안은 파일 수 |
+| 불러오기 | 고른 결과를 엽니다. 캐시가 있으면 DB 를 읽지 않습니다 |
+| 새로 읽기 | 캐시를 버리고 DB 페이로드를 다시 읽습니다. DB 를 다시 적재했거나 crop 경로가 바뀌었을 때 씁니다 |
+| 대상 | 사람 군집(`person_*`)과 물건 군집(`object_*`) 중 무엇을 볼지. 물건이면 버튼 이름이 `물건별` · `이 물건으로 검색` 으로 바뀝니다 |
+| 사람별 / 파일별 | 카드 격자와 파일 목록(파일마다 "사람 n명: 이름…") 사이를 오갑니다 |
+| 요약 줄 | 개수 · 사진/track 수 · 미분류 수 · 자동 라벨 수 · 이어받은 이름 수. 창이 좁아 잘리면 마우스를 올려 전문을 봅니다 |
+| 라벨 도구 | **색상 라벨 (SigLIP2 벡터 · 빠름)** 또는 **문장 라벨 (Qwen3-VL · GPU · 느림)** — 아래 비교표 |
+| 없으면 자동 | 켜져 있으면 라벨 파일이 없는 결과를 불러올 때 색상 라벨러를 자동으로 돌립니다. 결과마다 GUI 를 켠 동안 한 번만 시도합니다 |
+| 자동 라벨 붙이기 | 고른 라벨러를 지금 결과에 돌립니다. 도는 동안 버튼이 **중단** 으로 바뀝니다. 도는 중에 다른 결과를 불러와도 되고, 끝난 라벨은 그 결과를 다시 불러오면 보입니다. 로그는 결과 폴더의 `auto_label_<도구>.log` |
+| 카드 | 대표 crop(검출 점수가 가장 높은 것) · 이름 · 장수 · 파일 수. 툴팁에 군집 id, 폴더별 장수, 자동 라벨 후보 전부와 출처, 이어받은 이름, 붙인 이름 |
+| 오른쪽 상세 | 제목 = 이름, 그 아래 `#id · 자동 라벨: …`(출처별), 나온 파일마다 crop 하나(영상이면 시각 포함). 파일별 보기에서는 그 파일의 crop 과 누구인지 |
+| 이름 붙이기 | 고른 카드의 이름을 정합니다. 입력칸을 비우고 확인하면 이름이 지워지고 자동 라벨로 돌아갑니다 |
+| 이 사람으로 검색 | 대표 crop 으로 **바로 검색** 합니다. 사진 결과는 '사진에서 찾기', 영상 결과는 '영상에서 찾기' 로 가고, 대상(사람/물건)도 맞춥니다. 첫 검색은 모델을 올리느라 1분쯤 걸립니다 |
+
+**카드 이름 규칙**
+
+- 우선순위는 **이 결과에서 붙인 이름 > 다른 결과에서 이어받은 이름 > 자동 라벨 > `#id`**(군집 id 앞 8자리)입니다. 자동 라벨은 붙인 이름을 덮어쓰지 않습니다.
+- **이름 이어받기**: 다시 클러스터링하면 군집 id 가 바뀝니다. 그래서 다른 결과에서 이름을 붙인 군집과 지금 군집이 구성원을 서로 절반 이상 공유하면 그 이름을 보여 줍니다. 같은 DB 의 point id 는 결과가 달라도 같기 때문에 가능합니다. 이어받은 이름은 저장되지 않으니, 맞으면 **이름 붙이기** 로 확정하세요.
+- 자동 라벨이 여러 개면 확정(labeled) > 추정(tentative) > 종류만(물건) 순이고, 같은 등급이면 Qwen 문장이 색상보다 먼저입니다.
+  나머지 후보는 툴팁과 상세에 함께 보입니다. 예: `청록색 반팔에 검은 바지 (Qwen 문장) · 파란색 상의(추정) (색상(SigLIP2))`
+- `(추정)` 은 crop 대부분이 같은 색이지만 1·2위 색 점수 차가 작았던 군집입니다.
+- 물건은 색을 못 정해도 검출 종류만으로 이름이 붙습니다(예: `자전거`).
+- `#id` 로 남은 카드는 색을 정하지 못했거나(불확실) Qwen 이 서로 다른 옷이 섞였다고 본(불일치) 군집입니다. 다른 사람이 섞였을 수 있으니 상세의 crop 을 확인하세요.
+- 라벨은 옷·물건의 색·종류·소지품만 다룹니다. 성별·나이·신원은 묻지 않고, 물건은 번호판·글자를 읽지 말라고 Qwen 에 지시합니다.
+- 두 라벨러가 다른 색을 말할 수 있습니다(PRW 에서 상의 색 단어 일치 388/677 — 파란↔청색 같은 동의어가 많지만 실제 불일치도 있음). 확실한 것은 이름으로 확정하세요.
+- **Qwen 이름은 모델이 답한 상의·하의 항목으로 코드가 짓습니다** (`clustering/label_names.py`, 예: `노란 반팔에 검은 바지`).
+  2026-09-29 전 라벨은 모델이 이름 칸에 프롬프트 예시를 베껴 항목과 색이 어긋난 경우가 있었습니다(라벨의 약 2~3 %).
+  이 라벨들은 `--rename` 으로 이름을 다시 지었고, SigLIP2 색과 어긋나거나 예시를 베낀 군집은 새 프롬프트(v3, 예시 없음)로 다시 판정했습니다.
+  2B 모델은 회청색을 파랑으로 보는 식의 색 착오가 남아 있으니 중요한 판단은 crop 으로 확인하세요.
+
+**라벨러 비교**
+
+| | 색상 라벨 | 문장 라벨 |
+|---|---|---|
+| 사람 예시 | 노란색 상의, 흰색 상의(추정) | 노란 반팔에 검은 바지 |
+| 물건 예시 | 빨간색 자동차, 자전거(종류만) | 흰색 승용차 |
+| 방식 | DB 의 SigLIP2 벡터를 색상 문장과 비교 (crop 을 다시 인코딩하지 않음). 물건 종류는 검출 label 다수결 | 대표 crop 6장 몽타주를 Qwen3-VL 2B 에 보여 줌 |
+| 걸리는 시간 (실측) | 30초~3분 — point 수에 비례 (5만 point 약 1~2분) | 군집당 약 0.6초 + 시작 1~2분 (1,079 군집 약 12분, 3,484 군집 약 35분) |
+| 필요한 것 | Qdrant + GPU (색상 문장 48개만 인코딩; CPU 는 CLI `--device cpu`) | Qdrant + GPU + 여유 RAM 3GB 이상 |
+| 다시 누르면 | 처음부터 다시 만듭니다 (결과가 매번 같음) | 기존 결과가 있으면 빠진 군집만 채웁니다 (`--resume`) |
+| 스크립트 · 파이프라인 단계 | `clustering/label_clusters_from_vectors.py` · 사진 처리 8 / 영상 처리 7 | `clustering/label_clusters_qwen.py` · 사진 처리 8b / 영상 처리 7b |
+
+라벨이 붙은 군집은 사진 처리 9단계·영상 처리 8단계 **군집 폴더 내보내기** 로 `c0001_n833_흰색-상의에-검은-바지_c4a6b373` 같은 폴더로 묶을 수 있습니다.
+기본은 미리보기(폴더를 만들지 않음)이고, 실제로 만들 때는 디스크를 쓰지 않는 `--mode hardlink` 를 권장합니다.
+
+**저장 위치** — `outputs/clustering/<실행>/<대상>/` 안 (마지막 줄만 `outputs/clustering/`)
+
+| 파일 | 내용 |
+|---|---|
+| `people_index_<방법>.json` | 불러오기 캐시(군집별·파일별 색인). 지워도 다음 불러오기 때 다시 만듭니다 |
+| `person_names.json` | 직접 붙인 이름 `{군집 id: 이름}`. 다른 결과의 이름 이어받기도 이 파일을 읽습니다 |
+| `labels_vec/`, `labels_qwen/` | 자동 라벨 `cluster_labels.jsonl` 과 눈으로 확인하는 `cluster_labels.html`. Leiden 이 아닌 방법은 `labels_vec_<방법>/` 처럼 접미가 붙습니다 |
+| `labels_vec*/cache/siglip2.npz` | 색상 라벨러의 벡터 캐시(point 5만 개에 약 150MB). 디스크가 모자라면 지워도 됩니다 |
+| `auto_label_vec.log`, `auto_label_qwen.log` | GUI 에서 돌린 라벨러의 전체 로그 (실행마다 덮어씀) |
+| `people_last_run.json` | 대상별로 마지막에 연 결과. 지우면 목록 첫 항목이 기본이 됩니다 |
+
+옛 `labels/` 폴더(`label_leiden_clusters_siglip2.py` 출력)는 PRW 에서 거의 모든 군집이 같은 색으로 나온 퇴화 라벨이라 읽지 않습니다.
+
+**CLI 로 같은 일** (버튼과 같은 명령. 물건은 `--target object` 와 `object\object_leiden_assignments.jsonl`)
+
+```powershell
+# 색상 라벨
+.\.venv\Scripts\python.exe clustering\label_clusters_from_vectors.py --target person `
+    --assignments outputs\clustering\leiden_track_centroid\person\person_leiden_assignments.jsonl `
+    --output-dir outputs\clustering\leiden_track_centroid\person\labels_vec
+# 문장 라벨 (이미 결과가 있으면 --resume 으로 빠진 군집만)
+.\.venv\Scripts\python.exe clustering\label_clusters_qwen.py --target person `
+    --assignments outputs\clustering\leiden_track_centroid\person\person_leiden_assignments.jsonl `
+    --output-dir outputs\clustering\leiden_track_centroid\person\labels_qwen --resume
+# 기존 문장 라벨의 이름만 새 규칙으로 다시 짓기 (모델·DB 불필요, 원본은 cluster_labels.before_rename.jsonl)
+#   ... 같은 --assignments --output-dir ... --rename
+# 목록(한 줄에 cluster_id 하나)에 있는 군집만 다시 판정하고 나머지 기록은 그대로 두기
+#   ... 같은 --assignments --output-dir ... --only-clusters recheck.txt
+```
+
+**안 될 때**
+
+| 증상 | 원인 / 조치 |
+|---|---|
+| 카드에 라벨이 없고 '자동 라벨 붙이기' 버튼도 안 보임 | 코드가 바뀐 뒤 GUI 를 다시 켜지 않았습니다. 돌고 있는 작업이 없을 때 창을 닫고 다시 실행하세요 |
+| 라벨 파일이 없는데 자동으로 안 돎 | '없으면 자동' 이 꺼졌거나, 이번에 GUI 를 켠 뒤 그 결과에서 이미 한 번 시도했습니다(실패 포함). '자동 라벨 붙이기' 로 직접 돌리면 실패 시 로그 창이 뜹니다 |
+| 요약 줄에 `자동 라벨 실패 (종료 코드 …)` | Qdrant 가 꺼졌거나, 결과와 DB 컬렉션이 맞지 않습니다(DB 에 없는 point 가 절반 이상). 요약 줄 끝의 로그 파일을 열어 보세요 |
+| 로그에 `DB 에 없는(삭제된) point N개는 건너뜀` | 클러스터링 뒤 DB 를 정리하면 생깁니다. 그 point 만 빼고 라벨을 붙이므로 그대로 써도 됩니다 |
+| 문장 라벨이 중간에 멈추거나 끝나지 않음 | 대개 RAM 부족이거나 PC 재시작입니다. 다른 앱을 닫고 다시 누르면 `--resume` 으로 남은 군집만 채웁니다 |
+| 다른 결과에서 붙인 이름이 안 따라옴 | 두 군집이 구성원을 서로 절반 이상 공유하지 않았습니다(군집이 크게 쪼개지거나 합쳐짐). 새 결과에서 이름을 다시 붙이세요 |
+| 물건 대상에 결과가 없음 | 물건 클러스터(사진 처리 4단계 물건 · 영상 처리 4단계 Object Leiden)를 아직 돌리지 않았습니다 |
 
 ---
 
@@ -346,6 +488,9 @@ $env:PYTHONIOENCODING='utf-8'
 .\.venv\Scripts\python.exe report\build_leiden_gallery_track.py --collection forensic_person `
     --assignments outputs\clustering\leiden_track_centroid\person\person_leiden_assignments.jsonl `
     --output-dir outputs\clustering\leiden_track_centroid\person\gallery_track
+
+# 7·7b. 군집 라벨 (색상 / Qwen 문장) — 인물 분류 카드 이름. 명령과 옵션은 5.2
+# 8. 군집 폴더 내보내기 — clustering\export_cluster_folders.py --dry-run (사진 처리 9단계와 같은 스크립트)
 ```
 
 GPU 메모리가 부족하면 `--workers 1` 로 낮추세요.
@@ -487,6 +632,9 @@ GPU 메모리가 부족하면 `--workers 1` 로 낮추세요.
 파이프라인 단계별로 폴더를 나눴습니다 (2026-09-26 재배치). 루트에는 공용 커널 모듈과 GUI 진입점만 남습니다.
 
 ```text
+run_gui.bat                   GUI 실행 (.venv 로 search_gui.py)
+scripts/                      setup.ps1 (설치) · check_install.ps1/.py (점검) · make_release.ps1 (배포 zip)
+requirements.lock.txt         검증 환경 pip freeze (setup.ps1 이 사용) · docker-compose.qdrant.yml (Qdrant 1.19.0)
 search_gui.py                 PySide6 GUI 진입점
 gui_pipelines.json            GUI 파이프라인 단계 정의 (SSOT)
 pipeline.yaml                 모델·컬렉션·Qdrant 설정 (SSOT); pipeline_tracking.yaml 영상 detector/tracker/stitcher 선택
@@ -495,7 +643,8 @@ registry.py / router.py       retriever 지연 로드 (module/class 로 임베�
 qdrant_store.py               Qdrant 컬렉션 생성·스키마 검증·검색
 report_common.py              공용 헬퍼 (yaml 에서 컬렉션·벡터·임계값 로드, 리포트 sidecar)
 
-gui/                          pipeline_page.py (gui_pipelines.json → 파이프라인 탭, 서브프로세스 실행·중단), gui_theme.py
+gui/                          pipeline_page.py (gui_pipelines.json → 파이프라인 탭, 서브프로세스 실행·중단), gui_theme.py,
+                              people_page.py + people_index.py (인물 분류: 사람별 카드·이름·자동 라벨, 5.2)
 detect/                       검출 단계
   RF-DETR_batch.py              이미지 배치 검출 + crop (checkpoint/resume)
   detect_rf.py / rfdetr_adapter.py   RF-DETR 호출, detection_id·crop 파일명 생성
@@ -507,7 +656,7 @@ ingest/                       Qdrant 적재: build_db.py (이미지 crop 임베�
                               batch_ingest_all_videos.py → build_final_db_candidates_canonical.py + ingest_final_candidates_qdrant.py (영상 track)
 clustering/                   base.py (BaseClusterer 계약 + 내장 목록) · methods/{leiden,dbscan_v6}.py (플러그인) · cluster_qdrant.py (플러그인 driver: --method / yaml 로 알고리즘 교체),
                               cluster_leiden_qdrant.py (crop 단위 Leiden, 옵션 전체), cluster_leiden_track_centroid.py / cluster_leiden_object_track_centroid.py (track 단위),
-                              cluster_dbscan_qdrant.py (DBSCAN v6 이식), compare_cluster_results.py, label_clusters_{from_vectors,qwen}.py, export_cluster_folders.py
+                              cluster_dbscan_qdrant.py (DBSCAN v6 이식), compare_cluster_results.py, label_clusters_{from_vectors,qwen}.py, label_names.py (라벨 이름 규칙), export_cluster_folders.py
 search/                       unified_search_4mode.py (통합 검색 CLI: crop / text / image-video / text-video), search.py (검색 엔진),
                               image_search.py (사진 1장 → crop → 검색), query_translate.py (한→영), duplicate_grouping.py (Hybrid-C 중복 collapse)
 verifiers/                    qwen_stage.py / qwen_crop_stage.py (Qwen 재순위·검증), search_text_video.py
@@ -542,18 +691,12 @@ data/ · outputs/ · storage/   입력 데이터 · 산출물 · Qdrant 데이�
 
 ## 11. 저장소 상태 주의
 
-2026-09-20 기준 git 은 25,770개 파일을 추적하지만, 실행에 필요한 다음 항목이 **미추적**입니다.
-새 환경에 배포하려면 폴더째 복사하거나 아래를 커밋하세요.
+2026-09-29 기준 실행 코드(`gui/`, `detect/`, `video/`, `ingest/`, `clustering/`, `search/`, `report/`, `embedders/`,
+`verifiers/`, `bench/`, `eval/`, `tests/`)와 `gui_pipelines.json`·`assets/` 는 모두 git 에 있습니다.
+git 에 **없는** 것은 따로 준비합니다: `weights/`(2.4), `third_party/SUSHI/`(2.3), `data/`, `storage/`(Qdrant 데이터), `.venv/`.
 
-- GUI: `gui_pipelines.json`, `gui/`, `assets/`
-- 이미지 파이프라인: `detect/RF-DETR_batch.py`, `report/`, `clustering/cluster_leiden_qdrant.py`, `report_common.py`, `embedders/object/dinov2_embedder_g14_reg_pad_final.py`
-- 영상 파이프라인: `detect/` 플러그인, `video/`, `ingest/batch_ingest_all_videos.py`, `ingest/build_final_db_candidates_canonical.py`, `ingest/ingest_final_candidates_qdrant.py`, `clustering/cluster_leiden_track_centroid.py`, `clustering/cluster_leiden_object_track_centroid.py`, `report/build_leiden_gallery_track.py`, `third_party/SUSHI/`
-- 평가·테스트: `eval/` 대부분, `tests/`
-- 그 밖에 `search/duplicate_grouping.py`, `clustering/compare_cluster_results.py`, `clustering/cluster_dbscan_qdrant.py` 등
-
-또한 추적 중이던 `build_db.py`, `search.py`, `detect_rf.py`, `rfdetr_adapter.py`, `image_search.py`,
-`query_translate.py`, `qwen_stage.py`, `qwen_crop_stage.py`, `unified_search_4mode.py` 는 2026-09-26 재배치로
-하위 폴더로 옮겨졌습니다 (git 에는 삭제 + 신규로 보이며 커밋 시 rename 으로 인식됩니다). `config.py`,
-`qdrant_store.py`, `search_gui.py`, `pipeline.yaml` 등도 커밋본과 작업본이 크게 다릅니다.
-**작업본을 `git checkout` 으로 되돌리지 마세요.** 커밋된 `build_db.py` 는 현재와 전혀 다른
-영상 시절 스크립트입니다.
+- 저장소에는 실행에 필요 없는 큰 폴더도 추적돼 있습니다: `eval_cache/`(평가 캐시 약 375 MB), `src/`(옛 코드 사본 약 224 MB),
+  `outputs/` 일부(감사 문서). 배포 zip(`scripts\make_release.ps1`)은 이들을 빼고 만듭니다.
+- `outputs/` 는 gitignore 가 아니고 작업 산출물이 수십만 개라 **`git add .` 를 쓰지 마세요.** 파일을 골라서 추가합니다.
+- 2026-09-26 재배치 전의 옛 스크립트(`build_db.py` 등 루트 파일)가 이력에 남아 있습니다.
+  **작업본을 `git checkout` 으로 옛 커밋으로 되돌리지 마세요.** 옛 `build_db.py` 는 지금과 전혀 다른 영상 시절 스크립트입니다.

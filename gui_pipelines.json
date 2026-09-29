@@ -533,6 +533,360 @@
           "default": 42
         }
       ]
+    },
+    {
+      "id": "video_cluster_color_labels",
+      "title": "7. 군집 색상 라벨 (DB SigLIP2 벡터)",
+      "script": "clustering/label_clusters_from_vectors.py",
+      "description": "3단계(영상 Person 클러스터링) assignments 의 군집마다 '노란색 상의' 같은 옷 색 라벨을 붙인다. 영상 track crop 도 Qdrant 에 siglip2 벡터가 있어 사진과 같은 방법(프롬프트 편향 보정 zscore + 군집 crop 일치율)으로 판정하고, crop 을 다시 인코딩하지 않는다. 클러스터링 뒤 DB 에서 지워진 point 는 경고만 남기고 건너뛴다. 결과 cluster_labels.jsonl 은 '인물 분류' 카드 이름으로 바로 쓰인다 (인물 분류에서 라벨 없는 결과를 불러오면 이 단계가 저절로 돈다).",
+      "args": [
+        {
+          "flag": "--assignments",
+          "label": "assignments jsonl",
+          "type": "path",
+          "default": "outputs/clustering/leiden_track_centroid/person/person_leiden_assignments.jsonl",
+          "help": "Leiden 또는 DBSCAN assignments"
+        },
+        {
+          "flag": "--config",
+          "label": "pipeline.yaml",
+          "type": "path",
+          "default": "pipeline.yaml",
+          "help": "컬렉션 이름과 Qdrant URL, siglip2 model_id 를 여기서 읽는다"
+        },
+        {
+          "flag": "--target",
+          "label": "대상",
+          "type": "choice",
+          "choices": [
+            "person",
+            "object"
+          ],
+          "default": "person"
+        },
+        {
+          "flag": "--collection",
+          "label": "컬렉션",
+          "type": "str",
+          "default": "",
+          "placeholder": "비우면 pipeline.yaml 의 대상 컬렉션",
+          "help": "비우면 yaml collection_prefix + _person"
+        },
+        {
+          "flag": "--output-dir",
+          "label": "출력 폴더",
+          "type": "dir",
+          "default": "outputs/clustering/leiden_track_centroid/person/labels_vec",
+          "help": "cluster_labels.jsonl/json, crop_labels.csv, cluster_labels.html, 벡터 캐시(cache/)"
+        },
+        {
+          "flag": "--calibration",
+          "label": "프롬프트 편향 보정",
+          "type": "choice",
+          "choices": [
+            "zscore",
+            "center",
+            "none"
+          ],
+          "default": "zscore",
+          "help": "none 은 특정 색 문장이 항상 이기는 편향이 남는다 (HTML 의 비교표 참고)"
+        },
+        {
+          "flag": "--margin",
+          "label": "1·2위 점수 차 하한",
+          "type": "float",
+          "default": 0.3,
+          "min": 0,
+          "help": "보정 점수 표준편차 단위. 낮추면 라벨이 늘고 정확도가 떨어진다"
+        },
+        {
+          "flag": "--min-share",
+          "label": "crop 일치율 하한",
+          "type": "float",
+          "default": 0.5,
+          "min": 0.01,
+          "max": 1,
+          "help": "군집 crop 중 후보 색을 1위로 고른 비율"
+        },
+        {
+          "flag": "--lang",
+          "label": "라벨 언어",
+          "type": "choice",
+          "choices": [
+            "ko",
+            "en"
+          ],
+          "default": "ko"
+        },
+        {
+          "flag": "--device",
+          "label": "장치",
+          "type": "str",
+          "default": "cuda",
+          "help": "텍스트 임베딩 수십 문장만 계산하므로 cpu 도 충분"
+        },
+        {
+          "flag": "--qdrant-url",
+          "label": "Qdrant URL",
+          "type": "str",
+          "default": "",
+          "placeholder": "비우면 pipeline.yaml (http://localhost:6333)",
+          "help": "비우면 pipeline.yaml 의 qdrant.url"
+        }
+      ]
+    },
+    {
+      "id": "video_cluster_qwen_labels",
+      "title": "7b. 군집 문장형 라벨 (Qwen3-VL)",
+      "script": "clustering/label_clusters_qwen.py",
+      "description": "영상 군집의 대표 track crop 몽타주를 Qwen3-VL-Instruct 에 보여 주고 '검은 코트에 검은 바지' 같은 옷차림 이름을 받는다 (상의·하의·소지품·crop 일치 여부 JSON, 성별·나이·신원은 묻지 않음). 7단계 색상 라벨보다 구체적이지만 GPU 로 군집당 1~2초 (16개씩 배치) + 모델 적재가 든다. RAM 이 빠듯하면(여유 3GB 미만) 다른 앱을 닫고 돌린다. 결과는 '인물 분류' 에서 색상 라벨보다 먼저 쓰인다.",
+      "args": [
+        {
+          "flag": "--assignments",
+          "label": "assignments jsonl",
+          "type": "path",
+          "default": "outputs/clustering/leiden_track_centroid/person/person_leiden_assignments.jsonl",
+          "help": "Leiden 또는 DBSCAN assignments"
+        },
+        {
+          "flag": "--config",
+          "label": "pipeline.yaml",
+          "type": "path",
+          "default": "pipeline.yaml"
+        },
+        {
+          "flag": "--target",
+          "label": "대상",
+          "type": "choice",
+          "choices": [
+            "person",
+            "object"
+          ],
+          "default": "person"
+        },
+        {
+          "flag": "--collection",
+          "label": "컬렉션",
+          "type": "str",
+          "default": "",
+          "placeholder": "비우면 pipeline.yaml 의 대상 컬렉션",
+          "help": "비우면 yaml collection_prefix + _person"
+        },
+        {
+          "flag": "--output-dir",
+          "label": "출력 폴더",
+          "type": "dir",
+          "default": "outputs/clustering/leiden_track_centroid/person/labels_qwen",
+          "help": "cluster_labels.jsonl/json, cluster_labels.html, montage/"
+        },
+        {
+          "flag": "--model-id",
+          "label": "Qwen 모델",
+          "type": "choice",
+          "choices": [
+            "Qwen/Qwen3-VL-2B-Instruct",
+            "Qwen/Qwen3-VL-4B-Instruct"
+          ],
+          "default": "Qwen/Qwen3-VL-2B-Instruct",
+          "help": "4B 가 옷 종류·소지품을 조금 더 구체적으로 적지만 로드에 RAM 9GB 이상이 비어 있어야 한다 (부족하면 세그폴트로 죽음)"
+        },
+        {
+          "flag": "--representatives",
+          "label": "몽타주 crop 수",
+          "type": "int",
+          "default": 6,
+          "min": 1,
+          "max": 12
+        },
+        {
+          "flag": "--batch-size",
+          "label": "배치 크기",
+          "type": "int",
+          "default": 16,
+          "min": 1,
+          "help": "VRAM 부족하면 줄인다"
+        },
+        {
+          "flag": "--max-clusters",
+          "label": "최대 군집 수",
+          "type": "int",
+          "default": 0,
+          "min": 0,
+          "help": "큰 군집부터. 0 이면 전부. 먼저 20 정도로 품질을 보고 전부 돌리면 좋다"
+        },
+        {
+          "flag": "--min-cluster-size",
+          "label": "최소 군집 크기",
+          "type": "int",
+          "default": 2,
+          "min": 1
+        },
+        {
+          "flag": "--lang",
+          "label": "라벨 언어",
+          "type": "choice",
+          "choices": [
+            "ko",
+            "en"
+          ],
+          "default": "ko"
+        },
+        {
+          "flag": "--keep-mixed",
+          "label": "불일치 군집에도 이름",
+          "type": "bool",
+          "default": false,
+          "help": "Qwen 이 crop 들이 서로 다른 옷차림이라고 한 군집에도 이름을 붙인다"
+        },
+        {
+          "flag": "--resume",
+          "label": "이어서 실행",
+          "type": "bool",
+          "default": false,
+          "help": "기존 cluster_labels.jsonl 에 있는 군집은 건너뛴다"
+        },
+        {
+          "flag": "--qdrant-url",
+          "label": "Qdrant URL",
+          "type": "str",
+          "default": "",
+          "placeholder": "비우면 pipeline.yaml (http://localhost:6333)",
+          "help": "비우면 pipeline.yaml 의 qdrant.url"
+        }
+      ]
+    },
+    {
+      "id": "video_cluster_folders",
+      "title": "8. 군집 폴더 내보내기 (라벨 포함)",
+      "script": "clustering/export_cluster_folders.py",
+      "description": "3단계(영상 Person 클러스터링) 군집을 폴더 하나씩으로 묶는다. 폴더 이름에 7·7b 단계 라벨이 들어간다 (예: c0001_n833_흰색-상의에-검은-바지_c4a6b373). 기본은 미리보기(--dry-run): 폴더·파일은 만들지 않고 index.html · manifest.csv 에 계획만 남긴다. 실제로 만들 때는 디스크를 쓰지 않는 --mode hardlink 를 권장. 영상은 PRW 정답이 없어 GT 매칭은 비워 둔다. 문장 라벨로 이름을 붙이려면 --labels 를 labels_qwen/cluster_labels.jsonl 로 바꾼다.",
+      "args": [
+        {
+          "flag": "--assignments",
+          "label": "assignments jsonl",
+          "type": "path",
+          "default": "outputs/clustering/leiden_track_centroid/person/person_leiden_assignments.jsonl",
+          "help": "Leiden 또는 DBSCAN assignments. 예: outputs/clustering/dbscan_image_prw/person/person_dbscan_assignments.jsonl"
+        },
+        {
+          "flag": "--config",
+          "label": "pipeline.yaml",
+          "type": "path",
+          "default": "pipeline.yaml",
+          "help": "컬렉션 이름(collection_prefix)과 Qdrant URL 을 여기서 읽는다"
+        },
+        {
+          "flag": "--target",
+          "label": "대상",
+          "type": "choice",
+          "choices": [
+            "person",
+            "object"
+          ],
+          "default": "person"
+        },
+        {
+          "flag": "--collection",
+          "label": "컬렉션",
+          "type": "str",
+          "default": "",
+          "placeholder": "비우면 pipeline.yaml 의 대상 컬렉션",
+          "help": "비우면 yaml collection_prefix + _person"
+        },
+        {
+          "flag": "--output-dir",
+          "label": "출력 폴더",
+          "type": "dir",
+          "default": "outputs/clustering/leiden_track_centroid/person/folders",
+          "help": "여기 아래에 군집 폴더들 + index.html + manifest.csv"
+        },
+        {
+          "flag": "--labels",
+          "label": "색상 라벨 jsonl (8단계)",
+          "type": "path",
+          "default": "outputs/clustering/leiden_track_centroid/person/labels_vec/cluster_labels.jsonl",
+          "help": "7단계(색상) 또는 7b단계(문장, labels_qwen/) 의 cluster_labels.jsonl. 비우면 라벨 없이 내보낸다"
+        },
+        {
+          "flag": "--group-by",
+          "label": "폴더 단위",
+          "type": "choice",
+          "choices": [
+            "cluster",
+            "gt-pid"
+          ],
+          "default": "cluster",
+          "help": "gt-pid: GT 인물 단위 폴더 (파일 앞에 군집 순위 c0001_). --gt-matches 필요"
+        },
+        {
+          "flag": "--mode",
+          "label": "파일 방식",
+          "type": "choice",
+          "choices": [
+            "copy",
+            "hardlink"
+          ],
+          "default": "copy",
+          "help": "hardlink 는 같은 드라이브에서 디스크를 안 쓴다 (실패하면 복사로 대체)"
+        },
+        {
+          "flag": "--dry-run",
+          "label": "미리보기만 (HTML, 복사 안 함)",
+          "type": "bool",
+          "default": true,
+          "help": "폴더·파일을 만들지 않고 폴더 이름·파일 이름 계획만 index.html / manifest.csv 로 낸다 (썸네일·링크는 원본 crop). 끄면 실제로 복사/하드링크한다"
+        },
+        {
+          "flag": "--list-limit",
+          "label": "폴더당 파일 이름 표시 수",
+          "type": "int",
+          "default": 200,
+          "min": 0,
+          "help": "index.html 에 폴더마다 보여줄 파일 이름 수. 0 이면 전부 (HTML 이 커진다)"
+        },
+        {
+          "flag": "--min-cluster-size",
+          "label": "최소 군집 크기",
+          "type": "int",
+          "default": 1,
+          "min": 1,
+          "help": "이보다 작은 군집은 _small 폴더에 모은다"
+        },
+        {
+          "flag": "--noise",
+          "label": "noise 처리",
+          "type": "choice",
+          "choices": [
+            "folder",
+            "skip"
+          ],
+          "default": "folder",
+          "help": "folder: _noise 폴더로 / skip: 내보내지 않음"
+        },
+        {
+          "flag": "--max-per-folder",
+          "label": "폴더당 최대 파일",
+          "type": "int",
+          "default": 0,
+          "min": 0,
+          "help": "0 이면 전부. 표본만 빨리 볼 때"
+        },
+        {
+          "flag": "--clean",
+          "label": "이전 내보내기 폴더 정리",
+          "type": "bool",
+          "default": false,
+          "help": "이전 export_report.json 에 기록된 폴더만 먼저 지운다"
+        },
+        {
+          "flag": "--qdrant-url",
+          "label": "Qdrant URL",
+          "type": "str",
+          "default": "",
+          "placeholder": "비우면 pipeline.yaml (http://localhost:6333)",
+          "help": "비우면 pipeline.yaml 의 qdrant.url"
+        }
+      ]
     }
   ],
   "image_pipeline": [

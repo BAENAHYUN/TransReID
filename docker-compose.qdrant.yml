@@ -1,0 +1,14 @@
+# Qdrant 벡터 DB — 이 도구가 쓰는 유일한 DB 서버.
+#   docker compose -f docker-compose.qdrant.yml up -d
+# 데이터는 프로젝트의 storage/ 폴더에 남는다 (컨테이너를 지워도 유지). 버전은 검증 환경(1.19.0)에 고정.
+# (docker-compose.yml 은 다른 실험용 Milvus/Postgres 스택이며 이 도구에는 필요 없다.)
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.19.0
+    container_name: qdrant_server
+    restart: unless-stopped
+    ports:
+      - "6333:6333"   # HTTP (pipeline.yaml 의 qdrant_url)
+      - "6334:6334"   # gRPC (라벨러·클러스터링의 대량 조회)
+    volumes:
+      - ./storage:/qdrant/storage

@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import html as _html
 
-from PySide6.QtCore import QSettings, QSize, Qt, QThread, Signal, QUrl
+from PySide6.QtCore import QSettings, QSize, Qt, QThread, QTimer, Signal, QUrl
 from PySide6.QtGui import QColor, QDesktopServices, QIcon, QPainter, QPixmap
 
 from gui.gui_theme import T, apply_theme
@@ -2126,6 +2126,21 @@ class VideoSearchPage(QWidget):
         QMessageBox.critical(self, "검색 실패", detail)
 
 
+def route_person_search(image_page: Any, video_page: Any, select: Callable[[str], Any], path: str,
+                        media: str = "image", target: str = "person", run: bool = True) -> str:
+    """인물 분류의 '이 사람으로 검색': 영상 결과는 '영상에서 찾기', 사진 결과는 '사진에서 찾기' 로 보내고
+    대상(사람/물건)을 맞춘 뒤 바로 검색한다. 고른 화면 키를 돌려준다 (테스트용 run=False 는 검색을 누르지 않음)."""
+    page, key = (video_page, "video_search") if media == "video" else (image_page, "image_search")
+    page._use_result_as_query(path)
+    i = page.image_scope.findData(target)
+    if i >= 0:
+        page.image_scope.setCurrentIndex(i)
+    select(key)
+    if run:
+        QTimer.singleShot(0, page.image_search_btn.click)
+    return key
+
+
 # =============================================================================
 # Main window
 # =============================================================================
@@ -2174,11 +2189,8 @@ class MainWindow(QMainWindow):
 
             people_page = PeoplePage()
 
-            def _search_person(path: str) -> None:
-                image_page._use_result_as_query(path)
-                shell.select("image_search")
-
-            people_page.searchRequested.connect(_search_person)
+            people_page.searchRequested.connect(
+                lambda path, media, target: route_person_search(image_page, video_page, shell.select, path, media, target))
             shell.add_page("people", "인물 분류", "people", people_page)
         except Exception as exc:  # noqa: BLE001
             self.statusBar().showMessage(f"인물 분류 페이지 로드 실패: {exc}")

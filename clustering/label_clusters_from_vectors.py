@@ -58,7 +58,50 @@ BANKS: Dict[str, Dict[str, Any]] = {
         "a person wearing a {c} top", "a person wearing a {c} shirt",
         "a pedestrian wearing {c} upper body clothing", "a photo of a person in a {c} jacket"]),
 }
+# 물건: 종류(자동차·자전거·가방…)는 검출기 payload 의 label 로 알고 있으니 색만 SigLIP2 로 정한다.
+# 이름 = '<색> <종류>' (예: 빨간색 자동차). part_ko 가 None 이면 군집의 다수 종류를 쓴다.
+OBJECT_BANKS: Dict[str, Dict[str, Any]] = {
+    "object_color": dict(part_ko=None, part_en=None, templates=[
+        "a {c} object", "a photo of a {c} object", "a {c} colored thing", "an object that is {c}"]),
+}
+# COCO 계열 검출기 label → 한국어 (없으면 영어 그대로)
+OBJECT_KO: Dict[str, str] = {
+    "person": "사람", "bicycle": "자전거", "car": "자동차", "motorcycle": "오토바이", "airplane": "비행기", "bus": "버스",
+    "train": "기차", "truck": "트럭", "boat": "배", "traffic light": "신호등", "fire hydrant": "소화전",
+    "stop sign": "정지 표지판", "parking meter": "주차 미터기", "bench": "벤치", "bird": "새", "cat": "고양이", "dog": "개",
+    "horse": "말", "sheep": "양", "cow": "소", "elephant": "코끼리", "bear": "곰", "zebra": "얼룩말", "giraffe": "기린",
+    "backpack": "백팩", "umbrella": "우산", "handbag": "핸드백", "tie": "넥타이", "suitcase": "여행가방", "frisbee": "원반",
+    "skis": "스키", "snowboard": "스노보드", "sports ball": "공", "kite": "연", "baseball bat": "야구방망이",
+    "baseball glove": "야구 글러브", "skateboard": "스케이트보드", "surfboard": "서핑보드", "tennis racket": "테니스 라켓",
+    "bottle": "병", "wine glass": "와인잔", "cup": "컵", "fork": "포크", "knife": "칼", "spoon": "숟가락", "bowl": "그릇",
+    "banana": "바나나", "apple": "사과", "sandwich": "샌드위치", "orange": "오렌지", "broccoli": "브로콜리", "carrot": "당근",
+    "hot dog": "핫도그", "pizza": "피자", "donut": "도넛", "cake": "케이크", "chair": "의자", "couch": "소파",
+    "potted plant": "화분", "bed": "침대", "dining table": "식탁", "toilet": "변기", "tv": "TV", "laptop": "노트북",
+    "mouse": "마우스", "remote": "리모컨", "keyboard": "키보드", "cell phone": "휴대폰", "microwave": "전자레인지",
+    "oven": "오븐", "toaster": "토스터", "sink": "싱크대", "refrigerator": "냉장고", "book": "책", "clock": "시계",
+    "vase": "꽃병", "scissors": "가위", "teddy bear": "곰인형", "hair drier": "헤어드라이어", "toothbrush": "칫솔",
+}
 CALIBRATIONS = ("zscore", "center", "none")
+
+
+def banks_for(target: Optional[str]) -> Dict[str, Dict[str, Any]]:
+    return OBJECT_BANKS if target == "object" else BANKS
+
+
+def object_name(label: Any, lang: str = "ko") -> str:
+    text = str(label or "").strip()
+    if not text:
+        return "물체" if lang == "ko" else "object"
+    return OBJECT_KO.get(text.lower(), text) if lang == "ko" else text
+
+
+def majority_class(point_ids: Sequence[str], classes: Dict[str, Any]) -> Tuple[Optional[str], float]:
+    """군집 구성원의 검출 label 중 가장 많은 것과 그 비율. label 이 하나도 없으면 (None, 0)."""
+    counts = Counter(str(classes[p]) for p in point_ids if classes.get(p))
+    if not counts:
+        return None, 0.0
+    label, n = counts.most_common(1)[0]
+    return label, n / max(1, sum(counts.values()))
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -144,25 +187,32 @@ def uncertain_word(lang: str) -> str:
     return "불확실" if lang == "ko" else "uncertain"
 
 
-def compose_name(votes: Dict[str, Dict[str, Any]], lang: str) -> Tuple[str, float, str, str]:
+def compose_name(votes: Dict[str, Dict[str, Any]], lang: str, banks: Optional[Dict[str, Dict[str, Any]]] = None,
+                 part: Optional[str] = None) -> Tuple[str, float, str, str]:
     """bank 별 결정 → (이름, 신뢰도, 설명, status). 채택된 색이 없으면 이름은 빈 문자열(폴더 이름에 안 붙음).
-    tentative 는 이름 뒤에 '(추정)'. 신뢰도 = 채택 bank 의 평균 일치율."""
+    tentative 는 이름 뒤에 '(추정)'. 신뢰도 = 채택 bank 의 평균 일치율.
+    물건(banks=OBJECT_BANKS)은 part 에 군집의 종류 이름을 주고, 색을 못 정해도 종류만으로 이름을 붙인다
+    (status 'class_only' — 예: '자전거')."""
+    banks = banks or BANKS
     parts, shares, desc = [], [], []
     status = "uncertain"
-    for bank_name, bank in BANKS.items():
+    for bank_name, bank in banks.items():
         v = votes.get(bank_name) or {}
         label = color_name(v.get("label"), lang)
-        part = bank["part_ko"] if lang == "ko" else bank["part_en"]
+        word = (bank["part_ko"] if lang == "ko" else bank["part_en"]) or part or ("물체" if lang == "ko" else "object")
         desc.append(f"{bank_name}={color_name(v.get('label'), 'en') or 'uncertain'} [{v.get('status', 'uncertain')}] "
                     f"(candidate={v.get('candidate')}, margin={v.get('margin', 0.0):.2f}, "
                     f"agreement={v.get('agreement', 0.0):.2f}, n={v.get('n', 0)})")
         if label is None:
             continue
         tentative = v.get("status") == "tentative"
-        parts.append(f"{label} {part}" + (("(추정)" if lang == "ko" else " (tentative)") if tentative else ""))
+        parts.append(f"{label} {word}" + (("(추정)" if lang == "ko" else " (tentative)") if tentative else ""))
         shares.append(v["agreement"])
         status = "tentative" if tentative or status == "tentative" else "labeled"
     confidence = float(np.mean(shares)) if shares else 0.0
+    if not parts and part and any(b["part_ko"] is None for b in banks.values()):
+        # 물건인데 색을 못 정했다 — 종류(검출 label)만으로 이름을 붙인다
+        return part, 0.0, ", ".join(desc), "class_only"
     return " · ".join(parts), confidence, ", ".join(desc), status
 
 
@@ -191,7 +241,9 @@ def gt_consistency(gt: Dict[str, Any], ids: Sequence[str], top: np.ndarray, conf
 # 데이터 접근
 # ----------------------------------------------------------------------------------------------------
 def fetch_vectors(qdrant_url: str, api_key: Optional[str], collection: str, vector_name: str,
-                  ids: Sequence[str], batch_size: int = 512) -> np.ndarray:
+                  ids: Sequence[str], batch_size: int = 512) -> Tuple[List[str], np.ndarray]:
+    """(찾은 point id — ids 순서 유지, 그 벡터 행렬). DB 에서 지워졌거나 벡터가 없는 point 는 빠진다
+    (assignments 가 DB 보다 오래되면 생긴다 — 영상 DB 정리 뒤의 옛 군집 결과 등). 하나도 없으면 예외."""
     from qdrant_client import QdrantClient
     client = QdrantClient(url=qdrant_url, api_key=api_key, prefer_grpc=True, timeout=120)
     rows: Dict[str, np.ndarray] = {}
@@ -205,22 +257,50 @@ def fetch_vectors(qdrant_url: str, api_key: Optional[str], collection: str, vect
                 rows[str(record.id)] = np.asarray(vec, dtype=np.float32)
         if (start // batch_size) % 20 == 0:
             print(f"  vectors {min(start + batch_size, len(ids)):,}/{len(ids):,} ({time.time() - started:.0f}s)")
-    missing = [pid for pid in ids if pid not in rows]
-    if missing:
-        raise RuntimeError(f"{vector_name} 벡터가 없는 point {len(missing):,}개 (예: {missing[0]})")
-    dim = len(next(iter(rows.values())))
-    return np.stack([rows[pid] for pid in ids]).reshape(len(ids), dim)
+    found = [str(pid) for pid in ids if str(pid) in rows]
+    if not found:
+        raise RuntimeError(f"{vector_name} 벡터가 있는 point 가 하나도 없다 ({len(ids):,}개 요청, collection={collection})")
+    dim = len(rows[found[0]])
+    return found, np.stack([rows[pid] for pid in found]).reshape(len(found), dim)
 
 
-def load_or_fetch_vectors(cache: Path, ids: Sequence[str], fetch) -> Tuple[np.ndarray, bool]:
+def fetch_payload_field(qdrant_url: str, api_key: Optional[str], collection: str, field: str, ids: Sequence[str],
+                        batch_size: int = 1024) -> Dict[str, Any]:
+    """point id → payload[field] (물건의 검출 종류 label 등). 벡터는 읽지 않는다."""
+    from qdrant_client import QdrantClient
+    client = QdrantClient(url=qdrant_url, api_key=api_key, prefer_grpc=True, timeout=120)
+    out: Dict[str, Any] = {}
+    for start in range(0, len(ids), batch_size):
+        for record in client.retrieve(collection, ids=list(ids[start:start + batch_size]), with_payload=[field], with_vectors=False):
+            value = (record.payload or {}).get(field)
+            if value not in (None, ""):
+                out[str(record.id)] = value
+    return out
+
+
+def drop_missing(ordered: List[Tuple[str, List[Dict[str, Any]]]], used_rows: List[Dict[str, Any]], ids: Sequence[str],
+                 found: Sequence[str]) -> Tuple[List[Tuple[str, List[Dict[str, Any]]]], List[Dict[str, Any]], List[str], int]:
+    """벡터를 못 찾은 point 를 군집·행·id 목록에서 뺀다. 구성원이 모두 빠진 군집은 없앤다. (ordered, used_rows, ids, 뺀 수)."""
+    keep = set(map(str, found))
+    n_missing = len(ids) - len(keep)
+    if not n_missing:
+        return ordered, used_rows, list(ids), 0
+    ordered = [(cid, kept) for cid, kept in ((cid, [m for m in members if str(m["point_id"]) in keep]) for cid, members in ordered) if kept]
+    used_rows = [row for row in used_rows if str(row["point_id"]) in keep]
+    return ordered, used_rows, [pid for pid in ids if pid in keep], n_missing
+
+
+def load_or_fetch_vectors(cache: Path, ids: Sequence[str], fetch) -> Tuple[List[str], np.ndarray, bool]:
+    """(찾은 id, 행렬, 캐시 사용 여부). 캐시 키는 요청한 ids 전체; 찾은 id 는 found 로 따로 저장 (옛 캐시는 전부 찾은 것으로 본다)."""
     if cache.is_file():
         data = np.load(cache, allow_pickle=False)
         if list(data["ids"]) == list(ids):
-            return data["matrix"], True
-    matrix = fetch()
+            found = [str(x) for x in data["found"]] if "found" in data.files else [str(x) for x in data["ids"]]
+            return found, data["matrix"], True
+    found, matrix = fetch()
     cache.parent.mkdir(parents=True, exist_ok=True)
-    np.savez(cache, ids=np.asarray(ids), matrix=matrix.astype(np.float32))
-    return matrix, False
+    np.savez(cache, ids=np.asarray(ids), found=np.asarray(found), matrix=matrix.astype(np.float32))
+    return list(found), matrix, False
 
 
 def build_embedder(settings, model_id: Optional[str], device: str):
@@ -255,7 +335,7 @@ def write_html(path: Path, title: str, summary: Dict[str, Any], records: List[Di
                       f"<td>{esc(', '.join(f'{k} {v:,}' for k, v in list(metrics['label_counts'].items())[:6]))}</td></tr>")
     rows = ""
     for r in records:
-        up = r["scores"].get("upper_color", {})
+        up = next(iter(r["scores"].values()), {})      # 첫 bank (사람=상의 색, 물건=물건 색)
         rows += (f"<tr><td>{r['rank']}</td><td><code>{esc(r['cluster_id'])}</code></td><td>{r['cluster_size']:,}</td>"
                  f"<td><b>{esc(r['display_name'])}</b></td><td>{r['label_confidence']:.2f}</td>"
                  f"<td>{esc(up.get('candidate'))}</td><td>{up.get('margin', 0.0):.2f}</td><td>{up.get('agreement', 0.0):.2f}</td>"
@@ -382,25 +462,41 @@ def main(argv=None) -> int:
     print(f"clusters    : {len(ordered):,}   crops: {len(ids):,}   noise included: {args.include_noise}")
     print(f"collection  : {args.collection}   vector: {args.vector}   calibration: {args.calibration}")
 
-    matrix, from_cache = load_or_fetch_vectors(
+    found, matrix, from_cache = load_or_fetch_vectors(
         cache, ids, lambda: fetch_vectors(args.qdrant_url, args.api_key, args.collection, args.vector, ids))
     print(f"vectors     : {matrix.shape} ({'cache ' + str(cache) if from_cache else 'fetched from Qdrant'})")
+    ordered, used_rows, ids, n_missing = drop_missing(ordered, used_rows, ids, found)
+    if n_missing:
+        if n_missing * 2 > n_missing + len(ids):
+            build_parser().error(f"DB 에 없는 point 가 절반을 넘는다 ({n_missing:,}/{n_missing + len(ids):,}) — "
+                                 f"assignments 와 collection({args.collection}) 이 맞는지 확인")
+        msg = f"DB 에 없는(삭제된) point {n_missing:,}개는 건너뜀 — assignments 가 DB 보다 오래됨"
+        print(f"WARNING     : {msg}")
+        warnings.append(warning("MISSING_POINTS", msg, target))
+    index_of = {pid: i for i, pid in enumerate(ids)}
     matrix = l2n(matrix.astype(np.float32))
 
     embedder = build_embedder(settings, args.model_id, args.device)
     model_id = embedder.model_id
     if matrix.shape[1] != embedder.DIM:
         build_parser().error(f"벡터 차원 {matrix.shape[1]} != 텍스트 모델 차원 {embedder.DIM} ({model_id}) — 같은 모델이어야 한다")
+    banks = banks_for(target)
+    primary = next(iter(banks))
+    # 물건은 종류(검출 label)를 payload 에서 읽어 이름에 쓴다 (예: 빨간색 자동차)
+    classes: Dict[str, Any] = {}
+    if target == "object":
+        classes = fetch_payload_field(args.qdrant_url, args.api_key, args.collection, "label", ids)
+        print(f"classes     : {len(classes):,}/{len(ids):,} points have a detector label")
     text_matrices: Dict[str, np.ndarray] = {}
-    for bank_name, bank in BANKS.items():
+    for bank_name, bank in banks.items():
         texts = [text for _, text in prompt_texts(bank)]
         text_matrices[bank_name] = color_text_matrix(embedder.embed_text(texts), bank)
     raw_scores = {bank_name: matrix @ tm.T for bank_name, tm in text_matrices.items()}
 
-    # 보정 방식 비교 (상의 기준) — GT 가 있으면 일관성, 없으면 다양성·확신 비율만
+    # 보정 방식 비교 (첫 bank 기준: 사람=상의, 물건=물건 색) — GT 가 있으면 일관성, 없으면 다양성·확신 비율만
     comparison: Dict[str, Any] = {}
     for method in CALIBRATIONS:
-        top, margins, confident = crop_decisions(calibrate(raw_scores["upper_color"], method), args.margin)
+        top, margins, confident = crop_decisions(calibrate(raw_scores[primary], method), args.margin)
         comparison[method] = gt_consistency(gt or {}, ids, top, confident)
         if not gt:
             comparison[method]["mean_agreement"] = None
@@ -413,22 +509,31 @@ def main(argv=None) -> int:
         indices = [index_of[str(m["point_id"])] for m in members]
         votes = {bank_name: cluster_decision(indices, calibrated[bank_name], decisions[bank_name][0],
                                              thresholds[bank_name], args.min_share)
-                 for bank_name in BANKS}
-        name, confidence, description, status = compose_name(votes, args.lang)
+                 for bank_name in banks}
+        extra: Dict[str, Any] = {}
+        part = None
+        if target == "object":
+            cls, share = majority_class([str(m["point_id"]) for m in members], classes)
+            part = object_name(cls, args.lang)
+            extra = dict(object_class=cls, object_class_share=round(share, 3))
+        name, confidence, description, status = compose_name(votes, args.lang, banks, part=part)
+        if extra.get("object_class"):
+            description += f", class={extra['object_class']} ({extra['object_class_share']:.0%})"
         records.append(dict(cluster_id=cid, rank=rank, cluster_size=len(members), cluster_name=name,
                             display_name=name or uncertain_word(args.lang), status=status,
                             label_confidence=confidence, cluster_description=description, scores=votes,
                             method=dict(calibration=args.calibration, margin=args.margin, vector=args.vector,
-                                        model_id=model_id)))
+                                        model_id=model_id), **extra))
 
     (out_dir / "cluster_labels.jsonl").write_text(
         "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records), encoding="utf-8", newline="\n")
     write_json(out_dir / "cluster_labels.json", records)
     with (out_dir / "crop_labels.csv").open("w", encoding="utf-8-sig", newline="") as stream:
         writer = csv.writer(stream)
-        writer.writerow(["point_id", "cluster_id", "upper_color", "upper_margin", "upper_confident", "gt_pid"])
+        prefix = primary.replace("_color", "")        # upper (사람, 예전과 같은 열 이름) / object
+        writer.writerow(["point_id", "cluster_id", f"{prefix}_color", f"{prefix}_margin", f"{prefix}_confident", "gt_pid"])
         cluster_of = {str(row["point_id"]): row.get("cluster_id") for row in used_rows}
-        up_top, up_margin, up_conf = decisions["upper_color"]
+        up_top, up_margin, up_conf = decisions[primary]
         for i, pid in enumerate(ids):
             writer.writerow([pid, cluster_of.get(pid) or "", COLORS[int(up_top[i])][0], f"{up_margin[i]:.3f}",
                              int(up_conf[i]), "" if gt is None or gt.get(pid) is None else gt[pid]])
@@ -459,7 +564,7 @@ def main(argv=None) -> int:
     write_json(report_path, summary)
 
     print("-" * 88)
-    print("calibration comparison (upper color):")
+    print(f"calibration comparison ({primary}):")
     for method, metrics in comparison.items():
         agreement = metrics.get("mean_agreement")
         print(f"  {method:7s} consistency={'n/a' if agreement is None else f'{agreement:.3f}'}  "

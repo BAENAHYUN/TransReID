@@ -16,3 +16,4 @@ bench/combos/
 eval/gt/object_pairs/tracks_*.npz
 eval/results/qwen_verify/*/qwen/
 gui_tool_choice.json
+dist/

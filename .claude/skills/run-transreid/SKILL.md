@@ -52,7 +52,7 @@ D=.claude/skills/run-transreid/driver.py
 | `status` | 창 목록: pid, hwnd, rect, 제목. 없으면 `not running`. |
 | `ss OUT.png` | `PrintWindow` 캡처. 다른 창에 가려져 있어도 GUI 내용이 찍힌다. |
 | `tab NAME [--ss]` | 사이드바 페이지 전환. NAME ∈ `사진에서 찾기` `영상에서 찾기` `인물 분류` `영상 처리` `사진 처리` `도구` `결과 보기` `평가 / 비교` `정답 라벨링` `벤치마크` (옛 이름 `이미지 검색` `영상 검색` `영상 파이프라인` `이미지 파이프라인` 도 같은 항목). |
-| `step N [--tab NAME] [--ss]` | 파이프라인 탭 왼쪽 단계 목록의 N 번째 **보이는** 항목 선택 (기본은 핵심 4단계만 보임 — 검출/임베딩/클러스터/결과창; '추가 작업 보기' 를 켜면 영상 6, 이미지 12). `--tab` 으로 먼저 페이지 전환. 목록은 x=340, 1단계 y=140, 간격 32 (960×939 캡처 실측; 그룹 설명 줄 수가 바뀌면 `ss` 로 다시 잰다). |
+| `step N [--tab NAME] [--ss]` | 파이프라인 탭 왼쪽 단계 목록의 N 번째 **보이는** 항목 선택 (기본은 핵심 4단계만 보임 — 검출/임베딩/클러스터/결과창; '추가 작업 보기' 를 켜면 영상 9, 이미지 12). `--tab` 으로 먼저 페이지 전환. 목록은 x=340, 1단계 y=140, 간격 32 (960×939 캡처 실측; 그룹 설명 줄 수가 바뀌면 `ss` 로 다시 잰다). |
 | `click X Y [--ss]` | 임의 **창 좌표**(프레임 포함, 캡처 PNG 의 픽셀 좌표와 동일) 클릭. |
 | `type TEXT` / `key NAME` | 포커스 위젯에 문자열(WM_CHAR) / 키(enter, tab, down …). 검색창은 `click 530 152` 로 먼저 포커스. |
 | `quit [--wait 10]` | `WM_CLOSE` 로 정상 종료(실측 0.3초). 무응답이면 `taskkill /F`. |
@@ -79,7 +79,7 @@ for g in pp.load_registry():
 "
 ```
 
-기대 출력: `video_pipeline 6 …`, `image_pipeline 12 …`, `evaluation 14 …` (2026-09-28: 이미지 12 = 핵심 4 `core` 단계 + 추가 8; 핵심 단계는 `core_title`, 폼은 `basic` 필드만 기본 표시).
+기대 출력: `video_pipeline 9 …`, `image_pipeline 12 …`, `evaluation 14 …` (2026-09-28: 영상 9 = 핵심 4 + object·갤러리 2 + 군집 라벨 2 + 폴더 내보내기; 이미지 12 = 핵심 4 `core` 단계 + 추가 8; 핵심 단계는 `core_title`, 폼은 `basic` 필드만 기본 표시).
 (2026-09-26 재배치: `pipeline_page.py`/`gui_theme.py` 는 `gui/` 패키지, 단계 스크립트는
 `detect/ video/ ingest/ clustering/ search/ verifiers/ report/` 아래에 있고 `gui_pipelines.json` 의
 `script` 값이 그 상대경로다.)

@@ -169,5 +169,68 @@ class ConsistencyTests(unittest.TestCase):
         self.assertEqual((args.calibration, args.lang, args.min_share), ("zscore", "ko", 0.5))
 
 
+class ObjectLabelTests(unittest.TestCase):
+    """물건: 이름 = '<색> <종류>' (종류는 검출 label 다수결), 색을 못 정하면 종류만 (status class_only)."""
+
+    def test_banks_and_names(self):
+        self.assertIs(lab.banks_for("object"), lab.OBJECT_BANKS)
+        self.assertIs(lab.banks_for("person"), lab.BANKS)
+        self.assertIs(lab.banks_for(None), lab.BANKS)
+        self.assertEqual(lab.object_name("car"), "자동차")
+        self.assertEqual(lab.object_name("Motorcycle"), "오토바이")
+        self.assertEqual(lab.object_name("forklift"), "forklift")                  # 사전에 없으면 영어 그대로
+        self.assertEqual(lab.object_name(None), "물체")
+        self.assertEqual(lab.object_name("car", "en"), "car")
+        self.assertEqual(len(lab.prompt_texts(lab.OBJECT_BANKS["object_color"])), len(lab.COLORS) * 4)
+
+    def test_majority_class(self):
+        classes = {"a": "car", "b": "car", "c": "truck"}
+        self.assertEqual(lab.majority_class(["a", "b", "c", "d"], classes), ("car", 2 / 3))
+        self.assertEqual(lab.majority_class(["x"], classes), (None, 0.0))
+
+    def test_compose_object_name(self):
+        votes = {"object_color": dict(label=IDX["red"], status="labeled", candidate="red", margin=1.0, agreement=0.9, n=10)}
+        name, conf, desc, status = lab.compose_name(votes, "ko", lab.OBJECT_BANKS, part="자동차")
+        self.assertEqual((name, status), ("빨간색 자동차", "labeled"))
+        self.assertAlmostEqual(conf, 0.9)
+        votes["object_color"]["status"] = "tentative"
+        self.assertEqual(lab.compose_name(votes, "ko", lab.OBJECT_BANKS, part="자동차")[0], "빨간색 자동차(추정)")
+        uncertain = {"object_color": dict(label=None, status="uncertain", candidate="red", margin=0.1, agreement=0.3, n=10)}
+        self.assertEqual(lab.compose_name(uncertain, "ko", lab.OBJECT_BANKS, part="자전거")[::3], ("자전거", "class_only"))
+        # 사람은 색이 없으면 여전히 이름 없음
+        person = {"upper_color": dict(label=None, status="uncertain", candidate="red", margin=0.1, agreement=0.3, n=10)}
+        self.assertEqual(lab.compose_name(person, "ko")[::3], ("", "uncertain"))
+
+
+class MissingPointTests(unittest.TestCase):
+    """assignments 가 DB 보다 오래돼 지워진 point 가 있어도 라벨은 나머지로 붙인다 (영상 DB 정리 뒤의 옛 군집 결과)."""
+
+    def test_drop_missing(self):
+        rows = [{"point_id": p, "cluster_id": c} for p, c in (("a", "c1"), ("b", "c1"), ("x", "c2"), ("d", "c3"))]
+        ordered = [("c1", rows[:2]), ("c2", [rows[2]]), ("c3", [rows[3]])]
+        o, used, ids, n = lab.drop_missing(ordered, rows, ["a", "b", "x", "d"], ["a", "b", "d"])
+        self.assertEqual(n, 1)
+        self.assertEqual([(cid, [m["point_id"] for m in mem]) for cid, mem in o], [("c1", ["a", "b"]), ("c3", ["d"])])  # 빈 군집 제거
+        self.assertEqual([r["point_id"] for r in used], ["a", "b", "d"])
+        self.assertEqual(ids, ["a", "b", "d"])
+        same = lab.drop_missing(ordered, rows, ["a", "b", "x", "d"], ["a", "b", "x", "d"])
+        self.assertEqual((same[0], same[3]), (ordered, 0))
+
+    def test_cache_keeps_found_ids(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as td:
+            cache = Path(td) / "c.npz"
+            calls = []
+            fetch = lambda: calls.append(1) or (["a", "c"], np.ones((2, 3), np.float32))  # noqa: E731
+            found, m, from_cache = lab.load_or_fetch_vectors(cache, ["a", "b", "c"], fetch)
+            self.assertEqual((found, m.shape, from_cache), (["a", "c"], (2, 3), False))
+            found, m, from_cache = lab.load_or_fetch_vectors(cache, ["a", "b", "c"], fetch)
+            self.assertEqual((found, m.shape, from_cache, len(calls)), (["a", "c"], (2, 3), True, 1))   # 요청 ids 가 같으면 캐시
+            np.savez(cache, ids=np.asarray(["a", "b"]), matrix=np.zeros((2, 3), np.float32))       # 옛 캐시(found 없음)
+            found, _m, from_cache = lab.load_or_fetch_vectors(cache, ["a", "b"], fetch)
+            self.assertEqual((found, from_cache), (["a", "b"], True))
+
+
 if __name__ == "__main__":
     unittest.main()
