@@ -110,7 +110,8 @@ class IndexTests(unittest.TestCase):
         labels = PI.load_labels(run)
         a = labels["leiden:person:aaaa1111"]
         self.assertEqual((a["name"], a["status"], a["kind"], a["dir"]), ("노란 반팔에 검은 바지", "labeled", "Qwen 문장", "labels_qwen"))
-        self.assertEqual(a["others"], [{"name": "노란색 상의", "kind": "색상(SigLIP2)", "status": "labeled", "dir": "labels_vec"}])
+        self.assertEqual(a["others"], [{"name": "노란색 상의", "kind": "색상(SigLIP2)", "status": "labeled", "dir": "labels_vec", "note": ""}])
+        self.assertEqual(a["note"], "")                                           # 그 종류의 유일한 폴더에는 폴더 이름을 안 붙인다
         b = labels["leiden:person:bbbb2222"]
         self.assertEqual((b["name"], b["status"], b["kind"], b["others"]), ("검은색 상의(추정)", "tentative", "색상(SigLIP2)", []))
         self.assertNotIn("leiden:person:cccc3333", labels)                       # uncertain(이름 없음) 은 없는 것

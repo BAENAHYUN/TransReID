@@ -362,12 +362,20 @@ def load_labels(run: Dict[str, Any], clusters: Optional[Iterable[str]] = None) -
     여러 라벨 파일이 있으면 확정 > 추정, 같은 등급이면 Qwen 문장 > 색상 을 대표로 두고 나머지는 others 에 남긴다."""
     keep = set(clusters) if clusters is not None else None
     best: Dict[str, Dict[str, Any]] = {}
-    for order, src in enumerate(find_labels(run)):
+    sources = find_labels(run)
+    # 폴더 이름 표시: 같은 종류의 라벨 폴더가 여럿일 때 대표(첫) 폴더가 아닌 것에만 (labels_qwen_sample4b 등)
+    first_of_kind: Dict[str, str] = {}
+    kind_count: Dict[str, int] = {}
+    for src in sources:
+        first_of_kind.setdefault(src["kind"], src["dir"])
+        kind_count[src["kind"]] = kind_count.get(src["kind"], 0) + 1
+    for order, src in enumerate(sources):
+        note = src["dir"] if kind_count[src["kind"]] > 1 and first_of_kind[src["kind"]] != src["dir"] else ""
         for cid, rec in read_labels(src["path"]).items():
             if keep is not None and cid not in keep:
                 continue
             status = str(rec.get("status"))
-            entry = {"name": str(rec["cluster_name"]).strip(), "status": status, "kind": src["kind"], "dir": src["dir"],
+            entry = {"name": str(rec["cluster_name"]).strip(), "status": status, "kind": src["kind"], "dir": src["dir"], "note": note,
                      "confidence": float(rec.get("label_confidence") or 0.0), "desc": str(rec.get("cluster_description") or "")}
             rank = (STATUS_RANK.get(status, 3), src["priority"], order)
             cur = best.get(cid)
@@ -391,13 +399,14 @@ def load_labels(run: Dict[str, Any], clusters: Optional[Iterable[str]] = None) -
 
 
 def _other(e: Dict[str, Any]) -> Dict[str, Any]:
-    return {k: e[k] for k in ("name", "kind", "status", "dir")}
+    return {k: e.get(k, "") for k in ("name", "kind", "status", "dir", "note")}
 
 
 def _kind_tag(e: Dict[str, Any]) -> str:
-    """'Qwen 문장' — 기본 폴더가 아니면(labels_qwen_sample4b 등) 폴더 이름을 덧붙여 구분한다."""
-    d = str(e.get("dir") or "")
-    return e["kind"] if not d or d in {k[0] for k in LABEL_KINDS} else f"{e['kind']} · {d}"
+    """'Qwen 문장' — 같은 종류의 폴더가 여럿이고 대표 폴더가 아니면(labels_qwen_sample4b 등) 폴더 이름을 덧붙인다.
+    (dbscan 결과의 labels_qwen_dbscan 처럼 그 종류의 유일한 폴더에는 붙이지 않는다)"""
+    note = str(e.get("note") or "")
+    return f"{e['kind']} · {note}" if note else e["kind"]
 
 
 def label_line(entry: Optional[Dict[str, Any]]) -> str:

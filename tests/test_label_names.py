@@ -23,6 +23,10 @@ class ColorTests(unittest.TestCase):
         self.assertIsNone(N.color_of("모름"))
         self.assertIsNone(N.color_of(""))
         self.assertEqual(N.color_of("흰 셔츠와 검은 바지"), ("흰", "흰"))            # 가장 앞의 색
+        self.assertEqual(N.color_of("하의의 색은 붉은색입니다"), ("빨", "빨간"))
+        self.assertEqual(N.color_stems("하의의 색은 붉은색입니다"), {"빨"})          # '붉은색' 안의 '은색' 을 회색으로 세지 않음
+        self.assertIsNone(N.color_of("옅은색 바지"))
+        self.assertEqual(N.color_of("은빛 재킷"), ("회", "회색"))
 
     def test_stems_and_vague(self):
         self.assertEqual(N.color_stems("white 가방, red 색의 신발"), {"흰", "빨"})
